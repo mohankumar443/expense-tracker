@@ -1,0 +1,19 @@
+/* To learn more about this file see: https://angular.io/config/tsconfig. */
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "outDir": "./dist/out-tsc",
+        "types": []
+    },
+    "files": [
+        "src/main.ts",
+        "src/app/app.component.ts",
+        "src/app/app.module.ts",
+        "src/app/components/expense-form/expense-form.component.ts",
+        "src/app/components/expense-list/expense-list.component.ts",
+        "src/app/services/expense.service.ts"
+    ],
+    "include": [
+        "src/**/*.d.ts"
+    ]
+}

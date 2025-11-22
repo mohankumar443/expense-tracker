@@ -1,0 +1,358 @@
+<div>
+    <!-- View Toggle -->
+    <div class="flex justify-end mb-6">
+        <div class="inline-flex rounded-lg border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-1">
+            <button (click)="viewMode = 'cards'" [class.bg-primary]="viewMode === 'cards'"
+                [class.text-white]="viewMode === 'cards'" [class.text-gray-600]="viewMode !== 'cards'"
+                [class.dark:text-gray-400]="viewMode !== 'cards'"
+                class="px-4 py-2 rounded-md font-bold transition-all duration-200 flex items-center space-x-2">
+                <span class="material-icons text-sm">grid_view</span>
+                <span>Cards</span>
+            </button>
+            <button (click)="viewMode = 'table'" [class.bg-primary]="viewMode === 'table'"
+                [class.text-white]="viewMode === 'table'" [class.text-gray-600]="viewMode !== 'table'"
+                [class.dark:text-gray-400]="viewMode !== 'table'"
+                class="px-4 py-2 rounded-md font-bold transition-all duration-200 flex items-center space-x-2">
+                <span class="material-icons text-sm">table_rows</span>
+                <span>Table</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Cards View -->
+    <div *ngIf="viewMode === 'cards'" class="space-y-8">
+        <!-- Credit Cards Section -->
+        <div id="credit-cards" *ngIf="creditCards.length > 0">
+            <div class="flex items-center justify-between mb-4 cursor-pointer group"
+                (click)="creditCardsCollapsed = !creditCardsCollapsed">
+                <h3 class="text-2xl font-black text-gray-900 dark:text-white flex items-center">
+                    <span class="material-icons text-blue-500 mr-2">credit_card</span>
+                    Credit Cards
+                    <span class="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">({{ creditCards.length
+                        }})</span>
+                </h3>
+                <span
+                    class="material-icons text-gray-500 dark:text-gray-400 transform transition-transform duration-300 group-hover:text-primary"
+                    [class.rotate-180]="creditCardsCollapsed">expand_more</span>
+            </div>
+            <div *ngIf="!creditCardsCollapsed" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div *ngFor="let account of creditCards"
+                    class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 border-2 border-gray-200 dark:border-gray-700 hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                    <div class="flex justify-between items-start mb-3">
+                        <h4 class="font-bold text-gray-900 dark:text-white text-lg">{{ account.name }}</h4>
+                        <span [class]="'px-3 py-1 rounded-full text-xs font-bold ' + getAprBadgeClass(account.apr)">
+                            {{ account.apr }}% APR
+                        </span>
+                    </div>
+                    <div class="text-3xl font-black text-gray-900 dark:text-white mb-2">
+                        ${{ account.currentBalance | number:'1.0-0' }}
+                    </div>
+                    <div *ngIf="account.monthlyPayment" class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        Monthly: ${{ account.monthlyPayment | number:'1.0-0' }}
+                    </div>
+                    <div *ngIf="isPromoExpiringSoon(account)"
+                        class="bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-lg p-2 mt-2">
+                        <p class="text-xs font-bold text-yellow-800 dark:text-yellow-300 flex items-center">
+                            <span class="material-icons text-sm mr-1">warning</span>
+                            Promo expires {{ account.promoExpirationDate | date:'MMM yyyy' }}
+                        </p>
+                    </div>
+                    <p *ngIf="account.notes" class="text-xs text-gray-500 dark:text-gray-400 mt-2">{{ account.notes }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Personal Loans Section -->
+        <div id="personal-loans" *ngIf="personalLoans.length > 0">
+            <div class="flex items-center justify-between mb-4 cursor-pointer group"
+                (click)="personalLoansCollapsed = !personalLoansCollapsed">
+                <h3 class="text-2xl font-black text-gray-900 dark:text-white flex items-center">
+                    <span class="material-icons text-purple-500 mr-2">account_balance</span>
+                    Personal Loans
+                    <span class="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">({{ personalLoans.length
+                        }})</span>
+                </h3>
+                <span
+                    class="material-icons text-gray-500 dark:text-gray-400 transform transition-transform duration-300 group-hover:text-primary"
+                    [class.rotate-180]="personalLoansCollapsed">expand_more</span>
+            </div>
+            <div *ngIf="!personalLoansCollapsed" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div *ngFor="let account of personalLoans"
+                    class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 border-2 border-gray-200 dark:border-gray-700 hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                    <div class="flex justify-between items-start mb-3">
+                        <h4 class="font-bold text-gray-900 dark:text-white text-lg">{{ account.name }}</h4>
+                        <span [class]="'px-3 py-1 rounded-full text-xs font-bold ' + getAprBadgeClass(account.apr)">
+                            {{ account.apr }}% APR
+                        </span>
+                    </div>
+                    <div class="text-3xl font-black text-gray-900 dark:text-white mb-2">
+                        ${{ account.currentBalance | number:'1.0-0' }}
+                    </div>
+                    <div *ngIf="account.monthlyPayment" class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        Monthly: ${{ account.monthlyPayment | number:'1.0-0' }}
+                    </div>
+                    <p *ngIf="account.notes" class="text-xs text-gray-500 dark:text-gray-400 mt-2">{{ account.notes }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Auto Loans Section -->
+        <div id="auto-loans" *ngIf="autoLoans.length > 0">
+            <div class="flex items-center justify-between mb-4 cursor-pointer group"
+                (click)="autoLoansCollapsed = !autoLoansCollapsed">
+                <h3 class="text-2xl font-black text-gray-900 dark:text-white flex items-center">
+                    <span class="material-icons text-green-500 mr-2">directions_car</span>
+                    Auto Loans
+                    <span class="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">({{ autoLoans.length
+                        }})</span>
+                </h3>
+                <span
+                    class="material-icons text-gray-500 dark:text-gray-400 transform transition-transform duration-300 group-hover:text-primary"
+                    [class.rotate-180]="autoLoansCollapsed">expand_more</span>
+            </div>
+            <div *ngIf="!autoLoansCollapsed" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div *ngFor="let account of autoLoans"
+                    class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-5 border-2 border-gray-200 dark:border-gray-700 hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                    <div class="flex justify-between items-start mb-3">
+                        <h4 class="font-bold text-gray-900 dark:text-white text-lg">{{ account.name }}</h4>
+                        <span [class]="'px-3 py-1 rounded-full text-xs font-bold ' + getAprBadgeClass(account.apr)">
+                            {{ account.apr }}% APR
+                        </span>
+                    </div>
+                    <div class="text-3xl font-black text-gray-900 dark:text-white mb-2">
+                        ${{ account.currentBalance | number:'1.0-0' }}
+                    </div>
+                    <div *ngIf="account.monthlyPayment" class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        Monthly: ${{ account.monthlyPayment | number:'1.0-0' }}
+                    </div>
+                    <p *ngIf="account.notes" class="text-xs text-gray-500 dark:text-gray-400 mt-2">{{ account.notes }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table View -->
+    <div *ngIf="viewMode === 'table'">
+        <!-- Credit Cards Table -->
+        <div *ngIf="creditCards.length > 0" class="mb-8">
+            <div class="flex items-center justify-between mb-4 cursor-pointer group"
+                (click)="creditCardsCollapsed = !creditCardsCollapsed">
+                <h3 class="text-2xl font-black text-gray-900 dark:text-white flex items-center">
+                    <span class="material-icons text-blue-500 mr-2">credit_card</span>
+                    Credit Cards
+                    <span class="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">({{ creditCards.length
+                        }})</span>
+                </h3>
+                <span
+                    class="material-icons text-gray-500 dark:text-gray-400 transform transition-transform duration-300 group-hover:text-primary"
+                    [class.rotate-180]="creditCardsCollapsed">expand_more</span>
+            </div>
+            <div *ngIf="!creditCardsCollapsed"
+                class="overflow-x-auto rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-lg">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900">
+                        <tr>
+                            <th
+                                class="px-6 py-4 text-left text-xs font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                Account</th>
+                            <th
+                                class="px-6 py-4 text-right text-xs font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                Balance</th>
+                            <th
+                                class="px-6 py-4 text-center text-xs font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                APR</th>
+                            <th
+                                class="px-6 py-4 text-right text-xs font-black text-orange-700 dark:text-orange-300 uppercase tracking-wider">
+                                Interest/Mo</th>
+                            <th
+                                class="px-6 py-4 text-right text-xs font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                Min Payment</th>
+                            <th
+                                class="px-6 py-4 text-left text-xs font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                        <tr *ngFor="let account of creditCards"
+                            class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="font-bold text-gray-900 dark:text-white">{{ account.name }}</div>
+                                <div *ngIf="isPromoExpiringSoon(account)"
+                                    class="text-xs text-yellow-600 dark:text-yellow-400 flex items-center mt-1">
+                                    <span class="material-icons text-xs mr-1">warning</span>
+                                    Promo expires {{ account.promoExpirationDate | date:'MMM yyyy' }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right">
+                                <div class="text-lg font-black text-gray-900 dark:text-white">${{ account.currentBalance
+                                    | number:'1.0-0' }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                                <span
+                                    [class]="'px-3 py-1 rounded-full text-xs font-bold ' + getAprBadgeClass(account.apr)">
+                                    {{ account.apr }}%
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right">
+                                <span *ngIf="account.apr > 0" class="text-orange-600 dark:text-orange-400 font-bold">
+                                    ${{ calculateMonthlyInterest(account.currentBalance, account.apr) | number:'1.2-2'
+                                    }}
+                                </span>
+                                <span *ngIf="account.apr === 0" class="text-gray-400">$0.00</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-gray-600 dark:text-gray-400">
+                                {{ account.monthlyPayment ? ('$' + (account.monthlyPayment | number:'1.0-0')) : '$0' }}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ account.notes }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Personal Loans Table -->
+        <div *ngIf="personalLoans.length > 0" class="mb-8">
+            <div class="flex items-center justify-between mb-4 cursor-pointer group"
+                (click)="personalLoansCollapsed = !personalLoansCollapsed">
+                <h3 class="text-2xl font-black text-gray-900 dark:text-white flex items-center">
+                    <span class="material-icons text-purple-500 mr-2">account_balance</span>
+                    Personal Loans
+                    <span class="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">({{ personalLoans.length
+                        }})</span>
+                </h3>
+                <span
+                    class="material-icons text-gray-500 dark:text-gray-400 transform transition-transform duration-300 group-hover:text-primary"
+                    [class.rotate-180]="personalLoansCollapsed">expand_more</span>
+            </div>
+            <div *ngIf="!personalLoansCollapsed"
+                class="overflow-x-auto rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-lg">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900">
+                        <tr>
+                            <th
+                                class="px-6 py-4 text-left text-xs font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                Account</th>
+                            <th
+                                class="px-6 py-4 text-right text-xs font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                Balance</th>
+                            <th
+                                class="px-6 py-4 text-center text-xs font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                APR</th>
+                            <th
+                                class="px-6 py-4 text-right text-xs font-black text-orange-700 dark:text-orange-300 uppercase tracking-wider">
+                                Interest/Mo</th>
+                            <th
+                                class="px-6 py-4 text-right text-xs font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                Monthly</th>
+                            <th
+                                class="px-6 py-4 text-left text-xs font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                        <tr *ngFor="let account of personalLoans"
+                            class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap font-bold text-gray-900 dark:text-white">{{
+                                account.name }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right">
+                                <div class="text-lg font-black text-gray-900 dark:text-white">${{ account.currentBalance
+                                    | number:'1.0-0' }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                                <span
+                                    [class]="'px-3 py-1 rounded-full text-xs font-bold ' + getAprBadgeClass(account.apr)">
+                                    {{ account.apr }}%
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right">
+                                <span *ngIf="account.apr > 0" class="text-orange-600 dark:text-orange-400 font-bold">
+                                    ${{ calculateMonthlyInterest(account.currentBalance, account.apr) | number:'1.2-2'
+                                    }}
+                                </span>
+                                <span *ngIf="account.apr === 0" class="text-gray-400">$0.00</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-gray-600 dark:text-gray-400">
+                                {{ account.monthlyPayment ? ('$' + (account.monthlyPayment | number:'1.0-0')) : '$0' }}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ account.notes }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Auto Loans Table -->
+        <div *ngIf="autoLoans.length > 0">
+            <div class="flex items-center justify-between mb-4 cursor-pointer group"
+                (click)="autoLoansCollapsed = !autoLoansCollapsed">
+                <h3 class="text-2xl font-black text-gray-900 dark:text-white flex items-center">
+                    <span class="material-icons text-green-500 mr-2">directions_car</span>
+                    Auto Loans
+                    <span class="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">({{ autoLoans.length
+                        }})</span>
+                </h3>
+                <span
+                    class="material-icons text-gray-500 dark:text-gray-400 transform transition-transform duration-300 group-hover:text-primary"
+                    [class.rotate-180]="autoLoansCollapsed">expand_more</span>
+            </div>
+            <div *ngIf="!autoLoansCollapsed"
+                class="overflow-x-auto rounded-xl border-2 border-gray-200 dark:border-gray-700 shadow-lg">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900">
+                        <tr>
+                            <th
+                                class="px-6 py-4 text-left text-xs font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                Account</th>
+                            <th
+                                class="px-6 py-4 text-right text-xs font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                Balance</th>
+                            <th
+                                class="px-6 py-4 text-center text-xs font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                APR</th>
+                            <th
+                                class="px-6 py-4 text-right text-xs font-black text-orange-700 dark:text-orange-300 uppercase tracking-wider">
+                                Interest/Mo</th>
+                            <th
+                                class="px-6 py-4 text-right text-xs font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                Monthly</th>
+                            <th
+                                class="px-6 py-4 text-left text-xs font-black text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                        <tr *ngFor="let account of autoLoans"
+                            class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap font-bold text-gray-900 dark:text-white">{{
+                                account.name }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right">
+                                <div class="text-lg font-black text-gray-900 dark:text-white">${{ account.currentBalance
+                                    | number:'1.0-0' }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                                <span
+                                    [class]="'px-3 py-1 rounded-full text-xs font-bold ' + getAprBadgeClass(account.apr)">
+                                    {{ account.apr }}%
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right">
+                                <span *ngIf="account.apr > 0" class="text-orange-600 dark:text-orange-400 font-bold">
+                                    ${{ calculateMonthlyInterest(account.currentBalance, account.apr) | number:'1.2-2'
+                                    }}
+                                </span>
+                                <span *ngIf="account.apr === 0" class="text-gray-400">$0.00</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-gray-600 dark:text-gray-400">
+                                {{ account.monthlyPayment ? ('$' + (account.monthlyPayment | number:'1.0-0')) : '$0' }}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ account.notes }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

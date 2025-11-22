@@ -1,0 +1,13 @@
+@keyframes shimmer-slow {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.animate-shimmer-slow {
+    animation: shimmer-slow 3s infinite;
+}

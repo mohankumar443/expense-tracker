@@ -1,0 +1,9 @@
+**/debt-snapshot*
+node_modules/
+target/
+.DS_Store
+.idea/
+.vscode/
+dist/
+build/
+*.log

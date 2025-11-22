@@ -1,0 +1,165 @@
+package com.example.expensetracker.controller;
+
+import com.example.expensetracker.model.DebtAccount;
+import com.example.expensetracker.model.AccountType;
+import com.example.expensetracker.repository.DebtAccountRepository;
+import com.example.expensetracker.dto.DebtSummary;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/debts")
+@CrossOrigin(origins = "*", allowedHeaders = "*")
+public class DebtAccountController {
+
+    @Autowired
+    private DebtAccountRepository debtAccountRepository;
+    
+    @Autowired
+    private com.example.expensetracker.service.SnapshotLoaderService snapshotLoaderService;
+
+    @GetMapping
+    public List<DebtAccount> getAllDebts() {
+        return debtAccountRepository.findAll();
+    }
+    
+    @GetMapping("/snapshot/{fileName}")
+    public List<DebtAccount> getDebtsBySnapshot(@PathVariable String fileName) {
+        try {
+            return snapshotLoaderService.loadSnapshotFromFile(fileName);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to load snapshot: " + fileName, e);
+        }
+    }
+    
+    @GetMapping("/snapshot/{fileName}/summary")
+    public DebtSummary getSnapshotSummary(@PathVariable String fileName) {
+        try {
+            List<DebtAccount> accounts = snapshotLoaderService.loadSnapshotFromFile(fileName);
+            String snapshotDate = snapshotLoaderService.getSnapshotDate(fileName);
+            
+            DebtSummary summary = new DebtSummary();
+            summary.setSnapshotDate(snapshotDate);
+            
+            double total = accounts.stream().mapToDouble(DebtAccount::getCurrentBalance).sum();
+            summary.setTotalDebt(total);
+            
+            double creditCards = accounts.stream()
+                .filter(a -> a.getAccountType() == AccountType.CREDIT_CARD)
+                .mapToDouble(DebtAccount::getCurrentBalance).sum();
+            summary.setCreditCardDebt(creditCards);
+            
+            double personalLoans = accounts.stream()
+                .filter(a -> a.getAccountType() == AccountType.PERSONAL_LOAN)
+                .mapToDouble(DebtAccount::getCurrentBalance).sum();
+            summary.setPersonalLoanDebt(personalLoans);
+            
+            double autoLoans = accounts.stream()
+                .filter(a -> a.getAccountType() == AccountType.AUTO_LOAN)
+                .mapToDouble(DebtAccount::getCurrentBalance).sum();
+            summary.setAutoLoanDebt(autoLoans);
+            
+            summary.setTotalAccounts(accounts.size());
+            
+            return summary;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to load snapshot summary: " + fileName, e);
+        }
+    }
+
+
+    @GetMapping("/{id}")
+    public DebtAccount getDebtById(@PathVariable Long id) {
+        return debtAccountRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Debt account not found"));
+    }
+
+    @GetMapping("/type/{type}")
+    public List<DebtAccount> getDebtsByType(@PathVariable AccountType type) {
+        return debtAccountRepository.findByAccountType(type);
+    }
+
+    @PostMapping
+    public DebtAccount createDebt(@RequestBody DebtAccount debtAccount) {
+        debtAccount.setLastUpdated(LocalDate.now());
+        return debtAccountRepository.save(debtAccount);
+    }
+
+    @PutMapping("/{id}")
+    public DebtAccount updateDebt(@PathVariable Long id, @RequestBody DebtAccount debtAccount) {
+        DebtAccount existing = debtAccountRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Debt account not found"));
+        
+        existing.setName(debtAccount.getName());
+        existing.setAccountType(debtAccount.getAccountType());
+        existing.setCurrentBalance(debtAccount.getCurrentBalance());
+        existing.setApr(debtAccount.getApr());
+        existing.setMonthlyPayment(debtAccount.getMonthlyPayment());
+        existing.setPromoExpirationDate(debtAccount.getPromoExpirationDate());
+        existing.setNotes(debtAccount.getNotes());
+        existing.setLastUpdated(LocalDate.now());
+        
+        return debtAccountRepository.save(existing);
+    }
+
+    @DeleteMapping("/{id}")
+    public void deleteDebt(@PathVariable Long id) {
+        debtAccountRepository.deleteById(id);
+    }
+
+    @GetMapping("/summary")
+    public DebtSummary getDebtSummary() {
+        DebtSummary summary = new DebtSummary();
+        
+        // Set snapshot date (you can make this dynamic later)
+        summary.setSnapshotDate("2025-09-30");
+        
+        Double total = debtAccountRepository.getTotalDebt();
+        summary.setTotalDebt(total != null ? total : 0.0);
+        
+        Double creditCards = debtAccountRepository.getTotalDebtByType(AccountType.CREDIT_CARD);
+        summary.setCreditCardDebt(creditCards != null ? creditCards : 0.0);
+        
+        Double personalLoans = debtAccountRepository.getTotalDebtByType(AccountType.PERSONAL_LOAN);
+        summary.setPersonalLoanDebt(personalLoans != null ? personalLoans : 0.0);
+        
+        Double autoLoans = debtAccountRepository.getTotalDebtByType(AccountType.AUTO_LOAN);
+        summary.setAutoLoanDebt(autoLoans != null ? autoLoans : 0.0);
+        
+        summary.setTotalAccounts((int) debtAccountRepository.count());
+        
+        return summary;
+    }
+
+    @GetMapping("/strategy")
+    public List<DebtAccount> getPayoffStrategy() {
+        // Return debts sorted by APR descending (avalanche method)
+        return debtAccountRepository.findByOrderByAprDesc();
+    }
+
+    @GetMapping("/snapshots")
+    public List<com.example.expensetracker.dto.SnapshotInfo> getAvailableSnapshots() {
+        List<com.example.expensetracker.dto.SnapshotInfo> snapshots = new java.util.ArrayList<>();
+        
+        // September 2025
+        com.example.expensetracker.dto.SnapshotInfo sept = new com.example.expensetracker.dto.SnapshotInfo();
+        sept.setFileName("debt-snapshot-2025-09.json");
+        sept.setDisplayName("September 2025");
+        sept.setSnapshotDate("2025-09-30");
+        sept.setActive(true);
+        snapshots.add(sept);
+        
+        // October 2025
+        com.example.expensetracker.dto.SnapshotInfo oct = new com.example.expensetracker.dto.SnapshotInfo();
+        oct.setFileName("debt-snapshot-2025-10.json");
+        oct.setDisplayName("October 2025");
+        oct.setSnapshotDate("2025-10-31");
+        oct.setActive(false);
+        snapshots.add(oct);
+        
+        return snapshots;
+    }
+}

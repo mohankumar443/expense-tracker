@@ -1,0 +1,90 @@
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 perspective-1000">
+    <!-- Total Expenses Card -->
+    <div
+        class="dashboard-card bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl shadow-2xl p-6 border border-gray-100 dark:border-gray-700 relative overflow-hidden group transform-gpu transition-all duration-500 hover:scale-105 hover:-rotate-1 hover:shadow-primary/20">
+        <!-- Animated background orbs -->
+        <div
+            class="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/30 transition-all duration-700 animate-pulse-slow">
+        </div>
+        <div
+            class="absolute bottom-0 left-0 -mb-4 -ml-4 w-24 h-24 bg-purple-500/10 rounded-full blur-xl group-hover:bg-purple-500/20 transition-all duration-700">
+        </div>
+
+        <div class="relative z-10 transform-gpu transition-transform duration-300 group-hover:translate-y-[-4px]">
+            <div class="flex items-center justify-between mb-3">
+                <p class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Payments
+                </p>
+                <div
+                    class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center shadow-lg transform rotate-12 group-hover:rotate-0 transition-transform duration-500">
+                    <span class="material-icons text-white text-2xl">credit_card</span>
+                </div>
+            </div>
+            <h3
+                class="text-5xl font-black bg-gradient-to-r from-primary via-purple-600 to-pink-600 bg-clip-text text-transparent mt-2 animate-gradient">
+                ${{ totalExpenses | number:'1.2-2' }}
+            </h3>
+            <div class="mt-4 flex items-center text-sm text-gray-600 dark:text-gray-300">
+                <span
+                    class="bg-gradient-to-r from-green-400 to-emerald-500 text-white px-3 py-1.5 rounded-lg font-bold mr-2 flex items-center shadow-md transform hover:scale-110 transition-transform">
+                    <span class="material-icons text-sm mr-1 animate-bounce-subtle">trending_up</span>
+                    {{ transactionCount }}
+                </span>
+                <span class="font-medium">payments made</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Breakdown Card -->
+    <div
+        class="dashboard-card bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-2xl shadow-2xl p-6 border border-gray-100 dark:border-gray-700 relative overflow-hidden transform-gpu transition-all duration-500 hover:scale-105 hover:rotate-1 hover:shadow-primary/20">
+        <!-- Animated background -->
+        <div
+            class="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+        </div>
+
+        <div class="relative z-10">
+            <h4 class="text-lg font-bold text-gray-800 dark:text-white mb-5 flex items-center">
+                <div
+                    class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center mr-3 shadow-lg transform hover:rotate-180 transition-transform duration-700">
+                    <span class="material-icons text-white">donut_small</span>
+                </div>
+                <span
+                    class="bg-gradient-to-r from-gray-800 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">Payment
+                    Types</span>
+            </h4>
+
+            <div class="space-y-4">
+                <div *ngFor="let item of categoryBreakdown; let i = index"
+                    class="relative transform-gpu transition-all duration-300 hover:translate-x-2"
+                    [style.animation-delay.ms]="i * 100">
+                    <div class="flex justify-between text-sm mb-2">
+                        <span class="font-bold text-gray-700 dark:text-gray-300 flex items-center">
+                            <span class="w-2 h-2 rounded-full mr-2 animate-pulse" [class]="item.color"></span>
+                            {{ item.category }}
+                        </span>
+                        <span class="text-gray-900 dark:text-white font-black text-base">${{ item.amount |
+                            number:'1.0-0' }}</span>
+                    </div>
+                    <div
+                        class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden shadow-inner relative">
+                        <div [class]="'h-3 rounded-full shadow-lg relative overflow-hidden ' + item.color"
+                            [style.width.%]="item.percentage"
+                            style="transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);">
+                            <div
+                                class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-xs font-bold text-gray-500 dark:text-gray-400 mt-1 text-right">
+                        {{ item.percentage | number:'1.1-1' }}%
+                    </div>
+                </div>
+
+                <div *ngIf="categoryBreakdown.length === 0" class="text-center text-gray-400 py-8">
+                    <span class="material-icons text-6xl opacity-20 animate-pulse">insert_chart</span>
+                    <p class="mt-2 font-medium">No data to display</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

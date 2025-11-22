@@ -1,0 +1,195 @@
+<div
+    [class]="'fixed left-0 top-20 h-[calc(100vh-5rem)] backdrop-blur-xl bg-white/70 dark:bg-gray-900/70 shadow-2xl transition-all duration-500 ease-in-out z-40 border-r border-gray-200/50 dark:border-gray-700/50 ' + (isCollapsed ? 'w-20' : 'w-72')">
+    <!-- Glow Effect -->
+    <div class="absolute inset-0 bg-gradient-to-br from-primary/5 via-purple-500/5 to-pink-500/5 pointer-events-none">
+    </div>
+
+    <!-- Toggle Button -->
+    <button (click)="toggleSidebar()" title="{{ isCollapsed ? 'Expand sidebar' : 'Collapse sidebar' }}"
+        class="absolute -right-4 top-8 bg-gradient-to-br from-primary to-purple-600 text-white rounded-full p-2.5 shadow-xl hover:shadow-2xl hover:scale-110 transition-all duration-300 z-50 ring-4 ring-white dark:ring-gray-900">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path *ngIf="isCollapsed" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 5l7 7-7 7" />
+            <path *ngIf="!isCollapsed" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M15 19l-7-7 7-7" />
+        </svg>
+    </button>
+
+    <!-- Sidebar Content -->
+    <div [class]="'h-full overflow-y-auto ' + (isCollapsed ? 'px-2 py-5' : 'p-5')">
+        <!-- Logo/Title (when expanded) -->
+        <div *ngIf="!isCollapsed" class="mb-8 pb-6 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center space-x-3">
+                <div
+                    class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center shadow-lg">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-black text-sm text-gray-900 dark:text-white">Navigation</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Quick access</p>
+                </div>
+            </div>
+        </div>
+
+        <nav [class]="isCollapsed ? 'space-y-3' : 'space-y-2'">
+            <!-- Overview Tab -->
+            <button (click)="setActiveTab('overview')" title="View debt overview and summary"
+                [class]="'group w-full flex items-center rounded-2xl transition-all duration-300 relative overflow-hidden ' + 
+                 (isCollapsed ? 'justify-center p-3.5' : 'space-x-3 px-4 py-3.5') +
+                 (activeTab === 'overview' ? ' bg-gradient-to-r from-primary to-purple-600 text-white shadow-xl shadow-primary/30 scale-105' : ' text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/50 hover:scale-105')">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zM14 13a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1v-7z" />
+                </svg>
+                <span *ngIf="!isCollapsed" class="font-bold text-sm">Overview</span>
+                <svg *ngIf="!isCollapsed && activeTab === 'overview'" class="w-4 h-4 ml-auto" fill="none"
+                    stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </button>
+
+            <!-- Progress Tab -->
+            <button (click)="setActiveTab('progress')" title="View month-over-month progress"
+                [class]="'group w-full flex items-center rounded-2xl transition-all duration-300 relative overflow-hidden ' + 
+                 (isCollapsed ? 'justify-center p-3.5' : 'space-x-3 px-4 py-3.5') +
+                 (activeTab === 'progress' ? ' bg-gradient-to-r from-primary to-purple-600 text-white shadow-xl shadow-primary/30 scale-105' : ' text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/50 hover:scale-105')">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+                <span *ngIf="!isCollapsed" class="font-bold text-sm">Progress</span>
+                <svg *ngIf="!isCollapsed && activeTab === 'progress'" class="w-4 h-4 ml-auto" fill="none"
+                    stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </button>
+
+            <!-- Accounts Tab -->
+            <button (click)="setActiveTab('accounts')" title="View all debt accounts"
+                [class]="'group w-full flex items-center rounded-2xl transition-all duration-300 relative overflow-hidden ' + 
+                 (isCollapsed ? 'justify-center p-3.5' : 'space-x-3 px-4 py-3.5') +
+                 (activeTab === 'accounts' ? ' bg-gradient-to-r from-primary to-purple-600 text-white shadow-xl shadow-primary/30 scale-105' : ' text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/50 hover:scale-105')">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                </svg>
+                <span *ngIf="!isCollapsed" class="font-bold text-sm">Accounts</span>
+                <svg *ngIf="!isCollapsed && activeTab === 'accounts'" class="w-4 h-4 ml-auto" fill="none"
+                    stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </button>
+
+            <!-- Divider -->
+            <div class="border-t border-gray-200 dark:border-gray-700 my-4"></div>
+
+            <!-- History / Snapshots Section -->
+            <div class="mt-2">
+                <p *ngIf="!isCollapsed"
+                    class="text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 px-2">
+                    History</p>
+
+                <div class="space-y-2">
+                    <div *ngFor="let year of years">
+                        <!-- Year Header -->
+                        <button (click)="toggleYear(year)"
+                            [class]="'w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ' + 
+                            (expandedYears[year] ? 'text-primary bg-primary/5' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800')">
+                            <div class="flex items-center space-x-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span *ngIf="!isCollapsed">{{ year }}</span>
+                            </div>
+                            <span *ngIf="isCollapsed" class="text-[10px] font-bold">{{ year }}</span>
+                            <svg *ngIf="!isCollapsed"
+                                [class]="'w-4 h-4 transition-transform duration-200 ' + (expandedYears[year] ? 'rotate-180' : '')"
+                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+
+                        <!-- Months List -->
+                        <div *ngIf="expandedYears[year] && !isCollapsed"
+                            class="mt-1 ml-4 space-y-1 border-l-2 border-gray-100 dark:border-gray-800 pl-2">
+                            <button *ngFor="let snapshot of groupedSnapshots[year]" (click)="selectSnapshot(snapshot)"
+                                class="w-full flex items-center px-3 py-1.5 rounded-lg text-sm text-gray-500 dark:text-gray-400 hover:text-primary hover:bg-primary/5 transition-colors group">
+                                <span
+                                    class="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-primary mr-2 transition-colors"></span>
+                                {{ getMonthName(snapshot.snapshotDate) }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Divider -->
+            <div class="border-t border-gray-200 dark:border-gray-700 my-4"></div>
+
+            <!-- Quick Jump Section (when expanded) -->
+            <div *ngIf="!isCollapsed" class="mt-6">
+                <p class="text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 px-2">Quick
+                    Jump</p>
+                <div class="space-y-1.5">
+                    <button (click)="scrollToSection('credit-cards')" title="Jump to credit cards section"
+                        class="w-full flex items-center space-x-2 px-3 py-2 rounded-xl text-sm text-gray-600 dark:text-gray-400 hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 dark:hover:from-red-900/20 dark:hover:to-pink-900/20 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                        <span class="font-medium">Credit Cards</span>
+                    </button>
+                    <button (click)="scrollToSection('personal-loans')" title="Jump to personal loans section"
+                        class="w-full flex items-center space-x-2 px-3 py-2 rounded-xl text-sm text-gray-600 dark:text-gray-400 hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 dark:hover:from-purple-900/20 dark:hover:to-indigo-900/20 hover:text-purple-600 dark:hover:text-purple-400 transition-all duration-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span class="font-medium">Personal Loans</span>
+                    </button>
+                    <button (click)="scrollToSection('auto-loans')" title="Jump to auto loans section"
+                        class="w-full flex items-center space-x-2 px-3 py-2 rounded-xl text-sm text-gray-600 dark:text-gray-400 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 dark:hover:from-green-900/20 dark:hover:to-emerald-900/20 hover:text-green-600 dark:hover:text-green-400 transition-all duration-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                        <span class="font-medium">Auto Loans</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Collapsed Quick Jump Icons -->
+            <div *ngIf="isCollapsed" class="mt-6 space-y-3">
+                <button (click)="scrollToSection('credit-cards')" title="Jump to credit cards section"
+                    class="w-full flex justify-center items-center p-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 dark:hover:from-red-900/20 dark:hover:to-pink-900/20 hover:text-red-600 dark:hover:text-red-400 hover:scale-110 transition-all duration-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                </button>
+                <button (click)="scrollToSection('personal-loans')" title="Jump to personal loans section"
+                    class="w-full flex justify-center items-center p-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gradient-to-r hover:from-purple-50 hover:to-indigo-50 dark:hover:from-purple-900/20 dark:hover:to-indigo-900/20 hover:text-purple-600 dark:hover:text-purple-400 hover:scale-110 transition-all duration-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </button>
+                <button (click)="scrollToSection('auto-loans')" title="Jump to auto loans section"
+                    class="w-full flex justify-center items-center p-3 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 dark:hover:from-green-900/20 dark:hover:to-emerald-900/20 hover:text-green-600 dark:hover:text-green-400 hover:scale-110 transition-all duration-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                </button>
+            </div>
+        </nav>
+    </div>
+</div>
+
+<!-- Spacer to prevent content from going under sidebar -->
+<div [class]="'transition-all duration-500 ' + (isCollapsed ? 'ml-20' : 'ml-72')"></div>

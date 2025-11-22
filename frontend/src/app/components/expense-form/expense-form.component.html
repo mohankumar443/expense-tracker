@@ -1,0 +1,94 @@
+<div
+    class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-700 transform-gpu transition-all duration-500 hover:scale-[1.02] hover:shadow-primary/20 relative">
+    <!-- Animated gradient header -->
+    <div
+        class="p-6 bg-gradient-to-r from-primary via-purple-600 to-pink-600 dark:from-primary dark:to-purple-700 relative overflow-hidden">
+        <div
+            class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer-slow">
+        </div>
+        <div class="relative z-10 flex items-center justify-between">
+            <h2 class="text-2xl font-black text-white flex items-center drop-shadow-lg">
+                <div
+                    class="w-10 h-10 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center mr-3 shadow-lg transform hover:rotate-12 transition-transform duration-500">
+                    <span class="material-icons text-white">payment</span>
+                </div>
+                Add Payment
+            </h2>
+        </div>
+    </div>
+
+    <div class="p-6">
+        <form (ngSubmit)="onSubmit()" #expenseForm="ngForm" class="space-y-5">
+            <!-- Payment Description -->
+            <div class="relative">
+                <label for="description"
+                    class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 flex items-center">
+                    <span class="material-icons text-primary text-sm mr-1">description</span>
+                    Payment Description
+                </label>
+                <div class="relative rounded-md shadow-sm">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="material-icons text-gray-400 text-sm">description</span>
+                    </div>
+                    <input type="text" [(ngModel)]="expense.description" name="description" required
+                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm transition-colors"
+                        placeholder="e.g. Grocery shopping">
+                </div>
+            </div>
+
+            <!-- Amount & Date Row -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Amount</label>
+                    <div class="relative rounded-md shadow-sm">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="text-gray-500 dark:text-gray-400 sm:text-sm">$</span>
+                        </div>
+                        <input type="number" [(ngModel)]="expense.amount" name="amount" required min="0.01" step="0.01"
+                            class="block w-full pl-7 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm transition-colors"
+                            placeholder="0.00">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+                    <input type="date" [(ngModel)]="expense.date" name="date" required
+                        class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white sm:text-sm transition-colors">
+                </div>
+            </div>
+
+            <!-- Category -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
+                <div class="relative rounded-md shadow-sm">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="material-icons text-gray-400 text-sm">category</span>
+                    </div>
+                    <select [(ngModel)]="expense.category" name="category" required
+                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-primary focus:border-primary dark:bg-gray-700 dark:text-white sm:text-sm transition-colors appearance-none">
+                        <option value="" disabled>Select a category</option>
+                        <option value="Minimum Payment">Minimum Payment</option>
+                        <option value="Extra Payment">Extra Payment</option>
+                        <option value="Full Balance">Full Balance</option>
+                        <option value="Interest Charge">Interest Charge</option>
+                        <option value="Fee">Fee</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <span class="material-icons text-gray-400 text-sm">expand_more</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" [disabled]="!expenseForm.form.valid"
+                class="w-full flex justify-center items-center py-4 px-6 border border-transparent rounded-xl shadow-xl text-base font-black text-white bg-gradient-to-r from-primary via-purple-600 to-pink-600 hover:from-primary hover:via-purple-700 hover:to-pink-700 focus:outline-none focus:ring-4 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform-gpu hover:scale-105 hover:shadow-2xl hover:shadow-primary/50 active:scale-95 relative overflow-hidden group">
+                <div
+                    class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000">
+                </div>
+                <span class="material-icons text-lg mr-2 relative z-10 animate-bounce-subtle">payment</span>
+                <span class="relative z-10">Add Payment</span>
+            </button>
+        </form>
+    </div>
+</div>
