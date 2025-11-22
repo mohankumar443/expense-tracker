@@ -9,6 +9,8 @@ import { AnalyticsService } from '../../services/analytics.service';
     styleUrls: ['./debt-overview.component.css']
 })
 export class DebtOverviewComponent implements OnInit {
+    Math = Math; // Expose Math to template
+
     summary: DebtSummary = {
         snapshotDate: '',
         totalDebt: 0,
@@ -206,5 +208,28 @@ export class DebtOverviewComponent implements OnInit {
         if (score >= 60) return 'Good';
         if (score >= 40) return 'Fair';
         return 'Needs Action';
+    }
+
+    loadSummary() {
+        this.debtService.getDebtSummary().subscribe({
+            next: (data) => {
+                this.summary = data;
+                this.calculateNetWorth();
+            },
+            error: (err) => {
+                console.error('Error loading summary', err);
+                this.error = 'Failed to load debt summary';
+            }
+        });
+    }
+
+    getPercentage(amount: number): number {
+        if (!this.summary || this.summary.totalDebt === 0) return 0;
+        return (amount / this.summary.totalDebt) * 100;
+    }
+
+    isSnapshotChanged(): boolean {
+        // Check if current snapshot is different from the default/latest
+        return this.selectedSnapshot !== 'debt-snapshot-2025-10.json';
     }
 }

@@ -7,3 +7,5 @@ target/
 dist/
 build/
 *.log
+apache-maven-*/
+*.tar.gz

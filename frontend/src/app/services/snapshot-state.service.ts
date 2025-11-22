@@ -5,7 +5,7 @@ import { BehaviorSubject } from 'rxjs';
     providedIn: 'root'
 })
 export class SnapshotStateService {
-    private currentSnapshotSubject = new BehaviorSubject<string>('debt-snapshot-2025-09.json');
+    private currentSnapshotSubject = new BehaviorSubject<string>('debt-snapshot-2025-08.json');
     currentSnapshot$ = this.currentSnapshotSubject.asObservable();
 
     setCurrentSnapshot(fileName: string) {

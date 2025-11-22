@@ -28,6 +28,7 @@ public class SnapshotLoaderService {
             DebtAccount account = new DebtAccount();
             account.setName(card.get("name").asText());
             account.setAccountType(AccountType.CREDIT_CARD);
+            account.setAccountType(AccountType.CREDIT_CARD);
             account.setCurrentBalance(card.get("balance").asDouble());
             account.setApr(card.get("apr").asDouble());
             account.setNotes(card.get("notes").asText());

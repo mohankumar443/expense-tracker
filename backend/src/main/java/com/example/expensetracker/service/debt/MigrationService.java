@@ -30,8 +30,9 @@ public class MigrationService {
     private final SnapshotRepository snapshotRepository;
     private final ObjectMapper objectMapper;
 
-    // List of snapshot files to migrate
+    // List of snapshot files to migrate (including August)
     private static final String[] SNAPSHOT_FILES = {
+        "debt-snapshot-2025-08.json",
         "debt-snapshot-2025-09.json",
         "debt-snapshot-2025-10.json"
     };
@@ -62,15 +63,17 @@ public class MigrationService {
             return;
         }
 
+
         JsonNode root = objectMapper.readTree(resource.getInputStream());
         String dateStr = root.get("snapshotDate").asText();
         LocalDate snapshotDate = LocalDate.parse(dateStr);
 
         // Check if snapshot already exists to avoid duplicates
-        // if (snapshotRepository.findBySnapshotDate(snapshotDate).isPresent()) {
-        //     log.info("Snapshot for date {} already exists. Skipping.", snapshotDate);
-        //     return;
-        // }
+        if (snapshotRepository.findBySnapshotDate(snapshotDate).isPresent()) {
+            log.info("Snapshot for date {} already exists. Skipping.", snapshotDate);
+            return;
+        }
+
 
         // Create Snapshot Entity
         Snapshot snapshot = new Snapshot();

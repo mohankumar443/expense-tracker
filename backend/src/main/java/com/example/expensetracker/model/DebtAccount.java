@@ -22,6 +22,14 @@ public class DebtAccount {
     
     @Column(nullable = false)
     private Double currentBalance;
+
+    public Double getCurrentBalance() {
+        return currentBalance;
+    }
+
+    public void setCurrentBalance(Double currentBalance) {
+        this.currentBalance = currentBalance;
+    }
     
     @Column(nullable = false)
     private Double apr; // Annual Percentage Rate
