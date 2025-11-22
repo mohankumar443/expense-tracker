@@ -11,7 +11,7 @@ Example:
 - `debt-snapshot-2025-11.json` - November 2025
 
 ## Current Active Snapshot
-The application loads the most recent snapshot on startup. Update the `DebtDataLoader.java` to point to the current month's file.
+The application automatically loads all snapshots defined in the `MigrationService`. You can switch between snapshots in the application UI.
 
 ## Snapshot Structure
 Each snapshot contains:
@@ -28,4 +28,5 @@ Each snapshot contains:
 3. Update the `snapshotDate`
 4. Update all account balances
 5. Recalculate totals
-6. Update `DebtDataLoader.java` to load the new file
+6. Add the new filename to the `SNAPSHOT_FILES` list in `MigrationService.java`
+7. Restart the backend to load the new file

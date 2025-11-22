@@ -29,12 +29,12 @@ export class ProgressTrackerComponent implements OnInit {
 
     loadComparison() {
         // Load both months
-        this.debtService.getSnapshotSummary('debt-snapshot-2025-09.json').subscribe(data => {
+        this.debtService.getSnapshotSummary('2025-09-30').subscribe(data => {
             this.septemberSummary = data;
             this.checkIfBothLoaded();
         });
 
-        this.debtService.getSnapshotSummary('debt-snapshot-2025-10.json').subscribe(data => {
+        this.debtService.getSnapshotSummary('2025-10-31').subscribe(data => {
             this.octoberSummary = data;
             this.checkIfBothLoaded();
         });

@@ -25,6 +25,8 @@ public class Account {
     private LocalDate openedDate;
     private String notes;
     
+    private LocalDate snapshotDate;
+    
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     

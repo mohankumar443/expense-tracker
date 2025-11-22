@@ -28,23 +28,31 @@ export class DebtAccountsListComponent implements OnInit {
 
         // Subscribe to snapshot changes
         this.snapshotState.currentSnapshot$.subscribe(fileName => {
+            if (!fileName) {
+                // Ignore initial empty emission
+                return;
+            }
             this.loadSnapshotAccounts(fileName);
         });
     }
 
     loadAccounts() {
         this.debtService.getAllDebts().subscribe(accounts => {
-            this.creditCards = accounts.filter(a => a.accountType === 'CREDIT_CARD');
-            this.personalLoans = accounts.filter(a => a.accountType === 'PERSONAL_LOAN');
-            this.autoLoans = accounts.filter(a => a.accountType === 'AUTO_LOAN');
+            this.creditCards = accounts.filter(a => a.type === 'CREDIT_CARD');
+            this.personalLoans = accounts.filter(a => a.type === 'PERSONAL_LOAN');
+            this.autoLoans = accounts.filter(a => a.type === 'AUTO_LOAN');
         });
     }
 
     loadSnapshotAccounts(fileName: string) {
+        if (!fileName) {
+            // No snapshot selected yet
+            return;
+        }
         this.debtService.getSnapshotAccounts(fileName).subscribe(accounts => {
-            this.creditCards = accounts.filter(a => a.accountType === 'CREDIT_CARD');
-            this.personalLoans = accounts.filter(a => a.accountType === 'PERSONAL_LOAN');
-            this.autoLoans = accounts.filter(a => a.accountType === 'AUTO_LOAN');
+            this.creditCards = accounts.filter(a => a.type === 'CREDIT_CARD');
+            this.personalLoans = accounts.filter(a => a.type === 'PERSONAL_LOAN');
+            this.autoLoans = accounts.filter(a => a.type === 'AUTO_LOAN');
         });
     }
 
@@ -65,8 +73,8 @@ export class DebtAccountsListComponent implements OnInit {
     }
 
     isPromoExpiringSoon(account: DebtAccount): boolean {
-        if (!account.promoExpirationDate) return false;
-        const expiryDate = new Date(account.promoExpirationDate);
+        if (!account.promoExpires) return false;
+        const expiryDate = new Date(account.promoExpires);
         const today = new Date();
         const daysUntilExpiry = Math.floor((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
         return daysUntilExpiry > 0 && daysUntilExpiry <= 90; // Within 90 days

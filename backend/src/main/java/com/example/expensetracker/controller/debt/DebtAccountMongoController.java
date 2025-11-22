@@ -22,6 +22,11 @@ public class DebtAccountMongoController {
     public List<Account> getAllAccounts() {
         return accountService.getAllAccounts();
     }
+
+    @GetMapping("/snapshot/{date}")
+    public List<Account> getAccountsBySnapshotDate(@PathVariable @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate date) {
+        return accountService.getAccountsBySnapshotDate(date);
+    }
     
     @GetMapping("/{id}")
     public ResponseEntity<Account> getAccountById(@PathVariable String id) {

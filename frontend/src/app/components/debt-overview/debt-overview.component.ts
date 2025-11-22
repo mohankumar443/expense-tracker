@@ -52,27 +52,45 @@ export class DebtOverviewComponent implements OnInit {
     ) { }
 
     ngOnInit() {
-        this.loadSummary();
+        // Initial data loading is handled after snapshots are loaded.
+        // Removed premature loadSummary call to avoid empty snapshot requests.
         this.loadHighestInterest();
         this.loadSnapshots();
 
         // Subscribe to snapshot changes
         this.snapshotSubscription = this.snapshotStateService.currentSnapshot$.subscribe(fileName => {
+            if (!fileName) {
+                // Ignore initial empty emission.
+                return;
+            }
             this.selectedSnapshot = fileName;
-            // this.loadSnapshotData(fileName); // Removed redundant call
-            // this.loadSnapshotAccounts(fileName); // Removed redundant call
             this.loadData(fileName);
         });
     }
 
     loadSnapshots() {
         this.debtService.getAvailableSnapshots().subscribe(snapshots => {
-            this.availableSnapshots = snapshots;
-            const active = snapshots.find(s => s.isActive);
-            if (active) {
-                this.selectedSnapshot = active.fileName;
-                // Set the initial snapshot in the state service if an active one is found
-                this.snapshotStateService.setCurrentSnapshot(active.fileName);
+            // Map backend Snapshot objects to UI format
+            this.availableSnapshots = snapshots.map(s => ({
+                fileName: s.snapshotDate, // Use date as the identifier
+                displayName: new Date(s.snapshotDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+                snapshotDate: s.snapshotDate
+            }));
+
+            // Sort chronologically: oldest to newest (Jan, Feb, Mar... by year)
+            this.availableSnapshots.sort((a, b) => {
+                const dateA = new Date(a.snapshotDate).getTime();
+                const dateB = new Date(b.snapshotDate).getTime();
+                return dateA - dateB; // Ascending order (oldest first)
+            });
+
+            // Default to the LATEST snapshot (last item after sorting)
+            const latest = this.availableSnapshots[this.availableSnapshots.length - 1];
+            if (latest) {
+                this.selectedSnapshot = latest.snapshotDate;
+                this.snapshotStateService.setCurrentSnapshot(latest.snapshotDate);
+                // Load data for the initial snapshot
+                this.loadData(latest.snapshotDate);
             }
         });
     }
@@ -83,23 +101,22 @@ export class DebtOverviewComponent implements OnInit {
         }
     }
 
-    // Removed loadSnapshotData as it was redundant and caused re-subscriptions
-
     ngOnDestroy() {
         if (this.snapshotSubscription) {
             this.snapshotSubscription.unsubscribe();
         }
     }
 
-    loadData(fileName: string) {
+    loadData(date: string) {
+        if (!date) return;
         this.loading = true;
         this.error = '';
 
         // Load Summary
-        this.debtService.getSnapshotSummary(fileName).subscribe({
+        this.debtService.getSnapshotSummary(date).subscribe({
             next: (data) => {
                 this.summary = data;
-                this.calculateNetWorth(); // Call calculateNetWorth after summary is loaded
+                this.calculateNetWorth();
             },
             error: (err) => {
                 console.error('Error loading summary', err);
@@ -109,7 +126,7 @@ export class DebtOverviewComponent implements OnInit {
         });
 
         // Load Accounts & Run Analytics
-        this.debtService.getSnapshotAccounts(fileName).subscribe({
+        this.debtService.getSnapshotAccounts(date).subscribe({
             next: (accounts) => {
                 this.allAccounts = accounts;
                 this.runAnalytics();
@@ -211,16 +228,20 @@ export class DebtOverviewComponent implements OnInit {
     }
 
     loadSummary() {
-        this.debtService.getDebtSummary().subscribe({
-            next: (data) => {
-                this.summary = data;
-                this.calculateNetWorth();
-            },
-            error: (err) => {
-                console.error('Error loading summary', err);
-                this.error = 'Failed to load debt summary';
-            }
-        });
+        // This method might be redundant if loadData handles everything, 
+        // but keeping it safe or refactoring it to use the selected snapshot
+        if (this.selectedSnapshot) {
+            this.debtService.getSnapshotSummary(this.selectedSnapshot).subscribe({
+                next: (data) => {
+                    this.summary = data;
+                    this.calculateNetWorth();
+                },
+                error: (err) => {
+                    console.error('Error loading summary', err);
+                    this.error = 'Failed to load debt summary';
+                }
+            });
+        }
     }
 
     getPercentage(amount: number): number {
@@ -230,6 +251,10 @@ export class DebtOverviewComponent implements OnInit {
 
     isSnapshotChanged(): boolean {
         // Check if current snapshot is different from the default/latest
-        return this.selectedSnapshot !== 'debt-snapshot-2025-10.json';
+        // Assuming latest is the first one in availableSnapshots
+        if (this.availableSnapshots.length > 0) {
+            return this.selectedSnapshot !== this.availableSnapshots[0].snapshotDate;
+        }
+        return false;
     }
 }

@@ -1,13 +1,11 @@
-<div
-    class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300">
+<div class="min-h-screen bg-[#0f1729] transition-colors duration-300">
     <!-- Header -->
-    <header class="bg-white dark:bg-gray-800 shadow-lg sticky top-0 z-50 transition-colors duration-300">
+    <header class="bg-[#1a2332] shadow-lg sticky top-0 z-50 border-b border-gray-700/50 transition-colors duration-300">
         <div class="container mx-auto px-6 py-4">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-3">
                     <span class="material-icons text-4xl text-primary">account_balance_wallet</span>
-                    <h1
-                        class="text-3xl font-black bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+                    <h1 class="text-3xl font-black text-white">
                         Credit Card Debt Tracker
                     </h1>
                 </div>
@@ -28,12 +26,12 @@
             </div>
 
             <!-- Progress Tracker Section -->
-            <div id="progress" class="scroll-mt-24">
+            <div id="progress" class="scroll-mt-24 mt-8">
                 <app-progress-tracker></app-progress-tracker>
             </div>
 
             <!-- Debt Accounts Section -->
-            <div id="accounts" class="scroll-mt-24">
+            <div id="accounts" class="scroll-mt-24 mt-8">
                 <div class="mb-8">
                     <h2 class="text-3xl font-black text-gray-900 dark:text-white mb-6">Your Debt Accounts</h2>
                     <app-debt-accounts-list></app-debt-accounts-list>

@@ -54,14 +54,7 @@ export class SidebarComponent implements OnInit {
     }
 
     selectSnapshot(snapshot: Snapshot) {
-        const date = new Date(snapshot.snapshotDate);
-        // Use UTC to ensure correct date parts
-        const utcDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
-        const year = utcDate.getFullYear();
-        const month = String(utcDate.getMonth() + 1).padStart(2, '0');
-        const fileName = `debt-snapshot-${year}-${month}.json`;
-
-        this.snapshotStateService.setCurrentSnapshot(fileName);
+        this.snapshotStateService.setCurrentSnapshot(snapshot.snapshotDate);
         this.setActiveTab('overview');
     }
 

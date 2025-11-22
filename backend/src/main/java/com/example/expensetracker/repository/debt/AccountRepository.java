@@ -20,4 +20,8 @@ public interface AccountRepository extends MongoRepository<Account, String> {
     List<Account> findByTypeAndStatus(AccountType type, AccountStatus status);
     
     List<Account> findByStatusOrderByAprDesc(AccountStatus status);
+
+    List<Account> findBySnapshotDate(java.time.LocalDate snapshotDate);
+
+    void deleteBySnapshotDate(java.time.LocalDate snapshotDate);
 }

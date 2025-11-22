@@ -47,11 +47,11 @@ export class AnalyticsService {
         accounts.forEach(acc => {
             const monthlyInterest = (acc.currentBalance * (acc.apr / 100)) / 12;
 
-            if (acc.accountType === 'CREDIT_CARD') {
+            if (acc.type === 'CREDIT_CARD') {
                 breakdown.creditCards += monthlyInterest;
-            } else if (acc.accountType === 'PERSONAL_LOAN') {
+            } else if (acc.type === 'PERSONAL_LOAN') {
                 breakdown.personalLoans += monthlyInterest;
-            } else if (acc.accountType === 'AUTO_LOAN') {
+            } else if (acc.type === 'AUTO_LOAN') {
                 breakdown.autoLoans += monthlyInterest;
             }
             breakdown.total += monthlyInterest;
@@ -62,9 +62,9 @@ export class AnalyticsService {
 
     calculatePayoffTimeline(accounts: DebtAccount[], extraPayment: number = 0): CategoryPayoff {
         // Group accounts
-        const creditCards = accounts.filter(a => a.accountType === 'CREDIT_CARD');
-        const personalLoans = accounts.filter(a => a.accountType === 'PERSONAL_LOAN');
-        const autoLoans = accounts.filter(a => a.accountType === 'AUTO_LOAN');
+        const creditCards = accounts.filter(a => a.type === 'CREDIT_CARD');
+        const personalLoans = accounts.filter(a => a.type === 'PERSONAL_LOAN');
+        const autoLoans = accounts.filter(a => a.type === 'AUTO_LOAN');
 
         return {
             creditCards: this.calculateGroupPayoff(creditCards, extraPayment), // Apply extra payment to highest APR (Avalanche)

@@ -3,16 +3,17 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export interface DebtAccount {
-    id?: number;
+    id?: string;
     name: string;
-    accountType: 'CREDIT_CARD' | 'PERSONAL_LOAN' | 'AUTO_LOAN';
+    type: 'CREDIT_CARD' | 'PERSONAL_LOAN' | 'AUTO_LOAN';
     currentBalance: number;
     apr: number;
     monthlyPayment?: number;
-    promoExpirationDate?: string;
+    promoExpires?: string;
     notes?: string;
     createdDate?: string;
     lastUpdated?: string;
+    snapshotDate?: string;
 }
 
 export interface DebtSummary {
@@ -52,7 +53,7 @@ export interface Snapshot {
     providedIn: 'root'
 })
 export class DebtAccountService {
-    private apiUrl = 'http://localhost:8080/api/debts';
+    private apiUrl = 'http://localhost:8080/api/debt/accounts';
     private snapshotUrl = 'http://localhost:8080/api/debt/snapshots';
 
     constructor(private http: HttpClient) { }
@@ -61,7 +62,7 @@ export class DebtAccountService {
         return this.http.get<DebtAccount[]>(this.apiUrl);
     }
 
-    getDebtById(id: number): Observable<DebtAccount> {
+    getDebtById(id: string): Observable<DebtAccount> {
         return this.http.get<DebtAccount>(`${this.apiUrl}/${id}`);
     }
 
@@ -73,11 +74,11 @@ export class DebtAccountService {
         return this.http.post<DebtAccount>(this.apiUrl, debt);
     }
 
-    updateDebt(id: number, debt: DebtAccount): Observable<DebtAccount> {
+    updateDebt(id: string, debt: DebtAccount): Observable<DebtAccount> {
         return this.http.put<DebtAccount>(`${this.apiUrl}/${id}`, debt);
     }
 
-    deleteDebt(id: number): Observable<void> {
+    deleteDebt(id: string): Observable<void> {
         return this.http.delete<void>(`${this.apiUrl}/${id}`);
     }
 
@@ -89,16 +90,16 @@ export class DebtAccountService {
         return this.http.get<DebtAccount[]>(`${this.apiUrl}/strategy`);
     }
 
-    getAvailableSnapshots(): Observable<SnapshotInfo[]> {
-        return this.http.get<SnapshotInfo[]>(`${this.apiUrl}/snapshots`);
+    getAvailableSnapshots(): Observable<Snapshot[]> {
+        return this.http.get<Snapshot[]>(`${this.snapshotUrl}`);
     }
 
-    getSnapshotAccounts(fileName: string): Observable<DebtAccount[]> {
-        return this.http.get<DebtAccount[]>(`${this.apiUrl}/snapshot/${fileName}`);
+    getSnapshotAccounts(date: string): Observable<DebtAccount[]> {
+        return this.http.get<DebtAccount[]>(`${this.apiUrl}/snapshot/${date}`);
     }
 
-    getSnapshotSummary(fileName: string): Observable<DebtSummary> {
-        return this.http.get<DebtSummary>(`${this.apiUrl}/snapshot/${fileName}/summary`);
+    getSnapshotSummary(date: string): Observable<DebtSummary> {
+        return this.http.get<DebtSummary>(`${this.snapshotUrl}/date/${date}`);
     }
 
     getSnapshotsGroupedByYear(): Observable<{ [key: number]: Snapshot[] }> {

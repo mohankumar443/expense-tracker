@@ -54,7 +54,7 @@
                         class="bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-lg p-2 mt-2">
                         <p class="text-xs font-bold text-yellow-800 dark:text-yellow-300 flex items-center">
                             <span class="material-icons text-sm mr-1">warning</span>
-                            Promo expires {{ account.promoExpirationDate | date:'MMM yyyy' }}
+                            Promo expires {{ account.promoExpires | date:'MMM yyyy' }}
                         </p>
                     </div>
                     <p *ngIf="account.notes" class="text-xs text-gray-500 dark:text-gray-400 mt-2">{{ account.notes }}
@@ -183,7 +183,7 @@
                                 <div *ngIf="isPromoExpiringSoon(account)"
                                     class="text-xs text-yellow-600 dark:text-yellow-400 flex items-center mt-1">
                                     <span class="material-icons text-xs mr-1">warning</span>
-                                    Promo expires {{ account.promoExpirationDate | date:'MMM yyyy' }}
+                                    Promo expires {{ account.promoExpires | date:'MMM yyyy' }}
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right">

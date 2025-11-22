@@ -43,6 +43,10 @@ public class AccountService {
     public List<Account> getAccountsByHighestInterest() {
         return accountRepository.findByStatusOrderByAprDesc(AccountStatus.ACTIVE);
     }
+
+    public List<Account> getAccountsBySnapshotDate(java.time.LocalDate date) {
+        return accountRepository.findBySnapshotDate(date);
+    }
     
     public Account createAccount(Account account) {
         account.setCreatedAt(LocalDateTime.now());
