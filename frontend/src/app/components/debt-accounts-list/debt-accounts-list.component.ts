@@ -18,6 +18,26 @@ export class DebtAccountsListComponent implements OnInit {
     personalLoansCollapsed = false;
     autoLoansCollapsed = false;
 
+    // Sorting state
+    sortColumn: string = 'priority';
+    sortDirection: 'asc' | 'desc' = 'asc';
+    creditCardsSortColumn: string = 'priority';
+    creditCardsSortDirection: 'asc' | 'desc' = 'asc';
+    personalLoansSortColumn: string = 'priority';
+    personalLoansSortDirection: 'asc' | 'desc' = 'asc';
+    autoLoansSortColumn: string = 'priority';
+    autoLoansSortDirection: 'asc' | 'desc' = 'asc';
+
+    // Modal states
+    showEditModal = false;
+    showAddModal = false;
+    showDeleteConfirmation = false;
+    editingAccount: DebtAccount | null = null;
+    accountToDelete: DebtAccount | null = null;
+    addAccountType: 'CREDIT_CARD' | 'PERSONAL_LOAN' | 'AUTO_LOAN' = 'CREDIT_CARD';
+    currentSnapshotDate: string = '';
+    deleteConfirmationMessage: string = '';
+
     // Dual Theme color palette - Clean Light & Dark Glass
     cardColors = [
         'bg-white dark:bg-[#1a2332] border-pink-200 dark:border-pink-500/30 shadow-pink-100 dark:shadow-pink-900/10',      // 1
@@ -103,6 +123,7 @@ export class DebtAccountsListComponent implements OnInit {
             // No snapshot selected yet
             return;
         }
+        this.currentSnapshotDate = fileName;
         this.debtService.getSnapshotAccounts(fileName).subscribe(accounts => {
             this.creditCards = accounts.filter(a => a.type === 'CREDIT_CARD');
             this.personalLoans = accounts.filter(a => a.type === 'PERSONAL_LOAN');
@@ -122,8 +143,8 @@ export class DebtAccountsListComponent implements OnInit {
         if (apr === 0) return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300';
         if (apr < 8) return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300';
         if (apr < 12) return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300';
-        if (apr < 15) return 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300';
-        return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300';
+        if (apr < 15) return 'bg-[#FFB04C]/10 dark:bg-[#FFB04C]/20 text-[#FFB04C] dark:text-[#FFB04C]';
+        return 'bg-[#FF5F56]/10 dark:bg-[#FF5F56]/20 text-[#FF5F56] dark:text-[#FF5F56]';
     }
 
     isPromoExpiringSoon(account: DebtAccount): boolean {
@@ -136,5 +157,204 @@ export class DebtAccountsListComponent implements OnInit {
 
     calculateMonthlyInterest(balance: number, apr: number): number {
         return (balance * apr) / 100 / 12;
+    }
+
+    // Sorting methods
+    sort(accountType: 'credit' | 'personal' | 'auto', column: string) {
+        let sortColumn: string;
+        let sortDirection: 'asc' | 'desc';
+        let accounts: DebtAccount[];
+
+        // Determine which account type to sort
+        if (accountType === 'credit') {
+            if (this.creditCardsSortColumn === column) {
+                this.creditCardsSortDirection = this.creditCardsSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                this.creditCardsSortColumn = column;
+                this.creditCardsSortDirection = 'asc';
+            }
+            sortColumn = this.creditCardsSortColumn;
+            sortDirection = this.creditCardsSortDirection;
+            accounts = this.creditCards;
+        } else if (accountType === 'personal') {
+            if (this.personalLoansSortColumn === column) {
+                this.personalLoansSortDirection = this.personalLoansSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                this.personalLoansSortColumn = column;
+                this.personalLoansSortDirection = 'asc';
+            }
+            sortColumn = this.personalLoansSortColumn;
+            sortDirection = this.personalLoansSortDirection;
+            accounts = this.personalLoans;
+        } else {
+            if (this.autoLoansSortColumn === column) {
+                this.autoLoansSortDirection = this.autoLoansSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                this.autoLoansSortColumn = column;
+                this.autoLoansSortDirection = 'asc';
+            }
+            sortColumn = this.autoLoansSortColumn;
+            sortDirection = this.autoLoansSortDirection;
+            accounts = this.autoLoans;
+        }
+
+        // Sort the accounts
+        accounts.sort((a, b) => {
+            let aValue: any;
+            let bValue: any;
+
+            // Get values based on column
+            switch (column) {
+                case 'name':
+                    aValue = a.name?.toLowerCase() || '';
+                    bValue = b.name?.toLowerCase() || '';
+                    break;
+                case 'balance':
+                    aValue = a.currentBalance || 0;
+                    bValue = b.currentBalance || 0;
+                    break;
+                case 'apr':
+                    aValue = a.apr || 0;
+                    bValue = b.apr || 0;
+                    break;
+                case 'monthly':
+                    aValue = a.monthlyPayment || 0;
+                    bValue = b.monthlyPayment || 0;
+                    break;
+                case 'priority':
+                    aValue = a.priority || 999;
+                    bValue = b.priority || 999;
+                    break;
+                case 'interest':
+                    aValue = this.calculateMonthlyInterest(a.currentBalance || 0, a.apr || 0);
+                    bValue = this.calculateMonthlyInterest(b.currentBalance || 0, b.apr || 0);
+                    break;
+                case 'principal':
+                    aValue = a.principalPerMonth || 0;
+                    bValue = b.principalPerMonth || 0;
+                    break;
+                case 'payoff':
+                    aValue = a.payoffDate ? new Date(a.payoffDate).getTime() : Number.MAX_SAFE_INTEGER;
+                    bValue = b.payoffDate ? new Date(b.payoffDate).getTime() : Number.MAX_SAFE_INTEGER;
+                    break;
+                case 'monthsLeft':
+                    aValue = a.monthsLeft || Number.MAX_SAFE_INTEGER;
+                    bValue = b.monthsLeft || Number.MAX_SAFE_INTEGER;
+                    break;
+                default:
+                    return 0;
+            }
+
+            // Compare values
+            if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+            if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        // Update the arrays
+        if (accountType === 'credit') {
+            this.creditCards = [...accounts];
+        } else if (accountType === 'personal') {
+            this.personalLoans = [...accounts];
+        } else {
+            this.autoLoans = [...accounts];
+        }
+    }
+
+    getSortIcon(accountType: 'credit' | 'personal' | 'auto', column: string): string {
+        let currentColumn: string;
+        let currentDirection: 'asc' | 'desc';
+
+        if (accountType === 'credit') {
+            currentColumn = this.creditCardsSortColumn;
+            currentDirection = this.creditCardsSortDirection;
+        } else if (accountType === 'personal') {
+            currentColumn = this.personalLoansSortColumn;
+            currentDirection = this.personalLoansSortDirection;
+        } else {
+            currentColumn = this.autoLoansSortColumn;
+            currentDirection = this.autoLoansSortDirection;
+        }
+
+        if (currentColumn !== column) return 'unfold_more';
+        return currentDirection === 'asc' ? 'arrow_upward' : 'arrow_downward';
+    }
+
+    // Edit/Add/Delete methods
+    editAccount(account: DebtAccount) {
+        this.editingAccount = { ...account };
+        this.showEditModal = true;
+    }
+
+    addNewAccount(type: 'CREDIT_CARD' | 'PERSONAL_LOAN' | 'AUTO_LOAN') {
+        this.addAccountType = type;
+        this.showAddModal = true;
+    }
+
+    deleteAccount(account: DebtAccount) {
+        this.accountToDelete = account;
+        this.deleteConfirmationMessage = `Are you sure you want to delete "${account.name}"? This action cannot be undone.`;
+        this.showDeleteConfirmation = true;
+    }
+
+    saveAccount(account: DebtAccount) {
+        if (account.id) {
+            // Update existing account
+            this.debtService.updateDebt(account.id, account).subscribe({
+                next: () => {
+                    this.showEditModal = false;
+                    this.editingAccount = null;
+                    this.loadSnapshotAccounts(this.currentSnapshotDate);
+                },
+                error: (error) => {
+                    console.error('Error updating account:', error);
+                    alert('Failed to update account. Please try again.');
+                }
+            });
+        } else {
+            // Create new account
+            this.debtService.createDebt(account).subscribe({
+                next: () => {
+                    this.showAddModal = false;
+                    this.loadSnapshotAccounts(this.currentSnapshotDate);
+                },
+                error: (error) => {
+                    console.error('Error creating account:', error);
+                    alert('Failed to create account. Please try again.');
+                }
+            });
+        }
+    }
+
+    confirmDelete() {
+        if (this.accountToDelete && this.accountToDelete.id) {
+            this.debtService.deleteDebt(this.accountToDelete.id).subscribe({
+                next: () => {
+                    this.showDeleteConfirmation = false;
+                    this.accountToDelete = null;
+                    this.loadSnapshotAccounts(this.currentSnapshotDate);
+                },
+                error: (error) => {
+                    console.error('Error deleting account:', error);
+                    alert('Failed to delete account. Please try again.');
+                    this.showDeleteConfirmation = false;
+                    this.accountToDelete = null;
+                }
+            });
+        }
+    }
+
+    cancelDelete() {
+        this.showDeleteConfirmation = false;
+        this.accountToDelete = null;
+    }
+
+    cancelEdit() {
+        this.showEditModal = false;
+        this.editingAccount = null;
+    }
+
+    cancelAdd() {
+        this.showAddModal = false;
     }
 }

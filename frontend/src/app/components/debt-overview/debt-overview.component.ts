@@ -1,7 +1,8 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { DebtAccountService, DebtSummary, DebtAccount } from '../../services/debt-account.service';
 import { SnapshotStateService } from '../../services/snapshot-state.service';
 import { AnalyticsService } from '../../services/analytics.service';
+import { SnapshotManagerComponent } from '../snapshot-manager/snapshot-manager.component';
 
 @Component({
     selector: 'app-debt-overview',
@@ -10,6 +11,8 @@ import { AnalyticsService } from '../../services/analytics.service';
 })
 export class DebtOverviewComponent implements OnInit {
     Math = Math; // Expose Math to template
+
+    @ViewChild(SnapshotManagerComponent, { static: false }) snapshotManager!: SnapshotManagerComponent;
 
     summary: DebtSummary = {
         snapshotDate: '',
@@ -256,5 +259,19 @@ export class DebtOverviewComponent implements OnInit {
             return this.selectedSnapshot !== this.availableSnapshots[0].snapshotDate;
         }
         return false;
+    }
+
+    openSnapshotManager() {
+        console.log('openSnapshotManager called', this.snapshotManager);
+        if (this.snapshotManager) {
+            this.snapshotManager.open();
+        } else {
+            console.error('SnapshotManager component not found');
+        }
+    }
+
+    onSnapshotCreated() {
+        // Reload snapshots and select the newly created one
+        this.loadSnapshots();
     }
 }

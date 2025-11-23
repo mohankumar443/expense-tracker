@@ -13,6 +13,9 @@ import { DebtOverviewComponent } from './components/debt-overview/debt-overview.
 import { DebtAccountsListComponent } from './components/debt-accounts-list/debt-accounts-list.component';
 import { ProgressTrackerComponent } from './components/progress-tracker/progress-tracker.component';
 import { SidebarComponent } from './components/sidebar/sidebar.component';
+import { SnapshotManagerComponent } from './components/snapshot-manager/snapshot-manager.component';
+import { ConfirmationModalComponent } from './components/confirmation-modal/confirmation-modal.component';
+import { AccountFormModalComponent } from './components/account-form-modal/account-form-modal.component';
 import { ExpenseService } from './services/expense.service';
 
 @NgModule({
@@ -25,7 +28,10 @@ import { ExpenseService } from './services/expense.service';
         DebtOverviewComponent,
         DebtAccountsListComponent,
         ProgressTrackerComponent,
-        SidebarComponent
+        SidebarComponent,
+        SnapshotManagerComponent,
+        ConfirmationModalComponent,
+        AccountFormModalComponent
     ],
     imports: [
         BrowserModule,

@@ -1,0 +1,177 @@
+<!-- Modal Overlay -->
+<div [style.display]="isVisible ? 'flex' : 'none'"
+    class="modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+    style="z-index: 9999;" (click)="closeModal()">
+
+    <!-- Modal Content -->
+    <div class="bg-white dark:bg-[#1a2332] rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden"
+        (click)="$event.stopPropagation()">
+
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-primary to-purple-600 px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <span class="material-icons text-4xl text-white">add_circle</span>
+                    <div>
+                        <h2 class="text-2xl font-black text-white">Add New Month</h2>
+                        <p class="text-white/80 text-sm">Create a new monthly snapshot</p>
+                    </div>
+                </div>
+                <button (click)="closeModal()"
+                    class="text-white/80 hover:text-white hover:bg-white/20 rounded-full p-2 transition-all">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="p-8 overflow-y-auto max-h-[calc(90vh-200px)]">
+
+            <!-- Date Selection -->
+            <div class="mb-8">
+                <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                    Select Month & Year
+                </label>
+                <input type="month" [(ngModel)]="selectedDate"
+                    class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-[#0f1729] text-gray-900 dark:text-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all">
+            </div>
+
+            <!-- Clone From Section -->
+            <div class="mb-8">
+                <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                    Clone From (Optional)
+                </label>
+                <select [(ngModel)]="cloneFromDate" (change)="onCloneFromChange()"
+                    class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-[#0f1729] text-gray-900 dark:text-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all">
+                    <option [value]="null">Start from scratch</option>
+                    <option *ngFor="let snapshot of availableSnapshots" [value]="snapshot.snapshotDate">
+                        {{ snapshot.snapshotDate | date:'MMMM yyyy' }}
+                    </option>
+                </select>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    Clone data from an existing month to save time
+                </p>
+            </div>
+
+            <!-- Loading State -->
+            <div *ngIf="isLoading" class="text-center py-12">
+                <div
+                    class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent">
+                </div>
+                <p class="text-gray-600 dark:text-gray-400 mt-4">Loading accounts...</p>
+            </div>
+
+            <!-- Accounts Table -->
+            <div *ngIf="!isLoading && accounts.length > 0" class="mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-black text-gray-900 dark:text-white">Accounts</h3>
+                    <button (click)="addAccount()"
+                        class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold transition-all flex items-center space-x-2">
+                        <span class="material-icons text-sm">add</span>
+                        <span>Add Account</span>
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-[#0f1729]">
+                            <tr>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase">
+                                    Name</th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase">
+                                    Type</th>
+                                <th
+                                    class="px-4 py-3 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase">
+                                    Balance</th>
+                                <th
+                                    class="px-4 py-3 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase">
+                                    APR %</th>
+                                <th
+                                    class="px-4 py-3 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase">
+                                    Payment</th>
+                                <th
+                                    class="px-4 py-3 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase">
+                                    Status</th>
+                                <th
+                                    class="px-4 py-3 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase">
+                                    Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-[#1a2332]">
+                            <tr *ngFor="let account of accounts; let i = index"
+                                class="hover:bg-gray-50 dark:hover:bg-[#252f40] transition-colors">
+                                <td class="px-4 py-3">
+                                    <input type="text" [(ngModel)]="account.name"
+                                        class="w-full px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f1729] text-gray-900 dark:text-white text-sm">
+                                </td>
+                                <td class="px-4 py-3">
+                                    <select [(ngModel)]="account.type"
+                                        class="w-full px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f1729] text-gray-900 dark:text-white text-sm">
+                                        <option value="CREDIT_CARD">Credit Card</option>
+                                        <option value="PERSONAL_LOAN">Personal Loan</option>
+                                        <option value="AUTO_LOAN">Auto Loan</option>
+                                    </select>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <input type="number" [(ngModel)]="account.currentBalance"
+                                        class="w-full px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f1729] text-gray-900 dark:text-white text-sm text-right">
+                                </td>
+                                <td class="px-4 py-3">
+                                    <input type="number" [(ngModel)]="account.apr" step="0.01"
+                                        class="w-full px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f1729] text-gray-900 dark:text-white text-sm text-right">
+                                </td>
+                                <td class="px-4 py-3">
+                                    <input type="number" [(ngModel)]="account.monthlyPayment"
+                                        class="w-full px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f1729] text-gray-900 dark:text-white text-sm text-right">
+                                </td>
+                                <td class="px-4 py-3">
+                                    <select [(ngModel)]="account.status"
+                                        class="w-full px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f1729] text-gray-900 dark:text-white text-sm">
+                                        <option value="ACTIVE">Active</option>
+                                        <option value="PAID_OFF">Paid Off</option>
+                                        <option value="CLOSED">Closed</option>
+                                    </select>
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    <button (click)="removeAccount(i)"
+                                        class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors">
+                                        <span class="material-icons text-sm">delete</span>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Empty State -->
+            <div *ngIf="!isLoading && accounts.length === 0"
+                class="text-center py-12 bg-gray-50 dark:bg-[#0f1729] rounded-xl">
+                <span
+                    class="material-icons text-6xl text-gray-300 dark:text-gray-600 mb-4">account_balance_wallet</span>
+                <p class="text-gray-600 dark:text-gray-400 mb-4">No accounts yet</p>
+                <button (click)="addAccount()"
+                    class="px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-all">
+                    Add Your First Account
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div
+            class="bg-gray-50 dark:bg-[#0f1729] px-8 py-6 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <button (click)="closeModal()"
+                class="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-bold transition-all">
+                Cancel
+            </button>
+            <button (click)="submit()" [disabled]="isLoading || !selectedDate"
+                class="px-8 py-3 bg-gradient-to-r from-primary to-purple-600 hover:shadow-xl text-white rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2">
+                <span class="material-icons" *ngIf="isLoading">hourglass_empty</span>
+                <span class="material-icons" *ngIf="!isLoading">check_circle</span>
+                <span>{{ isLoading ? 'Creating...' : 'Create Snapshot' }}</span>
+            </button>
+        </div>
+    </div>
+</div>

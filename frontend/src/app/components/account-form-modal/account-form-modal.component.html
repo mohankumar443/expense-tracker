@@ -1,0 +1,148 @@
+<div *ngIf="isVisible" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white dark:bg-[#1a2332] rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-blue-500 p-6 rounded-t-2xl">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <span class="material-icons text-white text-3xl">{{ mode === 'edit' ? 'edit' : 'add_circle'
+                        }}</span>
+                    <h2 class="text-2xl font-black text-white">
+                        {{ mode === 'edit' ? 'Edit' : 'Add New' }} {{ getTypeLabel() }}
+                    </h2>
+                </div>
+                <button (click)="onCancel()" class="text-white hover:bg-white/20 rounded-full p-2 transition-colors">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Form -->
+        <div class="p-6 space-y-4">
+            <!-- Account Name -->
+            <div>
+                <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                    Account Name <span class="text-red-500">*</span>
+                </label>
+                <input type="text" [(ngModel)]="formData.name"
+                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-[#0f1729] text-gray-900 dark:text-white"
+                    placeholder="e.g., Chase Sapphire">
+                <p *ngIf="errors['name']" class="text-red-500 text-sm mt-1">{{ errors['name'] }}</p>
+            </div>
+
+            <!-- Balance and APR Row -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                        Current Balance <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-3 text-gray-500 dark:text-gray-400">$</span>
+                        <input type="number" [(ngModel)]="formData.currentBalance"
+                            (ngModelChange)="calculatePrincipal()"
+                            class="w-full pl-8 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-[#0f1729] text-gray-900 dark:text-white"
+                            placeholder="0.00" step="0.01">
+                    </div>
+                    <p *ngIf="errors['currentBalance']" class="text-red-500 text-sm mt-1">{{ errors['currentBalance'] }}
+                    </p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                        APR <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <input type="number" [(ngModel)]="formData.apr" (ngModelChange)="calculatePrincipal()"
+                            class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-[#0f1729] text-gray-900 dark:text-white"
+                            placeholder="0.00" step="0.01" min="0" max="100">
+                        <span class="absolute right-3 top-3 text-gray-500 dark:text-gray-400">%</span>
+                    </div>
+                    <p *ngIf="errors['apr']" class="text-red-500 text-sm mt-1">{{ errors['apr'] }}</p>
+                </div>
+            </div>
+
+            <!-- Monthly Payment and Principal Row -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                        Monthly Payment <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-3 text-gray-500 dark:text-gray-400">$</span>
+                        <input type="number" [(ngModel)]="formData.monthlyPayment"
+                            (ngModelChange)="calculatePrincipal(); calculateMonthsLeft()"
+                            class="w-full pl-8 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-[#0f1729] text-gray-900 dark:text-white"
+                            placeholder="0.00" step="0.01">
+                    </div>
+                    <p *ngIf="errors['monthlyPayment']" class="text-red-500 text-sm mt-1">{{ errors['monthlyPayment'] }}
+                    </p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                        Principal / Month
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-3 text-gray-500 dark:text-gray-400">$</span>
+                        <input type="number" [(ngModel)]="formData.principalPerMonth"
+                            (ngModelChange)="calculateMonthsLeft()"
+                            class="w-full pl-8 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-[#0f1729] text-gray-900 dark:text-white"
+                            placeholder="Auto-calculated" step="0.01">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payoff Date and Months Left Row -->
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                        Payoff Date
+                    </label>
+                    <input type="date" [(ngModel)]="formData.payoffDate"
+                        class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-[#0f1729] text-gray-900 dark:text-white">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                        Months Left
+                    </label>
+                    <input type="number" [(ngModel)]="formData.monthsLeft"
+                        class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-[#0f1729] text-gray-900 dark:text-white"
+                        placeholder="Auto-calculated" min="0">
+                </div>
+            </div>
+
+            <!-- Priority -->
+            <div>
+                <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                    Priority (1 = highest)
+                </label>
+                <input type="number" [(ngModel)]="formData.priority"
+                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-[#0f1729] text-gray-900 dark:text-white"
+                    placeholder="1" min="1">
+            </div>
+
+            <!-- Notes -->
+            <div>
+                <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                    Notes
+                </label>
+                <textarea [(ngModel)]="formData.notes" rows="3"
+                    class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-[#0f1729] text-gray-900 dark:text-white resize-none"
+                    placeholder="Additional notes..."></textarea>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="bg-gray-50 dark:bg-[#0f1729] px-6 py-4 rounded-b-2xl flex justify-end gap-3">
+            <button (click)="onCancel()"
+                class="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-bold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                Cancel
+            </button>
+            <button (click)="onSave()"
+                class="px-6 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-2">
+                <span class="material-icons text-sm">{{ mode === 'edit' ? 'save' : 'add' }}</span>
+                {{ mode === 'edit' ? 'Save Changes' : 'Add Account' }}
+            </button>
+        </div>
+    </div>
+</div>

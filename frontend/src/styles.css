@@ -110,3 +110,48 @@
 .delay-700 {
     animation-delay: 700ms;
 }
+
+/* Premium Shadow Variations */
+.shadow-soft {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+.shadow-softer {
+    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.03), 0 1px 2px -1px rgba(0, 0, 0, 0.02);
+}
+
+/* Dark mode shadow variations */
+.dark .shadow-soft {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+}
+
+.dark .shadow-softer {
+    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.2), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Premium Hover Effects */
+.hover-lift {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-lift:hover {
+    transform: scale(1.01);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.dark .hover-lift:hover {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+}
+
+/* Section Divider */
+.section-divider {
+    position: relative;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    border-top: 1px solid;
+    border-image: linear-gradient(to right, transparent, rgba(156, 163, 175, 0.3), transparent) 1;
+}
+
+.dark .section-divider {
+    border-image: linear-gradient(to right, transparent, rgba(75, 85, 99, 0.5), transparent) 1;
+}

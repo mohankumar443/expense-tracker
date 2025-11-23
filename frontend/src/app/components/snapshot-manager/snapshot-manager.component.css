@@ -1,0 +1,5 @@
+/* Ensure modal appears above everything */
+:host ::ng-deep .modal-overlay {
+    z-index: 9999 !important;
+    position: fixed !important;
+}

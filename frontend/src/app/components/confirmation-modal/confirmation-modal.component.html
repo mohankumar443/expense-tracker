@@ -1,0 +1,50 @@
+<!-- Modal Overlay -->
+<div *ngIf="isVisible" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+    style="z-index: 10000;" (click)="onCancel()">
+
+    <!-- Modal Content -->
+    <div class="bg-white dark:bg-[#1a2332] rounded-2xl shadow-2xl max-w-md w-full overflow-hidden transform transition-all"
+        (click)="$event.stopPropagation()">
+
+        <!-- Icon & Title -->
+        <div
+            [class]="'px-6 py-5 ' + (isDanger ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-gradient-to-r from-primary to-purple-600')">
+            <div class="flex items-center space-x-3">
+                <div class="flex-shrink-0">
+                    <svg *ngIf="isDanger" class="w-8 h-8 text-white" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <svg *ngIf="!isDanger" class="w-8 h-8 text-white" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-black text-white">{{ title }}</h3>
+            </div>
+        </div>
+
+        <!-- Message -->
+        <div class="px-6 py-6">
+            <p class="text-gray-700 dark:text-gray-300 text-base leading-relaxed">
+                {{ message }}
+            </p>
+        </div>
+
+        <!-- Actions -->
+        <div class="bg-gray-50 dark:bg-[#0f1729] px-6 py-4 flex items-center justify-end space-x-3">
+            <button (click)="onCancel()"
+                class="px-5 py-2.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-bold transition-all">
+                {{ cancelText }}
+            </button>
+            <button (click)="onConfirm()" [class]="'px-5 py-2.5 rounded-xl font-bold transition-all ' + 
+                    (isDanger 
+                        ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg hover:shadow-xl' 
+                        : 'bg-gradient-to-r from-primary to-purple-600 hover:shadow-xl text-white')">
+                {{ confirmText }}
+            </button>
+        </div>
+    </div>
+</div>

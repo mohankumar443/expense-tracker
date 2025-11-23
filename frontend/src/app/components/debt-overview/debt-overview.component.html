@@ -29,6 +29,12 @@
                 </div>
             </div>
 
+            <!-- Add New Month Button -->
+            <button (click)="openSnapshotManager()"
+                class="px-6 py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl font-bold hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center space-x-2">
+                <span class="material-icons">add_circle</span>
+                <span>Add New Month</span>
+            </button>
             <div class="flex items-center gap-6">
                 <!-- Performance Score Circle -->
                 <div class="flex flex-col items-center">
@@ -82,7 +88,7 @@
 
                 <!-- Total Debt -->
                 <div
-                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-slate-200 dark:border-slate-500/30 shadow-lg shadow-slate-200/50 dark:shadow-slate-900/10 relative overflow-hidden group hover:scale-[1.02] transition-all duration-300">
+                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-slate-200 dark:border-slate-500/30 shadow-soft relative overflow-hidden hover-lift">
                     <div
                         class="absolute top-0 right-0 p-4 opacity-5 dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity">
                         <span
@@ -100,7 +106,7 @@
 
                 <!-- % Credit Cards -->
                 <div
-                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-blue-200 dark:border-blue-500/30 shadow-lg shadow-blue-100 dark:shadow-blue-900/10 relative overflow-hidden group hover:scale-[1.02] transition-all duration-300">
+                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-blue-200 dark:border-blue-500/30 shadow-soft relative overflow-hidden hover-lift">
                     <div
                         class="absolute top-0 right-0 p-4 opacity-5 dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity">
                         <span class="material-icons text-6xl text-blue-600 dark:text-blue-300">credit_card</span>
@@ -120,7 +126,7 @@
 
                 <!-- % Loans -->
                 <div
-                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-purple-200 dark:border-purple-500/30 shadow-lg shadow-purple-100 dark:shadow-purple-900/10 relative overflow-hidden group hover:scale-[1.02] transition-all duration-300">
+                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-purple-200 dark:border-purple-500/30 shadow-soft relative overflow-hidden hover-lift">
                     <div
                         class="absolute top-0 right-0 p-4 opacity-5 dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity">
                         <span
@@ -140,7 +146,7 @@
 
                 <!-- Auto Loan -->
                 <div
-                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-emerald-200 dark:border-emerald-500/30 shadow-lg shadow-emerald-100 dark:shadow-emerald-900/10 relative overflow-hidden group hover:scale-[1.02] transition-all duration-300">
+                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-emerald-200 dark:border-emerald-500/30 shadow-soft relative overflow-hidden hover-lift">
                     <div
                         class="absolute top-0 right-0 p-4 opacity-5 dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity">
                         <span
@@ -165,7 +171,7 @@
 
                 <!-- Total Min Payment -->
                 <div
-                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-orange-200 dark:border-orange-500/30 shadow-lg shadow-orange-100 dark:shadow-orange-900/10 relative overflow-hidden group hover:scale-[1.02] transition-all duration-300">
+                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-5 border border-orange-200 dark:border-orange-500/30 shadow-md relative overflow-hidden hover-lift">
                     <div
                         class="absolute top-0 right-0 p-4 opacity-5 dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity">
                         <span class="material-icons text-6xl text-orange-600 dark:text-white">payments</span>
@@ -181,7 +187,7 @@
 
                 <!-- Principal -->
                 <div
-                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-teal-200 dark:border-teal-500/30 shadow-lg shadow-teal-100 dark:shadow-teal-900/10 relative overflow-hidden group hover:scale-[1.02] transition-all duration-300">
+                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-5 border border-teal-200 dark:border-teal-500/30 shadow-md relative overflow-hidden hover-lift">
                     <div
                         class="absolute top-0 right-0 p-4 opacity-5 dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity">
                         <span class="material-icons text-6xl text-teal-600 dark:text-white">trending_down</span>
@@ -198,7 +204,7 @@
 
                 <!-- High APR Threat List -->
                 <div
-                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-rose-200 dark:border-rose-500/30 shadow-lg shadow-rose-100 dark:shadow-rose-900/10 relative overflow-hidden group hover:scale-[1.02] transition-all duration-300">
+                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-5 border border-rose-200 dark:border-rose-500/30 shadow-md relative overflow-hidden hover-lift">
                     <div
                         class="absolute top-0 right-0 p-4 opacity-5 dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity">
                         <span class="material-icons text-6xl text-rose-600 dark:text-white">warning</span>
@@ -222,7 +228,8 @@
             </div>
 
             <!-- Priority Alert -->
-            <div class="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-500/30 rounded-2xl p-6 shadow-lg shadow-orange-100 dark:shadow-orange-900/10"
+            <div class="section-divider"></div>
+            <div class="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-500/30 rounded-2xl p-6 shadow-md"
                 *ngIf="highAprAccounts && highAprAccounts.length > 0">
                 <div class="flex items-start gap-4">
                     <div class="p-3 bg-white dark:bg-white/10 rounded-xl backdrop-blur-sm shadow-sm">
@@ -241,11 +248,12 @@
             </div>
 
             <!-- Bottom Section -->
+            <div class="section-divider"></div>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
                 <!-- Net Worth Calculator -->
                 <div
-                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-indigo-200 dark:border-indigo-500/30 shadow-lg shadow-indigo-100 dark:shadow-indigo-900/10 relative overflow-hidden">
+                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-indigo-200 dark:border-indigo-500/30 shadow-md relative overflow-hidden hover-lift">
                     <div class="absolute top-0 right-0 p-4 opacity-5 dark:opacity-10">
                         <span class="material-icons text-6xl text-indigo-600 dark:text-white">calculate</span>
                     </div>
@@ -282,7 +290,7 @@
 
                 <!-- Payoff Timeline -->
                 <div
-                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-violet-200 dark:border-violet-500/30 shadow-lg shadow-violet-100 dark:shadow-violet-900/10 relative overflow-hidden">
+                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-violet-200 dark:border-violet-500/30 shadow-md relative overflow-hidden hover-lift">
                     <div class="absolute top-0 right-0 p-4 opacity-5 dark:opacity-10">
                         <span class="material-icons text-6xl text-violet-600 dark:text-white">timeline</span>
                     </div>
@@ -336,7 +344,7 @@
 
             <!-- Payment Efficiency Bar -->
             <div
-                class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-cyan-200 dark:border-cyan-500/30 shadow-lg shadow-cyan-100 dark:shadow-cyan-900/10 relative overflow-hidden">
+                class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-cyan-200 dark:border-cyan-500/30 shadow-md relative overflow-hidden hover-lift">
                 <p
                     class="text-xs font-bold text-cyan-600 dark:text-cyan-200 uppercase tracking-wider mb-4 relative z-10">
                     Payment Efficiency</p>
@@ -372,3 +380,6 @@
         </div>
     </div>
 </div>
+
+<!-- Snapshot Manager Modal -->
+<app-snapshot-manager (snapshotCreated)="onSnapshotCreated()"></app-snapshot-manager>
