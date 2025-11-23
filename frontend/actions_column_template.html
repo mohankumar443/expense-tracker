@@ -1,0 +1,20 @@
+<!-- Add this after the Notes column in Credit Cards table header (around line 293) -->
+<th class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+    Actions
+</th>
+
+<!-- Add this after the Notes cell in Credit Cards table rows (around line 350) -->
+<td class="px-4 py-4 whitespace-nowrap text-center">
+    <div class="flex items-center justify-center gap-2">
+        <button (click)="editAccount(account)"
+            class="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+            title="Edit">
+            <span class="material-icons text-sm">edit</span>
+        </button>
+        <button (click)="deleteAccount(account)"
+            class="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+            title="Delete">
+            <span class="material-icons text-sm">delete</span>
+        </button>
+    </div>
+</td>
