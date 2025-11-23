@@ -3,6 +3,10 @@ import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
+import { NgChartsModule } from 'ng2-charts';
+import { Chart, registerables } from 'chart.js';
+
+Chart.register(...registerables);
 
 import { AppComponent } from './app.component';
 import { ExpenseListComponent } from './components/expense-list/expense-list.component';
@@ -37,7 +41,8 @@ import { ExpenseService } from './services/expense.service';
         BrowserModule,
         BrowserAnimationsModule,
         HttpClientModule,
-        FormsModule
+        FormsModule,
+        NgChartsModule
     ],
     providers: [ExpenseService],
     bootstrap: [AppComponent]

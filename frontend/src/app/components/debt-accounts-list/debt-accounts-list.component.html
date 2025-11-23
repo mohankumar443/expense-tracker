@@ -62,7 +62,7 @@
                     </div>
                     <div *ngIf="account.monthlyPayment"
                         class="text-sm text-gray-700 dark:text-white/90 mb-3 flex items-center font-medium">
-                        <span class="material-icons text-gray-500 dark:text-white/80 text-sm mr-1">payments</span>
+                        <span class="material-icons text-emerald-500 dark:text-emerald-400 text-sm mr-1">payments</span>
                         Monthly: <span class="text-gray-900 dark:text-white font-bold ml-1">${{ account.monthlyPayment |
                             number:'1.0-0'
                             }}</span>
@@ -70,7 +70,7 @@
                     <div *ngIf="isPromoExpiringSoon(account)"
                         class="bg-white/50 dark:bg-white/20 border border-white/30 rounded-lg p-3 mt-3 backdrop-blur-sm">
                         <p class="text-xs font-bold text-gray-900 dark:text-white flex items-center">
-                            <span class="material-icons text-sm mr-2 text-amber-600 dark:text-white">warning</span>
+                            <span class="material-icons text-sm mr-2 text-amber-500 dark:text-yellow-400">warning</span>
                             Promo expires {{ account.promoExpires | date:'MMM yyyy' }}
                         </p>
                     </div>
@@ -123,7 +123,7 @@
                     </div>
                     <div *ngIf="account.monthlyPayment"
                         class="text-sm text-gray-700 dark:text-white/90 mb-3 flex items-center font-medium">
-                        <span class="material-icons text-gray-500 dark:text-white/80 text-sm mr-1">payments</span>
+                        <span class="material-icons text-emerald-500 dark:text-emerald-400 text-sm mr-1">payments</span>
                         Monthly: <span class="text-gray-900 dark:text-white font-bold ml-1">${{ account.monthlyPayment |
                             number:'1.0-0'
                             }}</span>
@@ -176,7 +176,7 @@
                     </div>
                     <div *ngIf="account.monthlyPayment"
                         class="text-sm text-gray-700 dark:text-white/90 mb-3 flex items-center font-medium">
-                        <span class="material-icons text-gray-500 dark:text-white/80 text-sm mr-1">payments</span>
+                        <span class="material-icons text-emerald-500 dark:text-emerald-400 text-sm mr-1">payments</span>
                         Monthly: <span class="text-gray-900 dark:text-white font-bold ml-1">${{ account.monthlyPayment |
                             number:'1.0-0'
                             }}</span>
@@ -531,6 +531,20 @@
                             </td>
                             <td class="px-4 py-4 text-sm text-gray-500 max-w-xs truncate" [title]="account.notes || ''">
                                 {{ account.notes }}</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-center">
+                                <div class="flex items-center justify-center gap-2">
+                                    <button (click)="editAccount(account)"
+                                        class="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                        title="Edit">
+                                        <span class="material-icons text-sm">edit</span>
+                                    </button>
+                                    <button (click)="deleteAccount(account)"
+                                        class="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                        title="Delete">
+                                        <span class="material-icons text-sm">delete</span>
+                                    </button>
+                                </div>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -552,6 +566,13 @@
                     class="material-icons text-gray-400 transform transition-transform duration-300 group-hover:text-gray-600 dark:group-hover:text-white"
                     [class.rotate-180]="autoLoansCollapsed">expand_more</span>
             </div>
+
+            <!-- Add New Account Button -->
+            <button *ngIf="!autoLoansCollapsed" (click)="addNewAccount('AUTO_LOAN')"
+                class="mb-4 px-4 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition-colors flex items-center gap-2">
+                <span class="material-icons text-sm">add_circle</span>
+                Add New Auto Loan
+            </button>
             <div *ngIf="!autoLoansCollapsed"
                 class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 shadow-softer bg-white dark:bg-[#1a2332]">
                 <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -627,6 +648,9 @@
                             <th
                                 class="px-4 py-4 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                 Notes</th>
+                            <th
+                                class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -680,6 +704,20 @@
                             </td>
                             <td class="px-4 py-4 text-sm text-gray-500 max-w-xs truncate" [title]="account.notes || ''">
                                 {{ account.notes }}</td>
+                            <td class="px-4 py-4 whitespace-nowrap text-center">
+                                <div class="flex items-center justify-center gap-2">
+                                    <button (click)="editAccount(account)"
+                                        class="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                        title="Edit">
+                                        <span class="material-icons text-sm">edit</span>
+                                    </button>
+                                    <button (click)="deleteAccount(account)"
+                                        class="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                        title="Delete">
+                                        <span class="material-icons text-sm">delete</span>
+                                    </button>
+                                </div>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
