@@ -14,6 +14,10 @@ export interface DebtAccount {
     createdDate?: string;
     lastUpdated?: string;
     snapshotDate?: string;
+    principalPerMonth?: number;
+    payoffDate?: string;
+    monthsLeft?: number;
+    priority?: number;
 }
 
 export interface DebtSummary {

@@ -1,23 +1,25 @@
-<div class="min-h-screen bg-[#0f1729] p-6">
+<div class="min-h-screen bg-gray-50 dark:bg-[#0f1729] p-6 transition-colors duration-300">
     <div class="max-w-7xl mx-auto space-y-6">
 
         <!-- Header Section -->
         <div class="flex items-center justify-between mb-8">
             <div class="flex items-center gap-4">
-                <div class="p-3 bg-blue-600/20 rounded-xl">
-                    <span class="material-icons text-blue-400 text-2xl">calendar_today</span>
+                <div class="p-3 bg-blue-100 dark:bg-blue-600/20 rounded-xl">
+                    <span class="material-icons text-blue-600 dark:text-blue-400 text-2xl">calendar_today</span>
                 </div>
                 <div>
-                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Viewing Snapshot</p>
-                    <h2 class="text-3xl font-bold text-white">{{ summary.snapshotDate | date:'MMMM yyyy' }}</h2>
+                    <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Viewing
+                        Snapshot</p>
+                    <h2 class="text-3xl font-bold text-gray-900 dark:text-white">{{ summary.snapshotDate | date:'MMMM
+                        yyyy' }}</h2>
                 </div>
 
                 <!-- Month Selector Dropdown -->
                 <div class="relative ml-4">
                     <select [(ngModel)]="selectedSnapshot" (ngModelChange)="onSnapshotChange()"
-                        class="bg-[#1a2332] border-2 border-gray-600 text-white font-semibold rounded-xl px-4 py-2 pr-10 cursor-pointer hover:border-blue-500 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none">
+                        class="bg-white dark:bg-[#1a2332] border-2 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white font-semibold rounded-xl px-4 py-2 pr-10 cursor-pointer hover:border-blue-500 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none shadow-sm">
                         <option *ngFor="let snapshot of availableSnapshots" [value]="snapshot.snapshotDate"
-                            class="bg-[#1a2332] text-white">
+                            class="bg-white dark:bg-[#1a2332] text-gray-900 dark:text-white">
                             {{ snapshot.displayName }}
                         </option>
                     </select>
@@ -32,24 +34,27 @@
                 <div class="flex flex-col items-center">
                     <div class="relative w-24 h-24">
                         <svg class="w-full h-full transform -rotate-90">
-                            <circle cx="48" cy="48" r="40" stroke="rgba(99, 102, 241, 0.2)" stroke-width="6"
-                                fill="none" />
+                            <circle cx="48" cy="48" r="40" stroke="currentColor" stroke-width="6" fill="none"
+                                class="text-indigo-100 dark:text-indigo-900/30" />
                             <circle cx="48" cy="48" r="40" stroke="#6366f1" stroke-width="6" fill="none"
                                 stroke-linecap="round" [attr.stroke-dasharray]="251"
                                 [attr.stroke-dashoffset]="251 - (251 * getPerformanceScore() / 100)"
                                 class="transition-all duration-1000" />
                         </svg>
                         <div class="absolute inset-0 flex flex-col items-center justify-center">
-                            <span class="text-2xl font-black text-white">{{ getPerformanceScore() }}</span>
-                            <span class="text-xs font-semibold text-gray-400">SCORE</span>
+                            <span class="text-2xl font-black text-gray-900 dark:text-white">{{ getPerformanceScore()
+                                }}</span>
+                            <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">SCORE</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Debt Free Date -->
                 <div class="text-right" *ngIf="payoffTimeline">
-                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Debt-Free Date</p>
-                    <h3 class="text-3xl font-bold text-white">{{ payoffTimeline.overall.payoffDate | date:'MMM yyyy' }}
+                    <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                        Debt-Free Date</p>
+                    <h3 class="text-3xl font-bold text-gray-900 dark:text-white">{{ payoffTimeline.overall.payoffDate |
+                        date:'MMM yyyy' }}
                     </h3>
                 </div>
             </div>
@@ -61,7 +66,8 @@
         </div>
 
         <!-- Error State -->
-        <div *ngIf="error" class="bg-red-900/20 border border-red-500/50 rounded-2xl p-6 text-red-400">
+        <div *ngIf="error"
+            class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/50 rounded-2xl p-6 text-red-600 dark:text-red-400">
             <div class="flex items-center gap-3">
                 <span class="material-icons text-2xl">error</span>
                 <span class="font-semibold">{{ error }}</span>
@@ -69,44 +75,87 @@
         </div>
 
         <!-- Main Content -->
-        <div *ngIf="!loading && !error && summary" class="space-y-6">
+        <div *ngIf="!loading && !error && summary" class="space-y-6 animate-fade-in-up">
 
             <!-- Top Stats Row -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
                 <!-- Total Debt -->
-                <div class="bg-[#1a2332] rounded-2xl p-6 border border-gray-700/50">
-                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Total Debt</p>
-                    <h3 class="text-4xl font-bold text-white mb-1">{{ summary.totalDebt |
+                <div
+                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-slate-200 dark:border-slate-500/30 shadow-lg shadow-slate-200/50 dark:shadow-slate-900/10 relative overflow-hidden group hover:scale-[1.02] transition-all duration-300">
+                    <div
+                        class="absolute top-0 right-0 p-4 opacity-5 dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity">
+                        <span
+                            class="material-icons text-6xl text-slate-900 dark:text-white">account_balance_wallet</span>
+                    </div>
+                    <p
+                        class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 relative z-10">
+                        Total Debt
+                    </p>
+                    <h3 class="text-4xl font-black text-slate-900 dark:text-white mb-1 relative z-10">{{
+                        summary.totalDebt |
                         currency:'USD':'symbol':'1.0-0' }}</h3>
-                    <p class="text-sm text-gray-400">{{ (summary.totalDebt / (summary.totalDebt + summary.totalDebt)) *
-                        100 | number:'1.0-0' }}% of total</p>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 relative z-10">100% of total</p>
                 </div>
 
                 <!-- % Credit Cards -->
-                <div class="bg-[#1a2332] rounded-2xl p-6 border border-gray-700/50">
-                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">% Credit Cards</p>
-                    <h3 class="text-4xl font-bold text-white mb-1">{{ summary.creditCardDebt |
+                <div
+                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-blue-200 dark:border-blue-500/30 shadow-lg shadow-blue-100 dark:shadow-blue-900/10 relative overflow-hidden group hover:scale-[1.02] transition-all duration-300">
+                    <div
+                        class="absolute top-0 right-0 p-4 opacity-5 dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity">
+                        <span class="material-icons text-6xl text-blue-600 dark:text-blue-300">credit_card</span>
+                    </div>
+                    <p
+                        class="text-xs font-bold text-blue-600 dark:text-blue-300 uppercase tracking-wider mb-2 relative z-10">
+                        % Credit
+                        Cards</p>
+                    <h3 class="text-4xl font-black text-gray-900 dark:text-white mb-1 relative z-10">{{
+                        summary.creditCardDebt |
                         currency:'USD':'symbol':'1.0-0' }}</h3>
-                    <p class="text-sm text-gray-400">{{ (summary.creditCardDebt / summary.totalDebt) * 100 |
+                    <p class="text-sm text-blue-600/70 dark:text-blue-200/70 relative z-10">{{ (summary.creditCardDebt /
+                        summary.totalDebt) *
+                        100 |
                         number:'1.0-0' }}% of total</p>
                 </div>
 
                 <!-- % Loans -->
-                <div class="bg-[#1a2332] rounded-2xl p-6 border border-gray-700/50">
-                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">% Loans</p>
-                    <h3 class="text-4xl font-bold text-white mb-1">{{ summary.personalLoanDebt |
+                <div
+                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-purple-200 dark:border-purple-500/30 shadow-lg shadow-purple-100 dark:shadow-purple-900/10 relative overflow-hidden group hover:scale-[1.02] transition-all duration-300">
+                    <div
+                        class="absolute top-0 right-0 p-4 opacity-5 dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity">
+                        <span
+                            class="material-icons text-6xl text-purple-600 dark:text-purple-300">account_balance</span>
+                    </div>
+                    <p
+                        class="text-xs font-bold text-purple-600 dark:text-purple-300 uppercase tracking-wider mb-2 relative z-10">
+                        % Loans</p>
+                    <h3 class="text-4xl font-black text-gray-900 dark:text-white mb-1 relative z-10">{{
+                        summary.personalLoanDebt |
                         currency:'USD':'symbol':'1.0-0' }}</h3>
-                    <p class="text-sm text-gray-400">{{ (summary.personalLoanDebt / summary.totalDebt) * 100 |
+                    <p class="text-sm text-purple-600/70 dark:text-purple-200/70 relative z-10">{{
+                        (summary.personalLoanDebt /
+                        summary.totalDebt) * 100 |
                         number:'1.0-0' }}% of total</p>
                 </div>
 
                 <!-- Auto Loan -->
-                <div class="bg-[#1a2332] rounded-2xl p-6 border border-gray-700/50">
-                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Auto Loan</p>
-                    <h3 class="text-4xl font-bold text-white mb-1">{{ summary.autoLoanDebt |
+                <div
+                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-emerald-200 dark:border-emerald-500/30 shadow-lg shadow-emerald-100 dark:shadow-emerald-900/10 relative overflow-hidden group hover:scale-[1.02] transition-all duration-300">
+                    <div
+                        class="absolute top-0 right-0 p-4 opacity-5 dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity">
+                        <span
+                            class="material-icons text-6xl text-emerald-600 dark:text-emerald-300">directions_car</span>
+                    </div>
+                    <p
+                        class="text-xs font-bold text-emerald-600 dark:text-emerald-300 uppercase tracking-wider mb-2 relative z-10">
+                        Auto Loan
+                    </p>
+                    <h3 class="text-4xl font-black text-gray-900 dark:text-white mb-1 relative z-10">{{
+                        summary.autoLoanDebt |
                         currency:'USD':'symbol':'1.0-0' }}</h3>
-                    <p class="text-sm text-gray-400">{{ (summary.autoLoanDebt / summary.totalDebt) * 100 |
+                    <p class="text-sm text-emerald-600/70 dark:text-emerald-200/70 relative z-10">{{
+                        (summary.autoLoanDebt / summary.totalDebt) *
+                        100 |
                         number:'1.0-0' }}% of total</p>
                 </div>
             </div>
@@ -115,51 +164,77 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
                 <!-- Total Min Payment -->
-                <div class="bg-[#1a2332] rounded-2xl p-6 border border-gray-700/50">
-                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Total Min Payment</p>
-                    <h3 class="text-4xl font-bold text-white mb-1">{{ getTotalMinPayment() |
+                <div
+                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-orange-200 dark:border-orange-500/30 shadow-lg shadow-orange-100 dark:shadow-orange-900/10 relative overflow-hidden group hover:scale-[1.02] transition-all duration-300">
+                    <div
+                        class="absolute top-0 right-0 p-4 opacity-5 dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity">
+                        <span class="material-icons text-6xl text-orange-600 dark:text-white">payments</span>
+                    </div>
+                    <p
+                        class="text-xs font-bold text-orange-600 dark:text-orange-200 uppercase tracking-wider mb-2 relative z-10">
+                        Total Min Payment</p>
+                    <h3 class="text-4xl font-black text-gray-900 dark:text-white mb-1 relative z-10">{{
+                        getTotalMinPayment() |
                         currency:'USD':'symbol':'1.0-0' }}</h3>
-                    <p class="text-sm text-gray-400">required monthly</p>
+                    <p class="text-sm text-orange-600/70 dark:text-orange-200/70 relative z-10">required monthly</p>
                 </div>
 
                 <!-- Principal -->
-                <div class="bg-[#1a2332] rounded-2xl p-6 border border-gray-700/50">
-                    <div class="flex items-center gap-2 mb-2">
-                        <span class="material-icons text-green-400 text-sm">trending_down</span>
-                        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Principal</p>
+                <div
+                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-teal-200 dark:border-teal-500/30 shadow-lg shadow-teal-100 dark:shadow-teal-900/10 relative overflow-hidden group hover:scale-[1.02] transition-all duration-300">
+                    <div
+                        class="absolute top-0 right-0 p-4 opacity-5 dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity">
+                        <span class="material-icons text-6xl text-teal-600 dark:text-white">trending_down</span>
                     </div>
-                    <h3 class="text-4xl font-bold text-white mb-1">{{ (getTotalMinPayment() - getTotalMonthlyInterest())
+                    <div class="flex items-center gap-2 mb-2 relative z-10">
+                        <p class="text-xs font-bold text-teal-600 dark:text-teal-200 uppercase tracking-wider">Principal
+                        </p>
+                    </div>
+                    <h3 class="text-4xl font-black text-gray-900 dark:text-white mb-1 relative z-10">{{
+                        (getTotalMinPayment() - getTotalMonthlyInterest())
                         | currency:'USD':'symbol':'1.0-0' }}</h3>
-                    <p class="text-sm text-gray-400">reducing debt</p>
+                    <p class="text-sm text-teal-600/70 dark:text-teal-200/70 relative z-10">reducing debt</p>
                 </div>
 
                 <!-- High APR Threat List -->
-                <div class="bg-[#1a2332] rounded-2xl p-6 border border-gray-700/50">
-                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">High APR Threat List
+                <div
+                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-rose-200 dark:border-rose-500/30 shadow-lg shadow-rose-100 dark:shadow-rose-900/10 relative overflow-hidden group hover:scale-[1.02] transition-all duration-300">
+                    <div
+                        class="absolute top-0 right-0 p-4 opacity-5 dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity">
+                        <span class="material-icons text-6xl text-rose-600 dark:text-white">warning</span>
+                    </div>
+                    <p
+                        class="text-xs font-bold text-rose-600 dark:text-rose-200 uppercase tracking-wider mb-4 relative z-10">
+                        High APR Threat List
                     </p>
-                    <div class="space-y-2">
+                    <div class="space-y-2 relative z-10">
                         <div *ngFor="let account of highAprAccounts; let i = index"
-                            class="flex items-center justify-between text-sm">
-                            <span class="text-gray-300"><span class="text-gray-500">{{ i + 1 }}</span> {{ account.name
+                            class="flex items-center justify-between text-sm bg-gray-50 dark:bg-black/20 p-2 rounded-lg backdrop-blur-sm">
+                            <span class="text-gray-700 dark:text-rose-100 font-medium"><span
+                                    class="text-gray-900 dark:text-white font-bold mr-2">{{ i + 1 }}.</span> {{
+                                account.name
                                 }}</span>
-                            <span class="text-white font-semibold">{{ account.apr }}%</span>
+                            <span class="text-white font-black bg-rose-500 dark:bg-rose-900/50 px-2 py-0.5 rounded">{{
+                                account.apr }}%</span>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Priority Alert -->
-            <div class="bg-gradient-to-r from-orange-900/40 to-red-900/40 border border-orange-500/50 rounded-2xl p-6"
+            <div class="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-500/30 rounded-2xl p-6 shadow-lg shadow-orange-100 dark:shadow-orange-900/10"
                 *ngIf="highAprAccounts && highAprAccounts.length > 0">
                 <div class="flex items-start gap-4">
-                    <div class="p-3 bg-orange-500 rounded-xl">
-                        <span class="material-icons text-white text-2xl">priority_high</span>
+                    <div class="p-3 bg-white dark:bg-white/10 rounded-xl backdrop-blur-sm shadow-sm">
+                        <span class="material-icons text-amber-600 dark:text-white text-2xl">priority_high</span>
                     </div>
                     <div>
-                        <h4 class="text-xl font-bold text-white mb-2">Priority: Pay This First</h4>
-                        <p class="text-orange-200 font-semibold text-lg">{{ highAprAccounts[0].name }} - {{
+                        <h4 class="text-xl font-black text-gray-900 dark:text-white mb-2">Priority: Pay This First</h4>
+                        <p class="text-amber-700 dark:text-amber-100 font-bold text-lg">{{ highAprAccounts[0].name }} -
+                            {{
                             highAprAccounts[0].apr }}% APR</p>
-                        <p class="text-orange-300 text-sm mt-1">Balance: {{ highAprAccounts[0].currentBalance |
+                        <p class="text-amber-600 dark:text-amber-200 text-sm mt-1 font-medium">Balance: {{
+                            highAprAccounts[0].currentBalance |
                             currency:'USD':'symbol':'1.2-2' }}</p>
                     </div>
                 </div>
@@ -169,25 +244,36 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
                 <!-- Net Worth Calculator -->
-                <div class="bg-[#1a2332] rounded-2xl p-6 border border-gray-700/50">
-                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Net Worth Calculator
+                <div
+                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-indigo-200 dark:border-indigo-500/30 shadow-lg shadow-indigo-100 dark:shadow-indigo-900/10 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-4 opacity-5 dark:opacity-10">
+                        <span class="material-icons text-6xl text-indigo-600 dark:text-white">calculate</span>
+                    </div>
+                    <p
+                        class="text-xs font-bold text-indigo-600 dark:text-indigo-200 uppercase tracking-wider mb-4 relative z-10">
+                        Net Worth Calculator
                     </p>
 
-                    <div class="space-y-4">
+                    <div class="space-y-4 relative z-10">
                         <div>
-                            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Total
+                            <label
+                                class="text-xs font-bold text-indigo-600 dark:text-indigo-200 uppercase tracking-wider block mb-2">Total
                                 Assets</label>
                             <div class="relative">
-                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">$</span>
+                                <span
+                                    class="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400 dark:text-indigo-300 font-bold">$</span>
                                 <input type="number" [(ngModel)]="totalAssets" (ngModelChange)="onAssetsChange()"
-                                    class="w-full pl-8 pr-4 py-3 bg-[#0f1729] border border-gray-600 rounded-xl text-white font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    class="w-full pl-8 pr-4 py-3 bg-gray-50 dark:bg-black/20 border border-indigo-200 dark:border-indigo-400/30 rounded-xl text-gray-900 dark:text-white font-bold focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:border-indigo-500 dark:focus:border-indigo-400 placeholder-indigo-300/50 backdrop-blur-sm transition-all"
                                     placeholder="0">
                             </div>
                         </div>
 
-                        <div class="pt-4 border-t border-gray-700">
-                            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Net Worth</p>
-                            <h3 [class]="'text-4xl font-bold ' + (netWorth >= 0 ? 'text-green-400' : 'text-red-400')">
+                        <div class="pt-4 border-t border-indigo-100 dark:border-indigo-500/30">
+                            <p
+                                class="text-xs font-bold text-indigo-600 dark:text-indigo-200 uppercase tracking-wider mb-2">
+                                Net Worth</p>
+                            <h3
+                                [class]="'text-4xl font-black ' + (netWorth >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')">
                                 {{ netWorth | currency:'USD':'symbol':'1.0-0' }}
                             </h3>
                         </div>
@@ -195,69 +281,91 @@
                 </div>
 
                 <!-- Payoff Timeline -->
-                <div class="bg-[#1a2332] rounded-2xl p-6 border border-gray-700/50">
-                    <div class="flex items-center justify-between mb-4">
-                        <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Payoff Timeline</p>
+                <div
+                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-violet-200 dark:border-violet-500/30 shadow-lg shadow-violet-100 dark:shadow-violet-900/10 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-4 opacity-5 dark:opacity-10">
+                        <span class="material-icons text-6xl text-violet-600 dark:text-white">timeline</span>
+                    </div>
+                    <div class="flex items-center justify-between mb-4 relative z-10">
+                        <p class="text-xs font-bold text-violet-600 dark:text-violet-200 uppercase tracking-wider">
+                            Payoff Timeline</p>
                         <div class="flex items-center gap-2 text-sm">
-                            <span class="text-gray-400">Extra/mo:</span>
+                            <span class="text-violet-600 dark:text-violet-200 font-medium">Extra/mo:</span>
                             <div class="relative">
-                                <span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">$</span>
+                                <span
+                                    class="absolute left-2 top-1/2 -translate-y-1/2 text-violet-400 dark:text-violet-300 text-xs">$</span>
                                 <input type="number" [(ngModel)]="extraPaymentAmount"
                                     (ngModelChange)="onExtraPaymentChange()"
-                                    class="w-20 pl-5 pr-2 py-1 bg-[#0f1729] border border-gray-600 rounded-lg text-white text-sm focus:ring-1 focus:ring-blue-500">
+                                    class="w-24 pl-5 pr-2 py-1 bg-gray-50 dark:bg-black/20 border border-violet-200 dark:border-violet-400/30 rounded-lg text-gray-900 dark:text-white text-sm font-bold focus:ring-1 focus:ring-violet-500 dark:focus:ring-violet-400 backdrop-blur-sm">
                             </div>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-3 gap-3" *ngIf="payoffTimeline">
-                        <div class="text-center">
-                            <p class="text-xs text-gray-400 mb-1">Credit Cards</p>
-                            <p class="text-2xl font-bold text-white">{{ payoffTimeline.creditCards.years }}</p>
-                            <p class="text-xs text-gray-500">years</p>
+                    <div class="grid grid-cols-3 gap-3 relative z-10" *ngIf="payoffTimeline">
+                        <div class="text-center bg-gray-50 dark:bg-black/20 rounded-xl p-3 backdrop-blur-sm">
+                            <p class="text-xs text-violet-600 dark:text-violet-200 mb-1 font-bold">Credit Cards</p>
+                            <p class="text-2xl font-black text-gray-900 dark:text-white">{{
+                                payoffTimeline.creditCards.years }}</p>
+                            <p class="text-xs text-violet-500 dark:text-violet-300">years</p>
                         </div>
-                        <div class="text-center">
-                            <p class="text-xs text-gray-400 mb-1">Loans</p>
-                            <p class="text-2xl font-bold text-white">{{ payoffTimeline.personalLoans.years }}</p>
-                            <p class="text-xs text-gray-500">years</p>
+                        <div class="text-center bg-gray-50 dark:bg-black/20 rounded-xl p-3 backdrop-blur-sm">
+                            <p class="text-xs text-violet-600 dark:text-violet-200 mb-1 font-bold">Loans</p>
+                            <p class="text-2xl font-black text-gray-900 dark:text-white">{{
+                                payoffTimeline.personalLoans.years }}</p>
+                            <p class="text-xs text-violet-500 dark:text-violet-300">years</p>
                         </div>
-                        <div class="text-center">
-                            <p class="text-xs text-gray-400 mb-1">Auto</p>
-                            <p class="text-2xl font-bold text-white">{{ payoffTimeline.autoLoans.years }}</p>
-                            <p class="text-xs text-gray-500">years</p>
+                        <div class="text-center bg-gray-50 dark:bg-black/20 rounded-xl p-3 backdrop-blur-sm">
+                            <p class="text-xs text-violet-600 dark:text-violet-200 mb-1 font-bold">Auto</p>
+                            <p class="text-2xl font-black text-gray-900 dark:text-white">{{
+                                payoffTimeline.autoLoans.years }}</p>
+                            <p class="text-xs text-violet-500 dark:text-violet-300">years</p>
                         </div>
                     </div>
 
                     <!-- Savings Info -->
-                    <div *ngIf="projectedSavings > 0" class="mt-4 pt-4 border-t border-gray-700">
-                        <p class="text-sm text-green-400">
-                            💰 Save <span class="font-bold">${{ projectedSavings | number:'1.0-0' }}</span> in interest,
-                            finish <span class="font-bold">{{ projectedMonthsSaved }} months</span> earlier!
+                    <div *ngIf="projectedSavings > 0"
+                        class="mt-4 pt-4 border-t border-violet-100 dark:border-violet-500/30 relative z-10">
+                        <p class="text-sm text-emerald-600 dark:text-emerald-300 font-medium flex items-center gap-2">
+                            <span class="material-icons text-emerald-500 dark:text-emerald-400">savings</span>
+                            <span>Save <span class="font-bold text-gray-900 dark:text-white">${{ projectedSavings |
+                                    number:'1.0-0' }}</span> in interest!</span>
                         </p>
                     </div>
                 </div>
             </div>
 
             <!-- Payment Efficiency Bar -->
-            <div class="bg-[#1a2332] rounded-2xl p-6 border border-gray-700/50">
-                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Payment Efficiency</p>
+            <div
+                class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-cyan-200 dark:border-cyan-500/30 shadow-lg shadow-cyan-100 dark:shadow-cyan-900/10 relative overflow-hidden">
+                <p
+                    class="text-xs font-bold text-cyan-600 dark:text-cyan-200 uppercase tracking-wider mb-4 relative z-10">
+                    Payment Efficiency</p>
 
-                <div class="relative h-12 bg-[#0f1729] rounded-xl overflow-hidden">
+                <div
+                    class="relative h-12 bg-gray-100 dark:bg-black/30 rounded-xl overflow-hidden backdrop-blur-sm border border-gray-200 dark:border-white/10 relative z-10">
                     <div class="absolute inset-0 flex">
-                        <div class="bg-green-500 flex items-center justify-center text-white font-bold text-sm transition-all duration-500"
+                        <div class="bg-emerald-500 flex items-center justify-center text-white font-black text-sm transition-all duration-500 shadow-lg"
                             [style.width.%]="((getTotalMinPayment() - getTotalMonthlyInterest()) / getTotalMinPayment()) * 100">
                             Principal {{ ((getTotalMinPayment() - getTotalMonthlyInterest()) / getTotalMinPayment()) *
                             100 | number:'1.0-0' }}%
                         </div>
-                        <div class="bg-orange-500 flex items-center justify-center text-white font-bold text-sm transition-all duration-500"
+                        <div class="bg-rose-500 flex items-center justify-center text-white font-black text-sm transition-all duration-500 shadow-lg"
                             [style.width.%]="(getTotalMonthlyInterest() / getTotalMinPayment()) * 100">
                             Interest {{ (getTotalMonthlyInterest() / getTotalMinPayment()) * 100 | number:'1.0-0' }}%
                         </div>
                     </div>
                 </div>
 
-                <div class="flex justify-between mt-3 text-xs text-gray-400">
-                    <span>${{ (getTotalMinPayment() - getTotalMonthlyInterest()) | number:'1.0-0' }} to Principal</span>
-                    <span>${{ getTotalMonthlyInterest() | number:'1.0-0' }} to Interest</span>
+                <div
+                    class="flex justify-between mt-3 text-xs text-cyan-600 dark:text-cyan-200 font-medium relative z-10">
+                    <span class="flex items-center gap-1">
+                        <div class="w-2 h-2 rounded-full bg-emerald-500"></div> ${{ (getTotalMinPayment() -
+                        getTotalMonthlyInterest()) | number:'1.0-0' }} to Principal
+                    </span>
+                    <span class="flex items-center gap-1">
+                        <div class="w-2 h-2 rounded-full bg-rose-500"></div> ${{ getTotalMonthlyInterest() |
+                        number:'1.0-0' }} to Interest
+                    </span>
                 </div>
             </div>
 

@@ -7,6 +7,7 @@ import com.example.expensetracker.model.debt.Snapshot;
 import com.example.expensetracker.model.debt.Snapshot.SnapshotMetadata;
 import com.example.expensetracker.repository.debt.AccountRepository;
 import com.example.expensetracker.repository.debt.SnapshotRepository;
+import com.example.expensetracker.service.DebtStrategyService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class MigrationService {
     private final AccountRepository accountRepository;
     private final SnapshotRepository snapshotRepository;
     private final ObjectMapper objectMapper;
+    private final DebtStrategyService debtStrategyService;
 
     // List of snapshot files to migrate (including August)
     private static final String[] SNAPSHOT_FILES = {
@@ -49,10 +51,6 @@ public class MigrationService {
             }
         }
         
-        // After migrating all snapshots, ensure the 'active' accounts in the accounts collection 
-        // reflect the latest snapshot (Oct 2025)
-        // updateActiveAccountsFromLatestSnapshot("debt-snapshot-2025-10.json");
-
         log.info("Data migration completed successfully.");
     }
 
@@ -98,12 +96,12 @@ public class MigrationService {
         double totalMonthlyPayment = 0;
         
         // Helper to process accounts list from JSON
-        List<JsonNode> allAccounts = new ArrayList<>();
-        if (root.has("creditCards")) root.get("creditCards").get("accounts").forEach(allAccounts::add);
-        if (root.has("personalLoans")) root.get("personalLoans").get("accounts").forEach(allAccounts::add);
-        if (root.has("autoLoan")) root.get("autoLoan").get("accounts").forEach(allAccounts::add);
+        List<JsonNode> allAccountsJson = new ArrayList<>();
+        if (root.has("creditCards")) root.get("creditCards").get("accounts").forEach(allAccountsJson::add);
+        if (root.has("personalLoans")) root.get("personalLoans").get("accounts").forEach(allAccountsJson::add);
+        if (root.has("autoLoan")) root.get("autoLoan").get("accounts").forEach(allAccountsJson::add);
 
-        for (JsonNode acc : allAccounts) {
+        for (JsonNode acc : allAccountsJson) {
             totalAccounts++;
             double balance = acc.get("balance").asDouble();
             if (balance > 0) {
@@ -132,44 +130,32 @@ public class MigrationService {
         log.info("Migrated snapshot for {}", snapshotDate);
 
         // Migrate accounts for this snapshot
-        // First, clear any existing accounts for this snapshot date to avoid duplicates if re-running
-        // Note: This requires adding deleteBySnapshotDate to AccountRepository
-         try {
+        try {
             accountRepository.deleteBySnapshotDate(snapshotDate);
         } catch (Exception e) {
-            // Ignore if method doesn't exist yet or fails, we'll just append
              log.warn("Could not delete existing accounts for date: {}", snapshotDate);
         }
 
-        processCategoryAccounts(root, "creditCards", AccountType.CREDIT_CARD, snapshotDate);
-        processCategoryAccounts(root, "personalLoans", AccountType.PERSONAL_LOAN, snapshotDate);
-        processCategoryAccounts(root, "autoLoan", AccountType.AUTO_LOAN, snapshotDate);
-    }
+        List<Account> snapshotAccounts = new ArrayList<>();
+        snapshotAccounts.addAll(processCategoryAccounts(root, "creditCards", AccountType.CREDIT_CARD, snapshotDate));
+        snapshotAccounts.addAll(processCategoryAccounts(root, "personalLoans", AccountType.PERSONAL_LOAN, snapshotDate));
+        snapshotAccounts.addAll(processCategoryAccounts(root, "autoLoan", AccountType.AUTO_LOAN, snapshotDate));
 
-    private void updateActiveAccountsFromLatestSnapshot(String fileName) {
-        try {
-            ClassPathResource resource = new ClassPathResource(fileName);
-            JsonNode root = objectMapper.readTree(resource.getInputStream());
-            String dateStr = root.get("snapshotDate").asText();
-            LocalDate snapshotDate = LocalDate.parse(dateStr);
-            
-            // Clear existing accounts to avoid duplicates during dev/testing
-            // In production, you might want a smarter merge strategy
-            accountRepository.deleteAll(); 
-
-            processCategoryAccounts(root, "creditCards", AccountType.CREDIT_CARD, snapshotDate);
-            processCategoryAccounts(root, "personalLoans", AccountType.PERSONAL_LOAN, snapshotDate);
-            processCategoryAccounts(root, "autoLoan", AccountType.AUTO_LOAN, snapshotDate);
-            
-            log.info("Updated active accounts from {}", fileName);
-            
-        } catch (Exception e) {
-            log.error("Failed to update active accounts", e);
+        // Calculate and Enrich
+        for (Account account : snapshotAccounts) {
+            debtStrategyService.calculateAndEnrich(account);
         }
+        
+        // Calculate Priorities
+        debtStrategyService.calculatePriorities(snapshotAccounts);
+
+        // Save All
+        accountRepository.saveAll(snapshotAccounts);
     }
 
-    private void processCategoryAccounts(JsonNode root, String category, AccountType type, LocalDate snapshotDate) {
-        if (!root.has(category)) return;
+    private List<Account> processCategoryAccounts(JsonNode root, String category, AccountType type, LocalDate snapshotDate) {
+        List<Account> accounts = new ArrayList<>();
+        if (!root.has(category)) return accounts;
         
         JsonNode categoryNode = root.get(category);
         if (categoryNode.has("accounts")) {
@@ -202,8 +188,9 @@ public class MigrationService {
                 account.setCreatedAt(LocalDateTime.now());
                 account.setUpdatedAt(LocalDateTime.now());
                 
-                accountRepository.save(account);
+                accounts.add(account);
             }
         }
+        return accounts;
     }
 }

@@ -25,6 +25,12 @@ public class Account {
     private LocalDate openedDate;
     private String notes;
     
+    // Calculated Fields
+    private Double principalPerMonth;
+    private LocalDate payoffDate;
+    private Integer monthsLeft;
+    private Integer priority;
+    
     private LocalDate snapshotDate;
     
     private LocalDateTime createdAt;
