@@ -1,0 +1,134 @@
+[
+  {
+    "month": "2025-08",
+    "accountName": "Bank of America",
+    "accountType": "credit_card",
+    "balance": 0.0,
+    "apr": 0.24,
+    "minPayment": 150,
+    "monthlyInterest": 0.0,
+    "currency": "USD",
+    "createdAt": "2025-11-22T15:44:28.988368Z"
+  },
+  {
+    "month": "2025-08",
+    "accountName": "Citi Card 1",
+    "accountType": "credit_card",
+    "balance": 0.0,
+    "apr": 0.0,
+    "minPayment": 0,
+    "monthlyInterest": 0.0,
+    "currency": "USD",
+    "createdAt": "2025-11-22T15:44:28.988382Z"
+  },
+  {
+    "month": "2025-08",
+    "accountName": "Citi Card 2",
+    "accountType": "credit_card",
+    "balance": 0.0,
+    "apr": 0.24,
+    "minPayment": 800,
+    "monthlyInterest": 0.0,
+    "currency": "USD",
+    "createdAt": "2025-11-22T15:44:28.988384Z"
+  },
+  {
+    "month": "2025-08",
+    "accountName": "Citi Card 3",
+    "accountType": "credit_card",
+    "balance": 0.0,
+    "apr": 0.0,
+    "minPayment": 100,
+    "monthlyInterest": 0.0,
+    "currency": "USD",
+    "createdAt": "2025-11-22T15:44:28.988386Z"
+  },
+  {
+    "month": "2025-08",
+    "accountName": "DCU Credit Card",
+    "accountType": "credit_card",
+    "balance": 0.0,
+    "apr": 0.0,
+    "minPayment": 0,
+    "monthlyInterest": 0.0,
+    "currency": "USD",
+    "createdAt": "2025-11-22T15:44:28.988388Z"
+  },
+  {
+    "month": "2025-08",
+    "accountName": "Bilt Credit Card",
+    "accountType": "credit_card",
+    "balance": 0.0,
+    "apr": 0.18,
+    "minPayment": 100,
+    "monthlyInterest": 0.0,
+    "currency": "USD",
+    "createdAt": "2025-11-22T15:44:28.988390Z"
+  },
+  {
+    "month": "2025-08",
+    "accountName": "Fidelity Credit Card",
+    "accountType": "credit_card",
+    "balance": 0.0,
+    "apr": 0.0,
+    "minPayment": 90,
+    "monthlyInterest": 0.0,
+    "currency": "USD",
+    "createdAt": "2025-11-22T15:44:28.988392Z"
+  },
+  {
+    "month": "2025-08",
+    "accountName": "Citi Loan",
+    "accountType": "loan",
+    "balance": 0.0,
+    "apr": 0.13,
+    "minPayment": 650,
+    "monthlyInterest": 0.0,
+    "currency": "USD",
+    "createdAt": "2025-11-22T15:44:28.988396Z"
+  },
+  {
+    "month": "2025-08",
+    "accountName": "SoFi Loan 1",
+    "accountType": "loan",
+    "balance": 0.0,
+    "apr": 0.08,
+    "minPayment": 1100,
+    "monthlyInterest": 0.0,
+    "currency": "USD",
+    "createdAt": "2025-11-22T15:44:28.988398Z"
+  },
+  {
+    "month": "2025-08",
+    "accountName": "SoFi Loan 2",
+    "accountType": "loan",
+    "balance": 0.0,
+    "apr": 0.1,
+    "minPayment": 810,
+    "monthlyInterest": 0.0,
+    "currency": "USD",
+    "createdAt": "2025-11-22T15:44:28.988401Z"
+  },
+  {
+    "month": "2025-08",
+    "accountName": "Fidelity Loan",
+    "accountType": "loan",
+    "balance": 0.0,
+    "apr": 0.085,
+    "minPayment": 760,
+    "monthlyInterest": 0.0,
+    "currency": "USD",
+    "createdAt": "2025-11-22T15:44:28.988402Z"
+  },
+  {
+    "month": "2025-08",
+    "accountName": "DCU Car Loan",
+    "accountType": "auto_loan",
+    "balance": 0.0,
+    "apr": 0.0575,
+    "minPayment": 850,
+    "monthlyInterest": 0.0,
+    "currency": "USD",
+    "createdAt": "2025-11-22T15:44:28.988404Z"
+  }
+]

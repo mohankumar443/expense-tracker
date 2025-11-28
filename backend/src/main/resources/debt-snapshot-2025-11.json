@@ -1,0 +1,31 @@
+{
+  "snapshotDate": "2025-11-30",
+  "totalDebt": 105200,
+  "creditCards": {
+    "total": 19700,
+    "accounts": [
+      {"name": "Bank of America", "balance": 1600, "apr": 24.0, "monthlyPayment": 150, "notes": "High APR"},
+      {"name": "Citi Card 1", "balance": 0, "apr": 0.0, "monthlyPayment": 0, "notes": "Paid off"},
+      {"name": "Citi Card 2", "balance": 1500, "apr": 24.0, "monthlyPayment": 800, "notes": "Very high APR"},
+      {"name": "Citi Card 3", "balance": 6500, "apr": 0.0, "monthlyPayment": 100, "notes": "Promo APR"},
+      {"name": "DCU Credit Card", "balance": 0, "apr": 0.0, "monthlyPayment": 0, "notes": "Paid off"},
+      {"name": "Bilt Credit Card", "balance": 1100, "apr": 18.0, "monthlyPayment": 100, "notes": "High APR"},
+      {"name": "Fidelity Credit Card", "balance": 9000, "apr": 0.0, "monthlyPayment": 90, "notes": "Promo APR"}
+    ]
+  },
+  "personalLoans": {
+    "total": 63500,
+    "accounts": [
+      {"name": "Citi Loan", "balance": 14000, "apr": 13.0, "monthlyPayment": 650, "notes": "High APR"},
+      {"name": "SoFi Loan 1", "balance": 5000, "apr": 8.0, "monthlyPayment": 1100, "notes": "Short term"},
+      {"name": "SoFi Loan 2", "balance": 25000, "apr": 10.0, "monthlyPayment": 810, "notes": "New loan"},
+      {"name": "Fidelity Loan", "balance": 19500, "apr": 8.5, "monthlyPayment": 760, "notes": "Long schedule"}
+    ]
+  },
+  "autoLoan": {
+    "total": 22000,
+    "accounts": [
+      {"name": "DCU Car Loan", "balance": 22000, "apr": 5.75, "monthlyPayment": 850, "notes": "Standard APR"}
+    ]
+  }
+}
