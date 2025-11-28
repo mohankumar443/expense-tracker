@@ -9,7 +9,7 @@ import { Account } from '../../models/account.model';
 })
 export class SnapshotManagerComponent {
     @Output() close = new EventEmitter<void>();
-    @Output() snapshotCreated = new EventEmitter<void>();
+    @Output() snapshotCreated = new EventEmitter<string | null>();
 
     isVisible = false;
     isLoading = false;
@@ -96,9 +96,13 @@ export class SnapshotManagerComponent {
         this.isLoading = true;
 
         try {
-            // Create snapshot
-            const snapshotDate = this.selectedDate + '-01'; // Convert YYYY-MM to YYYY-MM-DD
-            const cloneFrom = this.cloneFromDate; // Already in YYYY-MM-DD format from API
+            // Create snapshot - append -01 for the first of the month
+            // The backend/DB seems to store them as YYYY-MM-DD
+            const snapshotDate = this.selectedDate + '-01';
+
+            // We handle cloning on the frontend by pre-filling the accounts array
+            // So we pass null for cloneFromDate to the backend to avoid double-creation
+            const cloneFrom = null;
 
             console.log('Creating snapshot:', { snapshotDate, cloneFrom });
             await this.debtService.createSnapshot(snapshotDate, cloneFrom).toPromise();
@@ -111,13 +115,36 @@ export class SnapshotManagerComponent {
                 await this.debtService.batchUpdateAccounts(snapshotDate, this.accounts).toPromise();
             }
 
-            this.snapshotCreated.emit();
-            this.closeModal();
+            this.snapshotCreated.emit(snapshotDate); // Emit the new date
+            this.loadAvailableSnapshots(); // Refresh list
+            this.reset();
+
+            // Don't close modal, just show success (optional) and let user see the updated list
+            // this.closeModal(); 
+            alert('Snapshot created successfully!');
         } catch (error) {
             console.error('Error creating snapshot:', error);
             alert('Error creating snapshot. Please try again.');
         } finally {
             this.isLoading = false;
+        }
+    }
+
+    deleteSnapshot(date: string) {
+        if (confirm(`Are you sure you want to delete the snapshot for ${date}? This cannot be undone.`)) {
+            this.isLoading = true;
+            this.debtService.deleteSnapshot(date).subscribe({
+                next: () => {
+                    this.loadAvailableSnapshots(); // Refresh list
+                    this.snapshotCreated.emit(null); // Emit null for deletion
+                    this.isLoading = false;
+                },
+                error: (err) => {
+                    console.error('Error deleting snapshot:', err);
+                    alert('Error deleting snapshot');
+                    this.isLoading = false;
+                }
+            });
         }
     }
 }

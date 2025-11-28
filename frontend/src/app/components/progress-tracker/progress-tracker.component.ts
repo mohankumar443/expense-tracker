@@ -11,8 +11,8 @@ import { ChartConfiguration, ChartData, ChartEvent, ChartType } from 'chart.js';
     styleUrls: ['./progress-tracker.component.css']
 })
 export class ProgressTrackerComponent implements OnInit {
-    septemberSummary: DebtSummary | null = null;
-    octoberSummary: DebtSummary | null = null;
+    previousMonthSummary: DebtSummary | null = null;
+    currentMonthSummary: DebtSummary | null = null;
     showComparison = false;
     Math = Math;
 
@@ -98,29 +98,70 @@ export class ProgressTrackerComponent implements OnInit {
     ) { }
 
     ngOnInit() {
-        this.loadComparison();
-
-        // Reload when snapshot changes
-        this.snapshotState.currentSnapshot$.subscribe(() => {
-            this.loadComparison();
+        // Subscribe to snapshot changes and load comparison dynamically
+        this.snapshotState.currentSnapshot$.subscribe(currentSnapshot => {
+            if (currentSnapshot) {
+                this.loadComparison(currentSnapshot);
+            }
         });
     }
 
-    loadComparison() {
-        // Load summaries
-        this.debtService.getSnapshotSummary('2025-09-30').subscribe(data => {
-            this.septemberSummary = data;
-            this.checkIfBothLoaded();
-        });
+    loadComparison(currentSnapshotDate?: string) {
+        // If no current snapshot provided, try to get all snapshots and use latest
+        if (!currentSnapshotDate) {
+            this.debtService.getAvailableSnapshots().subscribe(snapshots => {
+                if (snapshots && snapshots.length > 0) {
+                    // Sort by date to get latest
+                    const sorted = snapshots.sort((a, b) =>
+                        new Date(b.snapshotDate).getTime() - new Date(a.snapshotDate).getTime()
+                    );
+                    this.loadComparison(sorted[0].snapshotDate);
+                }
+            });
+            return;
+        }
 
-        this.debtService.getSnapshotSummary('2025-10-31').subscribe(data => {
-            this.octoberSummary = data;
-            this.checkIfBothLoaded();
-        });
+        // Get all available snapshots to find previous month
+        this.debtService.getAvailableSnapshots().subscribe(snapshots => {
+            if (!snapshots || snapshots.length < 2) {
+                this.showComparison = false;
+                return;
+            }
 
-        // Load full accounts for October to calculate detailed analytics
-        this.debtService.getSnapshotAccounts('2025-10-31').subscribe(accounts => {
-            this.calculateAnalytics(accounts);
+            // Sort snapshots by date (newest first)
+            const sortedSnapshots = snapshots.sort((a, b) =>
+                new Date(b.snapshotDate).getTime() - new Date(a.snapshotDate).getTime()
+            );
+
+            // Find current snapshot index
+            const currentIndex = sortedSnapshots.findIndex(s => s.snapshotDate === currentSnapshotDate);
+
+            if (currentIndex === -1 || currentIndex === sortedSnapshots.length - 1) {
+                // Current snapshot not found or it's the oldest one (no previous month)
+                this.showComparison = false;
+                return;
+            }
+
+            // Get current and previous snapshot dates
+            const currentDate = sortedSnapshots[currentIndex].snapshotDate;
+            const previousDate = sortedSnapshots[currentIndex + 1].snapshotDate;
+
+            // Load current month summary
+            this.debtService.getSnapshotSummary(currentDate).subscribe(data => {
+                this.currentMonthSummary = data;
+                this.checkIfBothLoaded();
+            });
+
+            // Load previous month summary
+            this.debtService.getSnapshotSummary(previousDate).subscribe(data => {
+                this.previousMonthSummary = data;
+                this.checkIfBothLoaded();
+            });
+
+            // Load full accounts for current month to calculate detailed analytics
+            this.debtService.getSnapshotAccounts(currentDate).subscribe(accounts => {
+                this.calculateAnalytics(accounts);
+            });
         });
     }
 
@@ -199,7 +240,7 @@ export class ProgressTrackerComponent implements OnInit {
         this.animateValue(0, this.totalMonthlyInterest, 1500, (val) => this.animatedInterest = val);
 
         // Animate Debt Change (after summaries loaded)
-        if (this.septemberSummary && this.octoberSummary) {
+        if (this.previousMonthSummary && this.currentMonthSummary) {
             const change = Math.abs(this.getDebtChange());
             this.animateValue(0, change, 1500, (val) => this.animatedDebtChange = val);
 
@@ -230,20 +271,20 @@ export class ProgressTrackerComponent implements OnInit {
     }
 
     checkIfBothLoaded() {
-        this.showComparison = this.septemberSummary !== null && this.octoberSummary !== null;
+        this.showComparison = this.previousMonthSummary !== null && this.currentMonthSummary !== null;
         if (this.showComparison) {
             this.animateValues();
         }
     }
 
     getDebtChange(): number {
-        if (!this.septemberSummary || !this.octoberSummary) return 0;
-        return this.octoberSummary.totalDebt - this.septemberSummary.totalDebt;
+        if (!this.previousMonthSummary || !this.currentMonthSummary) return 0;
+        return this.currentMonthSummary.totalDebt - this.previousMonthSummary.totalDebt;
     }
 
     getPercentageChange(): number {
-        if (!this.septemberSummary || !this.octoberSummary || this.septemberSummary.totalDebt === 0) return 0;
-        return ((this.octoberSummary.totalDebt - this.septemberSummary.totalDebt) / this.septemberSummary.totalDebt) * 100;
+        if (!this.previousMonthSummary || !this.currentMonthSummary || this.previousMonthSummary.totalDebt === 0) return 0;
+        return ((this.currentMonthSummary.totalDebt - this.previousMonthSummary.totalDebt) / this.previousMonthSummary.totalDebt) * 100;
     }
 
     isImprovement(): boolean {

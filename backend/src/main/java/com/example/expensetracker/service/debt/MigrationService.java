@@ -34,9 +34,10 @@ public class MigrationService {
 
     // List of snapshot files to migrate (including August)
     private static final String[] SNAPSHOT_FILES = {
-        "debt-snapshot-2025-08.json",
-        "debt-snapshot-2025-09.json",
-        "debt-snapshot-2025-10.json"
+            "debt-snapshot-2025-08.json",
+            "debt-snapshot-2025-09.json",
+            "debt-snapshot-2025-10.json",
+            "debt-snapshot-2025-11.json"
     };
 
     @PostConstruct
@@ -50,7 +51,7 @@ public class MigrationService {
                 log.error("Failed to migrate file: " + fileName, e);
             }
         }
-        
+
         log.info("Data migration completed successfully.");
     }
 
@@ -60,7 +61,6 @@ public class MigrationService {
             log.warn("Snapshot file not found: {}", fileName);
             return;
         }
-
 
         JsonNode root = objectMapper.readTree(resource.getInputStream());
         String dateStr = root.get("snapshotDate").asText();
@@ -72,12 +72,11 @@ public class MigrationService {
             return;
         }
 
-
         // Create Snapshot Entity
         Snapshot snapshot = new Snapshot();
         snapshot.setSnapshotDate(snapshotDate);
         snapshot.setTotalDebt(root.get("totalDebt").asDouble());
-        
+
         // Extract category totals
         if (root.has("creditCards")) {
             snapshot.setCreditCardDebt(root.get("creditCards").get("total").asDouble());
@@ -94,12 +93,15 @@ public class MigrationService {
         int activeAccounts = 0;
         int paidOffAccounts = 0;
         double totalMonthlyPayment = 0;
-        
+
         // Helper to process accounts list from JSON
         List<JsonNode> allAccountsJson = new ArrayList<>();
-        if (root.has("creditCards")) root.get("creditCards").get("accounts").forEach(allAccountsJson::add);
-        if (root.has("personalLoans")) root.get("personalLoans").get("accounts").forEach(allAccountsJson::add);
-        if (root.has("autoLoan")) root.get("autoLoan").get("accounts").forEach(allAccountsJson::add);
+        if (root.has("creditCards"))
+            root.get("creditCards").get("accounts").forEach(allAccountsJson::add);
+        if (root.has("personalLoans"))
+            root.get("personalLoans").get("accounts").forEach(allAccountsJson::add);
+        if (root.has("autoLoan"))
+            root.get("autoLoan").get("accounts").forEach(allAccountsJson::add);
 
         for (JsonNode acc : allAccountsJson) {
             totalAccounts++;
@@ -118,12 +120,12 @@ public class MigrationService {
         snapshot.setActiveAccounts(activeAccounts);
         snapshot.setPaidOffAccounts(paidOffAccounts);
         snapshot.setTotalMonthlyPayment(totalMonthlyPayment);
-        
+
         // Metadata (simplified for now)
         SnapshotMetadata metadata = new SnapshotMetadata();
         metadata.setPaymentsThisMonth(0); // Placeholder
         snapshot.setMetadata(metadata);
-        
+
         snapshot.setCreatedAt(LocalDateTime.now());
 
         snapshotRepository.save(snapshot);
@@ -133,19 +135,20 @@ public class MigrationService {
         try {
             accountRepository.deleteBySnapshotDate(snapshotDate);
         } catch (Exception e) {
-             log.warn("Could not delete existing accounts for date: {}", snapshotDate);
+            log.warn("Could not delete existing accounts for date: {}", snapshotDate);
         }
 
         List<Account> snapshotAccounts = new ArrayList<>();
         snapshotAccounts.addAll(processCategoryAccounts(root, "creditCards", AccountType.CREDIT_CARD, snapshotDate));
-        snapshotAccounts.addAll(processCategoryAccounts(root, "personalLoans", AccountType.PERSONAL_LOAN, snapshotDate));
+        snapshotAccounts
+                .addAll(processCategoryAccounts(root, "personalLoans", AccountType.PERSONAL_LOAN, snapshotDate));
         snapshotAccounts.addAll(processCategoryAccounts(root, "autoLoan", AccountType.AUTO_LOAN, snapshotDate));
 
         // Calculate and Enrich
         for (Account account : snapshotAccounts) {
             debtStrategyService.calculateAndEnrich(account);
         }
-        
+
         // Calculate Priorities
         debtStrategyService.calculatePriorities(snapshotAccounts);
 
@@ -153,10 +156,12 @@ public class MigrationService {
         accountRepository.saveAll(snapshotAccounts);
     }
 
-    private List<Account> processCategoryAccounts(JsonNode root, String category, AccountType type, LocalDate snapshotDate) {
+    private List<Account> processCategoryAccounts(JsonNode root, String category, AccountType type,
+            LocalDate snapshotDate) {
         List<Account> accounts = new ArrayList<>();
-        if (!root.has(category)) return accounts;
-        
+        if (!root.has(category))
+            return accounts;
+
         JsonNode categoryNode = root.get(category);
         if (categoryNode.has("accounts")) {
             for (JsonNode accNode : categoryNode.get("accounts")) {
@@ -166,11 +171,11 @@ public class MigrationService {
                 account.setCurrentBalance(accNode.get("balance").asDouble());
                 account.setApr(accNode.get("apr").asDouble());
                 account.setSnapshotDate(snapshotDate);
-                
+
                 if (accNode.has("monthlyPayment")) {
                     account.setMonthlyPayment(accNode.get("monthlyPayment").asDouble());
                 }
-                
+
                 if (accNode.has("notes")) {
                     account.setNotes(accNode.get("notes").asText());
                 }
@@ -178,16 +183,16 @@ public class MigrationService {
                 // Generate a consistent ID or use name as ID for now
                 String accountId = account.getName().toLowerCase().replaceAll("\\s+", "-");
                 account.setAccountId(accountId);
-                
+
                 if (account.getCurrentBalance() > 0) {
                     account.setStatus(AccountStatus.ACTIVE);
                 } else {
                     account.setStatus(AccountStatus.PAID_OFF);
                 }
-                
+
                 account.setCreatedAt(LocalDateTime.now());
                 account.setUpdatedAt(LocalDateTime.now());
-                
+
                 accounts.add(account);
             }
         }

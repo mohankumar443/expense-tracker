@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { DebtAccountService, DebtSummary, DebtAccount } from '../../services/debt-account.service';
 import { SnapshotStateService } from '../../services/snapshot-state.service';
 import { AnalyticsService } from '../../services/analytics.service';
@@ -51,7 +51,8 @@ export class DebtOverviewComponent implements OnInit {
     constructor(
         private debtService: DebtAccountService,
         private snapshotStateService: SnapshotStateService,
-        private analyticsService: AnalyticsService
+        private analyticsService: AnalyticsService,
+        private cdr: ChangeDetectorRef
     ) { }
 
     ngOnInit() {
@@ -76,7 +77,8 @@ export class DebtOverviewComponent implements OnInit {
             // Map backend Snapshot objects to UI format
             this.availableSnapshots = snapshots.map(s => ({
                 fileName: s.snapshotDate, // Use date as the identifier
-                displayName: new Date(s.snapshotDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+                // Append T12:00:00 to ensure it's treated as the correct day regardless of timezone
+                displayName: new Date(s.snapshotDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
                 snapshotDate: s.snapshotDate
             }));
 
@@ -270,8 +272,64 @@ export class DebtOverviewComponent implements OnInit {
         }
     }
 
-    onSnapshotCreated() {
-        // Reload snapshots and select the newly created one
-        this.loadSnapshots();
+    onSnapshotCreated(newSnapshotDate?: string | null) {
+        console.log('Snapshot created/deleted, reloading...', newSnapshotDate);
+        // Reload snapshots
+        this.debtService.getAvailableSnapshots().subscribe(snapshots => {
+            this.availableSnapshots = snapshots.map(s => ({
+                fileName: s.snapshotDate,
+                displayName: new Date(s.snapshotDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+                snapshotDate: s.snapshotDate
+            }));
+
+            this.availableSnapshots.sort((a, b) => {
+                const dateA = new Date(a.snapshotDate).getTime();
+                const dateB = new Date(b.snapshotDate).getTime();
+                return dateA - dateB;
+            });
+
+            if (newSnapshotDate) {
+                // If a specific new snapshot was created, switch to it
+                const newSnapshot = this.availableSnapshots.find(s => s.snapshotDate === newSnapshotDate);
+                if (newSnapshot) {
+                    this.selectedSnapshot = newSnapshot.snapshotDate;
+                    this.snapshotStateService.setCurrentSnapshot(newSnapshot.snapshotDate);
+                    this.loadData(newSnapshot.snapshotDate);
+                }
+            } else {
+                // Fallback logic for deletion or generic update
+                // Try to keep current selection if it still exists
+                const currentStillExists = this.availableSnapshots.find(s => s.snapshotDate === this.selectedSnapshot);
+
+                if (currentStillExists) {
+                    // Just reload data for current
+                    this.loadData(this.selectedSnapshot);
+                } else {
+                    // Default to latest
+                    const latest = this.availableSnapshots[this.availableSnapshots.length - 1];
+                    if (latest) {
+                        this.selectedSnapshot = latest.snapshotDate;
+                        this.snapshotStateService.setCurrentSnapshot(latest.snapshotDate);
+                        this.loadData(latest.snapshotDate);
+                    } else {
+                        // No snapshots left
+                        this.selectedSnapshot = '';
+                        this.snapshotStateService.setCurrentSnapshot('');
+                        this.summary = {
+                            snapshotDate: '',
+                            totalDebt: 0,
+                            creditCardDebt: 0,
+                            personalLoanDebt: 0,
+                            autoLoanDebt: 0,
+                            totalAccounts: 0
+                        };
+                        this.allAccounts = [];
+                    }
+                }
+            }
+
+            // Force change detection
+            this.cdr.detectChanges();
+        });
     }
 }
