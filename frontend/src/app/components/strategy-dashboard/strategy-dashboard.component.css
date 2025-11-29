@@ -1,0 +1,48 @@
+/* Add any component-specific styles here */
+input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+}
+
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+}
+
+input[type=range]:focus {
+    outline: none;
+}
+
+/* Teal Gradient Slider */
+.slider-teal::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #14b8a6, #8b5cf6);
+    cursor: pointer;
+    box-shadow: 0 0 20px rgba(20, 184, 166, 0.5);
+    transition: all 0.3s ease;
+}
+
+.slider-teal::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 30px rgba(20, 184, 166, 0.8);
+}
+
+.slider-teal::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #14b8a6, #8b5cf6);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 20px rgba(20, 184, 166, 0.5);
+    transition: all 0.3s ease;
+}
+
+.slider-teal::-moz-range-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 30px rgba(20, 184, 166, 0.8);
+}

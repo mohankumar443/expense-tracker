@@ -68,10 +68,25 @@ export class SidebarComponent implements OnInit {
 
     setActiveTab(tab: string) {
         this.activeTab = tab;
-        // Scroll to section
-        const element = document.getElementById(tab);
-        if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        let sectionId = '';
+
+        switch (tab) {
+            case 'overview':
+                sectionId = 'overview';
+                break;
+            case 'strategy':
+                sectionId = 'strategy';
+                break;
+            case 'progress':
+                sectionId = 'progress';
+                break;
+            case 'accounts':
+                sectionId = 'accounts';
+                break;
+        }
+
+        if (sectionId) {
+            this.scrollToSection(sectionId);
         }
     }
 

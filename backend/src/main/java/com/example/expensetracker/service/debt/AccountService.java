@@ -79,12 +79,24 @@ public class AccountService {
         }
         Account account = accountRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Account not found with id: " + id));
-        // Assuming accountDetails contains the fields to update, and we're updating the
-        // fetched account
-        // The provided snippet only updates 'updatedAt' and saves the fetched account.
-        // To faithfully apply the snippet, I'll only include what was explicitly shown.
-        // If the intent was to update fields from accountDetails, that logic would need
-        // to be added here.
+
+        // Update fields
+        account.setName(accountDetails.getName());
+        account.setType(accountDetails.getType());
+        account.setCurrentBalance(accountDetails.getCurrentBalance());
+        account.setCreditLimit(accountDetails.getCreditLimit());
+        account.setApr(accountDetails.getApr());
+        account.setMonthlyPayment(accountDetails.getMonthlyPayment());
+        account.setPromoExpires(accountDetails.getPromoExpires());
+        account.setStatus(accountDetails.getStatus());
+        account.setOpenedDate(accountDetails.getOpenedDate());
+        account.setNotes(accountDetails.getNotes());
+        account.setPrincipalPerMonth(accountDetails.getPrincipalPerMonth());
+        account.setPayoffDate(accountDetails.getPayoffDate());
+        account.setMonthsLeft(accountDetails.getMonthsLeft());
+        account.setPriority(accountDetails.getPriority());
+        account.setSnapshotDate(accountDetails.getSnapshotDate());
+
         account.setUpdatedAt(LocalDateTime.now());
         return accountRepository.save(account);
     }

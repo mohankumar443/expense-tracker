@@ -22,6 +22,8 @@ import { ConfirmationModalComponent } from './components/confirmation-modal/conf
 import { AccountFormModalComponent } from './components/account-form-modal/account-form-modal.component';
 import { ExpenseService } from './services/expense.service';
 
+import { StrategyDashboardComponent } from './components/strategy-dashboard/strategy-dashboard.component';
+
 @NgModule({
     declarations: [
         AppComponent,
@@ -35,7 +37,8 @@ import { ExpenseService } from './services/expense.service';
         SidebarComponent,
         SnapshotManagerComponent,
         ConfirmationModalComponent,
-        AccountFormModalComponent
+        AccountFormModalComponent,
+        StrategyDashboardComponent
     ],
     imports: [
         BrowserModule,

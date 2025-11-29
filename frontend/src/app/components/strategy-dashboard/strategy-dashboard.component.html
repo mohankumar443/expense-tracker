@@ -1,0 +1,373 @@
+<div class="p-6 bg-[#0f1729] min-h-screen text-white font-sans">
+
+    <!-- Header Section -->
+    <div class="mb-8 flex justify-between items-end">
+        <div>
+            <h1 class="text-3xl font-black mb-2 tracking-tight">Debt Strategy Command Center</h1>
+            <p class="text-slate-400 font-medium">Advanced analytics to accelerate your debt freedom.</p>
+        </div>
+        <!-- Milestones Tracker -->
+        <div
+            class="hidden md:block px-6 py-2 rounded-xl border border-slate-700 bg-slate-800/50 backdrop-blur-sm mr-4 flex-1 max-w-md">
+            <div class="flex justify-between items-end mb-2">
+                <p class="text-xs text-slate-400 font-bold uppercase tracking-wider">Debt Freedom Progress</p>
+                <p class="text-sm font-black text-emerald-400">{{ milestones.current }}% <span
+                        class="text-xs text-slate-500 font-bold">Paid Off</span></p>
+            </div>
+            <div class="w-full bg-slate-700 rounded-full h-2 overflow-hidden">
+                <div class="bg-gradient-to-r from-emerald-500 to-teal-400 h-2 rounded-full transition-all duration-1000"
+                    [style.width.%]="milestones.progress"></div>
+            </div>
+            <div class="flex justify-between mt-1">
+                <p class="text-[10px] text-slate-500 font-bold">Start</p>
+                <p class="text-[10px] text-emerald-400 font-bold animate-pulse">Next Goal: {{ milestones.next }}%</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Top Metrics Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+
+        <!-- What-If Simulator (Enhanced Premium Design) -->
+        <div
+            class="bg-gradient-to-br from-[#1e293b] to-[#0f172a] rounded-3xl p-8 border border-teal-500/20 shadow-2xl shadow-teal-500/10 relative overflow-hidden lg:col-span-2">
+            <!-- Animated Background -->
+            <div
+                class="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-teal-500/10 to-purple-500/10 rounded-full blur-3xl -mr-48 -mt-48 animate-pulse">
+            </div>
+
+            <!-- Header -->
+            <div class="relative z-10 mb-6">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-teal-400 text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        What-If Simulator
+                    </h3>
+                    <span
+                        class="text-xs font-bold uppercase bg-purple-500/20 text-purple-400 px-3 py-1 rounded-full">Live
+                        Preview</span>
+                </div>
+                <p class="text-slate-400 text-sm">See how extra payments accelerate your debt freedom</p>
+            </div>
+
+            <!-- Slider Section -->
+            <div class="relative z-10 mb-8">
+                <div class="flex justify-between items-end mb-4">
+                    <div>
+                        <p class="text-xs text-slate-500 uppercase font-bold mb-1">Extra Monthly Payment</p>
+                        <div class="flex items-baseline gap-2">
+                            <div class="relative group">
+                                <span
+                                    class="absolute left-0 top-1/2 -translate-y-1/2 text-4xl font-black text-teal-400/50 pointer-events-none">+</span>
+                                <span
+                                    class="absolute left-6 top-1/2 -translate-y-1/2 text-4xl font-black text-teal-400/50 pointer-events-none">$</span>
+                                <input type="number" [(ngModel)]="extraPayment" (ngModelChange)="simulate()"
+                                    class="w-48 bg-transparent text-4xl font-black text-teal-400 focus:outline-none focus:border-b-2 focus:border-teal-500/50 transition-all pl-12"
+                                    min="0" max="5000">
+                            </div>
+                            <span class="text-sm text-slate-500 font-bold">/month</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[10px] text-teal-400 uppercase font-bold mb-1">Recommended</p>
+                        <p class="text-lg font-black text-white">+$250</p>
+                    </div>
+                </div>
+
+                <!-- Enhanced Slider -->
+                <div class="relative">
+                    <input type="range" min="0" max="1000" step="50" [(ngModel)]="extraPayment"
+                        (ngModelChange)="simulate()"
+                        class="w-full h-3 bg-slate-800 rounded-full appearance-none cursor-pointer slider-teal">
+                    <div
+                        class="flex justify-between text-[10px] text-slate-600 mt-2 font-bold uppercase tracking-wider">
+                        <span>$0</span>
+                        <span class="text-teal-400">$250</span>
+                        <span class="text-purple-400">$500</span>
+                        <span>$1,000</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 relative z-10">
+                <!-- Time Saved -->
+                <div
+                    class="bg-slate-900/50 backdrop-blur-sm p-5 rounded-2xl border border-teal-500/20 hover:border-teal-500/40 transition-all group">
+                    <div class="flex items-start justify-between mb-3">
+                        <div
+                            class="w-12 h-12 rounded-xl bg-teal-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <svg class="w-6 h-6 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <span
+                            class="text-[10px] font-bold uppercase bg-teal-500/20 text-teal-400 px-2 py-1 rounded-full">Saved</span>
+                    </div>
+                    <p class="text-[10px] text-slate-500 uppercase font-bold mb-1">Time Saved</p>
+                    <div class="flex items-baseline gap-1 mb-1">
+                        <p class="text-3xl font-black text-white">{{ simulatedSavings.months }}</p>
+                        <span class="text-sm font-bold text-slate-500">months</span>
+                    </div>
+                    <p class="text-xs text-teal-400 font-bold">≈ {{ (simulatedSavings.months / 12) | number:'1.1-1' }}
+                        years faster</p>
+                </div>
+
+                <!-- Interest Saved -->
+                <div
+                    class="bg-slate-900/50 backdrop-blur-sm p-5 rounded-2xl border border-purple-500/20 hover:border-purple-500/40 transition-all group">
+                    <div class="flex items-start justify-between mb-3">
+                        <div
+                            class="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                </path>
+                            </svg>
+                        </div>
+                        <span
+                            class="text-[10px] font-bold uppercase bg-purple-500/20 text-purple-400 px-2 py-1 rounded-full">Saved</span>
+                    </div>
+                    <p class="text-[10px] text-slate-500 uppercase font-bold mb-1">Interest Saved</p>
+                    <div class="flex items-baseline gap-1 mb-1">
+                        <p
+                            class="text-3xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                            ${{ simulatedSavings.interestSaved | number:'1.0-0' }}</p>
+                    </div>
+                    <p class="text-xs text-purple-400 font-bold">Total savings</p>
+                </div>
+
+                <!-- New Debt-Free Date -->
+                <div
+                    class="bg-slate-900/50 backdrop-blur-sm p-5 rounded-2xl border border-emerald-500/20 hover:border-emerald-500/40 transition-all group">
+                    <div class="flex items-start justify-between mb-3">
+                        <div
+                            class="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                </path>
+                            </svg>
+                        </div>
+                        <span
+                            class="text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full">New</span>
+                    </div>
+                    <p class="text-[10px] text-slate-500 uppercase font-bold mb-1">Debt-Free Date</p>
+                    <div class="mb-1">
+                        <p class="text-2xl font-black text-white">{{ strategyComparison.avalanche?.payoffDate |
+                            date:'MMM yyyy' }}</p>
+                    </div>
+                    <p class="text-xs text-emerald-400 font-bold">Your new freedom date</p>
+                </div>
+            </div>
+
+            <!-- Bottom CTA -->
+            <div
+                class="mt-6 p-4 bg-gradient-to-r from-teal-500/10 to-purple-500/10 rounded-xl border border-teal-500/20 relative z-10">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-bold text-white mb-1">Ready to accelerate your payoff?</p>
+                        <p class="text-xs text-slate-400">Even small extra payments make a huge difference</p>
+                    </div>
+                    <button
+                        class="px-6 py-3 bg-gradient-to-r from-teal-500 to-purple-500 text-white font-bold rounded-xl hover:shadow-lg hover:shadow-teal-500/50 transition-all">
+                        Apply Strategy
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Minimum Payment Trap (Styled as Warning Card) -->
+        <div
+            class="bg-[#1e293b] rounded-3xl p-8 border border-slate-700/50 shadow-xl relative overflow-hidden group h-full flex flex-col justify-between">
+            <div
+                class="absolute top-0 right-0 p-40 bg-rose-500/5 rounded-full blur-3xl -mr-20 -mt-20 transition-all duration-500 group-hover:bg-rose-500/10">
+            </div>
+
+            <div>
+                <h3 class="text-rose-400 text-sm font-bold uppercase tracking-wider mb-6 flex items-center gap-2">
+                    <span class="material-icons text-lg">warning</span>
+                    Minimum Payment Trap
+                </h3>
+
+                <div class="mb-8">
+                    <div class="flex items-baseline">
+                        <span class="text-6xl font-black text-white tracking-tight">{{ payoffTrap.years }}<span
+                                class="text-3xl text-slate-500 font-bold">.{{ (payoffTrap.years % 1 * 10) |
+                                number:'1.0-0'
+                                }}</span></span>
+                        <span class="text-lg text-slate-400 font-bold ml-3 uppercase tracking-wide">Years</span>
+                    </div>
+                    <p class="text-slate-400 mt-3 font-medium leading-relaxed">
+                        Time to debt freedom if you only make minimum payments.
+                    </p>
+                </div>
+            </div>
+
+            <div class="mt-auto pt-6 border-t border-slate-700/50">
+                <div class="flex justify-between items-end mb-2">
+                    <p class="text-xs text-slate-500 uppercase font-bold">Total Interest Cost</p>
+                    <div class="text-xs text-rose-400/80 font-bold bg-rose-400/10 px-3 py-1 rounded-full">
+                        CRITICAL WARNING
+                    </div>
+                </div>
+                <p class="text-3xl font-black text-rose-400">${{ payoffTrap.totalInterest | number:'1.0-0' }}</p>
+                <p class="text-xs text-rose-400/60 mt-1">Money lost to interest</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Second Row Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div
+            class="bg-[#1e293b] rounded-2xl p-6 border border-slate-700/50 shadow-xl flex flex-col relative overflow-hidden">
+            <div class="absolute top-0 right-0 p-20 bg-rose-500/5 rounded-full blur-3xl -mr-10 -mt-10"></div>
+            <h3
+                class="text-rose-400 text-xs font-bold uppercase tracking-wider mb-4 flex items-center gap-2 relative z-10">
+                <i class="fas fa-search-dollar"></i>
+                Top 3 Money Leaks
+            </h3>
+
+            <div class="flex-1 space-y-3 relative z-10">
+                <div *ngFor="let acc of topMoneyLeaks"
+                    class="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-700/30">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-8 h-8 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-500 text-xs">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold text-white">{{ acc.name }}</p>
+                            <p class="text-[10px] text-slate-500 font-bold uppercase">Monthly Interest</p>
+                        </div>
+                    </div>
+                    <p class="text-sm font-black text-rose-400">-${{ (acc.currentBalance * (acc.apr / 100)) / 12 |
+                        number:'1.0-0' }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- High Interest Risk (List View) -->
+        <div class="bg-[#1e293b] rounded-2xl p-6 border border-slate-700/50 shadow-xl flex flex-col">
+            <h3 class="text-purple-400 text-xs font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
+                <i class="fas fa-fire"></i>
+                High-Interest Risk
+            </h3>
+
+            <div class="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
+                <!-- We'll populate this with real high APR accounts -->
+                <div *ngFor="let acc of accounts | slice:0:3"
+                    class="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-700/30 group hover:border-purple-500/30 transition-colors">
+                    <div>
+                        <p class="text-sm font-bold text-white group-hover:text-purple-300 transition-colors">{{
+                            acc.name }}</p>
+                        <p class="text-xs text-slate-500 font-medium">{{ acc.type }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-black text-purple-400">{{ acc.apr }}%</p>
+                        <p class="text-[10px] text-slate-500 font-bold uppercase">APR</p>
+                    </div>
+                </div>
+
+                <div *ngIf="accounts.length === 0" class="text-center py-8 text-slate-500 text-sm">
+                    No active debts found.
+                </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-700/50 text-center">
+                <button
+                    class="text-xs font-bold text-purple-400 hover:text-purple-300 transition-colors uppercase tracking-wide">
+                    View All Accounts
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Future Debt Projection -->
+    <div class="bg-[#1e293b] rounded-2xl p-6 border border-slate-700/50 shadow-xl mb-8 relative overflow-hidden">
+        <h3 class="text-emerald-400 text-xs font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
+            <i class="fas fa-chart-line"></i>
+            Future Debt Projection
+        </h3>
+        <div class="h-72 relative z-10">
+            <canvas baseChart [data]="projectionChartData" [options]="projectionChartOptions"
+                [type]="projectionChartType">
+            </canvas>
+        </div>
+    </div>
+
+    <!-- Placeholder for Future Features -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Interest Burning Chart -->
+        <div
+            class="bg-[#1e293b] rounded-2xl p-6 border border-slate-700/50 shadow-xl relative overflow-hidden h-full flex flex-col">
+            <h3 class="text-orange-400 text-xs font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
+                <i class="fas fa-fire-alt"></i>
+                Interest Burning Chart
+            </h3>
+            <div class="h-64 relative z-10 flex-1">
+                <canvas baseChart [data]="interestBurningChartData" [options]="interestBurningChartOptions"
+                    [type]="interestBurningChartType">
+                </canvas>
+            </div>
+        </div>
+
+        <!-- Strategy Comparison -->
+        <div
+            class="bg-[#1e293b] rounded-2xl p-6 border border-slate-700/50 shadow-xl relative overflow-hidden h-full flex flex-col">
+            <h3 class="text-blue-400 text-xs font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
+                <i class="fas fa-chess-knight"></i>
+                Strategy Battle
+            </h3>
+
+            <div class="grid grid-cols-2 gap-4 flex-1">
+                <!-- Avalanche Card -->
+                <div
+                    class="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 relative group hover:border-blue-500/50 transition-all flex flex-col justify-between">
+                    <div>
+                        <div class="absolute top-0 right-0 p-2">
+                            <span
+                                class="text-[10px] font-bold uppercase bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full">Recommended</span>
+                        </div>
+                        <p class="text-xs text-slate-400 font-bold uppercase mb-2">Avalanche (High APR)</p>
+                        <p class="text-2xl font-black text-white mb-1">{{ strategyComparison.avalanche.payoffDate |
+                            date:'MMM yyyy' }}</p>
+                        <p class="text-xs text-slate-500 mb-4">Debt Free Date</p>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-700/50">
+                        <p class="text-[10px] text-slate-500 uppercase font-bold">Total Interest</p>
+                        <p class="text-lg font-bold text-blue-400">${{ strategyComparison.avalanche.totalInterestPaid |
+                            number:'1.0-0' }}</p>
+                    </div>
+                </div>
+
+                <!-- Snowball Card -->
+                <div
+                    class="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 relative group hover:border-indigo-500/50 transition-all flex flex-col justify-between">
+                    <div>
+                        <p class="text-xs text-slate-400 font-bold uppercase mb-2">Snowball (Low Balance)</p>
+                        <p class="text-2xl font-black text-white mb-1">{{ strategyComparison.snowball.payoffDate |
+                            date:'MMM
+                            yyyy' }}</p>
+                        <p class="text-xs text-slate-500 mb-4">Debt Free Date</p>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-700/50">
+                        <p class="text-[10px] text-slate-500 uppercase font-bold">Total Interest</p>
+                        <p class="text-lg font-bold text-indigo-400">${{ strategyComparison.snowball.totalInterestPaid |
+                            number:'1.0-0' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>

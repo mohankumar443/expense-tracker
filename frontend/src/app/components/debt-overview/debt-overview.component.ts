@@ -39,6 +39,9 @@ export class DebtOverviewComponent implements OnInit {
     nextMonthProjection: any;
     highAprAccounts: DebtAccount[] = [];
 
+    // Priority List State
+    showAllPriorities = false;
+
     // Extra Payment Calculator
     extraPaymentAmount = 0;
     projectedSavings = 0;
@@ -159,9 +162,22 @@ export class DebtOverviewComponent implements OnInit {
         this.interestBreakdown = this.analyticsService.calculateInterestBreakdown(this.allAccounts);
         this.payoffTimeline = this.analyticsService.calculatePayoffTimeline(this.allAccounts, this.extraPaymentAmount);
         this.nextMonthProjection = this.analyticsService.projectNextMonth(this.allAccounts);
-        this.highAprAccounts = this.analyticsService.getHighAprAccounts(this.allAccounts);
+
+        // Get ALL high APR accounts for the priority list
+        this.highAprAccounts = this.analyticsService.getHighAprAccounts(this.allAccounts, -1);
 
         this.calculateExtraPaymentSavings();
+    }
+
+    togglePriorities() {
+        this.showAllPriorities = !this.showAllPriorities;
+    }
+
+    getVisiblePriorities(): DebtAccount[] {
+        if (this.showAllPriorities) {
+            return this.highAprAccounts;
+        }
+        return this.highAprAccounts.slice(0, 3);
     }
 
     calculateNetWorth() {

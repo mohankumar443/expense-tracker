@@ -4,6 +4,7 @@ import com.example.expensetracker.model.debt.Snapshot;
 import com.example.expensetracker.model.debt.Account;
 import com.example.expensetracker.repository.debt.SnapshotRepository;
 import com.example.expensetracker.repository.debt.AccountRepository;
+import com.example.expensetracker.service.DebtStrategyService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +23,8 @@ public class SnapshotService {
         private final SnapshotRepository snapshotRepository;
         private final AccountRepository accountRepository;
         private final FileSnapshotService fileSnapshotService;
+
+        private final DebtStrategyService debtStrategyService;
 
         private boolean isDbAvailable = true; // Optimistic default
 
@@ -127,6 +130,10 @@ public class SnapshotService {
                 Snapshot snapshot = snapshotRepository.findBySnapshotDate(snapshotDate)
                                 .orElseThrow(() -> new IllegalArgumentException(
                                                 "Snapshot not found for date: " + snapshotDate));
+
+                // Calculate priorities before saving
+                debtStrategyService.calculatePriorities(accounts);
+                accountRepository.saveAll(accounts); // Save updated priorities
 
                 // Calculate totals
                 double totalDebt = accounts.stream()

@@ -167,7 +167,7 @@
 
                 <!-- Total Min Payment -->
                 <div
-                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-5 border border-orange-200 dark:border-orange-500/30 shadow-md relative overflow-hidden hover-lift">
+                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-5 border border-orange-200 dark:border-orange-500/30 shadow-md relative overflow-hidden hover-lift text-center">
                     <div class="absolute top-4 right-4 opacity-50 dark:opacity-40">
                         <span class="material-icons text-6xl text-orange-600 dark:text-orange-400">payments</span>
                     </div>
@@ -182,11 +182,11 @@
 
                 <!-- Principal -->
                 <div
-                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-5 border border-teal-200 dark:border-teal-500/30 shadow-md relative overflow-hidden hover-lift">
+                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-5 border border-teal-200 dark:border-teal-500/30 shadow-md relative overflow-hidden hover-lift text-center">
                     <div class="absolute top-4 right-4 opacity-50 dark:opacity-40">
                         <span class="material-icons text-6xl text-teal-600 dark:text-teal-400">trending_down</span>
                     </div>
-                    <div class="flex items-center gap-2 mb-2 relative z-10">
+                    <div class="flex items-center justify-center gap-2 mb-2 relative z-10">
                         <p class="text-xs font-bold text-teal-600 dark:text-teal-200 uppercase tracking-wider">Principal
                         </p>
                     </div>
@@ -198,16 +198,15 @@
 
                 <!-- High APR Threat List -->
                 <div
-                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-5 border border-rose-200 dark:border-rose-500/30 shadow-md relative overflow-hidden hover-lift">
+                    class="bg-white dark:bg-[#1a2332] rounded-2xl p-5 border border-rose-200 dark:border-rose-500/30 shadow-md relative overflow-hidden hover-lift transition-all duration-300">
                     <div class="absolute top-4 right-4 opacity-50 dark:opacity-40">
                         <span class="material-icons text-6xl text-rose-600 dark:text-rose-400">warning</span>
                     </div>
                     <p
                         class="text-xs font-bold text-rose-600 dark:text-rose-200 uppercase tracking-wider mb-4 relative z-10">
-                        High APR Threat List
-                    </p>
+                        Payoff Strategy</p>
                     <div class="space-y-2 w-full relative z-10">
-                        <div *ngFor="let account of highAprAccounts; let i = index"
+                        <div *ngFor="let account of getVisiblePriorities(); let i = index"
                             class="flex items-center justify-between text-sm bg-gray-50 dark:bg-black/20 p-2 rounded-lg backdrop-blur-sm">
                             <span class="text-gray-700 dark:text-rose-100 font-medium"><span
                                     class="text-gray-900 dark:text-white font-bold mr-2">{{ i + 1 }}.</span> {{
@@ -217,25 +216,16 @@
                                 account.apr }}%</span>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- Priority Alert -->
-            <div class="section-divider"></div>
-            <div class="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-500/30 rounded-2xl p-6 shadow-md"
-                *ngIf="highAprAccounts && highAprAccounts.length > 0">
-                <div class="flex items-start gap-4">
-                    <div class="p-3 bg-white dark:bg-white/10 rounded-xl backdrop-blur-sm shadow-sm">
-                        <span class="material-icons text-amber-600 dark:text-amber-400 text-2xl">priority_high</span>
-                    </div>
-                    <div>
-                        <h4 class="text-xl font-black text-gray-900 dark:text-white mb-2">Priority: Pay This First</h4>
-                        <p class="text-amber-700 dark:text-amber-100 font-bold text-lg">{{ highAprAccounts[0].name }} -
-                            {{
-                            highAprAccounts[0].apr }}% APR</p>
-                        <p class="text-amber-600 dark:text-amber-200 text-sm mt-1 font-medium">Balance: {{
-                            highAprAccounts[0].currentBalance |
-                            currency:'USD':'symbol':'1.2-2' }}</p>
+                    <!-- Show More / Less Button -->
+                    <div *ngIf="highAprAccounts.length > 3" class="mt-4 text-center relative z-10">
+                        <button (click)="togglePriorities()"
+                            class="inline-flex items-center gap-1 px-3 py-1.5 bg-rose-50 dark:bg-rose-900/20 hover:bg-rose-100 dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-200 text-xs font-bold rounded-lg transition-all border border-rose-200 dark:border-rose-500/30">
+                            <span>{{ showAllPriorities ? 'Show Less' : 'Show All (' + highAprAccounts.length + ')'
+                                }}</span>
+                            <span class="material-icons text-xs transition-transform duration-300"
+                                [class.rotate-180]="showAllPriorities">expand_more</span>
+                        </button>
                     </div>
                 </div>
             </div>

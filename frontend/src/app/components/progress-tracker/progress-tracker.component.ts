@@ -76,6 +76,76 @@ export class ProgressTrackerComponent implements OnInit {
 
     public lineChartType: ChartType = 'line';
 
+    // Bar Chart (Monthly Change)
+    public barChartData: ChartConfiguration['data'] = {
+        labels: [],
+        datasets: []
+    };
+    public barChartOptions: ChartConfiguration['options'] = {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                },
+                ticks: {
+                    color: '#94a3b8'
+                }
+            },
+            x: {
+                grid: {
+                    display: false
+                },
+                ticks: {
+                    color: '#94a3b8'
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            },
+            tooltip: {
+                callbacks: {
+                    label: (context) => {
+                        const value = context.raw as number;
+                        return value > 0 ? `Increased by $${value}` : `Decreased by $${Math.abs(value)}`;
+                    }
+                }
+            }
+        }
+    };
+    public barChartType: ChartType = 'bar';
+
+    // Interest Chart (Gradient Bar)
+    public interestChartData: ChartConfiguration['data'] = {
+        labels: [],
+        datasets: []
+    };
+    public interestChartOptions: ChartConfiguration['options'] = {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                ticks: { color: '#94a3b8' }
+            },
+            x: {
+                grid: { display: false },
+                ticks: { color: '#94a3b8' }
+            }
+        },
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: (context) => `Interest: $${context.raw}`
+                }
+            }
+        }
+    };
+
     // Doughnut Chart
     public doughnutChartLabels: string[] = ['Credit Cards', 'Personal Loans', 'Auto Loans'];
     public doughnutChartData: ChartData<'doughnut'> = {
@@ -92,6 +162,23 @@ export class ProgressTrackerComponent implements OnInit {
     // Payoff Timeline Data
     payoffTimeline: any[] = [];
 
+    // Interest Heatmap Data
+    interestHeatmapData: Array<{ month: string, interest: number, color: string }> = [];
+    interestRanges: Array<{ label: string, color: string }> = [];
+    minInterest: number = 0;
+    maxInterest: number = 0;
+
+    // Category Trend Data
+    categoryTrendData: Array<{
+        name: string,
+        color: string,
+        currentBalance: number,
+        initialBalance: number,
+        change: number,
+        percentChange: number,
+        isImproving: boolean
+    }> = [];
+
     constructor(
         private debtService: DebtAccountService,
         private snapshotState: SnapshotStateService
@@ -102,8 +189,241 @@ export class ProgressTrackerComponent implements OnInit {
         this.snapshotState.currentSnapshot$.subscribe(currentSnapshot => {
             if (currentSnapshot) {
                 this.loadComparison(currentSnapshot);
+                this.loadInterestHeatmap();
+                this.loadCategoryTrends();
+                this.loadHistoricalCharts();
             }
         });
+    }
+
+    loadHistoricalCharts() {
+        this.debtService.getAvailableSnapshots().subscribe(snapshots => {
+            if (!snapshots || snapshots.length === 0) return;
+
+            // Sort by date (oldest first)
+            const sorted = snapshots.sort((a, b) =>
+                new Date(a.snapshotDate).getTime() - new Date(b.snapshotDate).getTime()
+            );
+
+            // Filter for last 12 months if needed, for now take all
+            const historicalData = sorted;
+
+            // Prepare data arrays
+            const labels: string[] = [];
+            const totalDebtData: number[] = [];
+            const monthlyChangeData: number[] = [];
+            const changeColors: string[] = [];
+
+            // Fetch summaries for all snapshots
+            const summaryPromises = historicalData.map(s =>
+                new Promise<{ date: string, summary: DebtSummary }>((resolve) => {
+                    this.debtService.getSnapshotSummary(s.snapshotDate).subscribe(summary => {
+                        resolve({ date: s.snapshotDate, summary });
+                    });
+                })
+            );
+
+            Promise.all(summaryPromises).then(results => {
+                // Sort results again as Promise.all might not preserve order if requests vary
+                results.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+                results.forEach((item, index) => {
+                    // Format date: "Nov '25"
+                    const date = new Date(item.date + 'T12:00:00');
+                    labels.push(date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }));
+
+                    totalDebtData.push(item.summary.totalDebt);
+
+                    // Calculate change from previous month
+                    if (index > 0) {
+                        const previousDebt = results[index - 1].summary.totalDebt;
+                        const change = item.summary.totalDebt - previousDebt;
+                        monthlyChangeData.push(change);
+                        // Green for decrease (negative change), Red for increase
+                        changeColors.push(change <= 0 ? '#10b981' : '#ef4444');
+                    } else {
+                        monthlyChangeData.push(0); // No change for first month
+                        changeColors.push('#94a3b8'); // Gray
+                    }
+                });
+
+                // Update Total Debt Trend Chart
+                this.lineChartData = {
+                    labels: labels,
+                    datasets: [
+                        {
+                            data: totalDebtData,
+                            label: 'Total Debt',
+                            backgroundColor: 'rgba(59, 130, 246, 0.2)', // Blue fill
+                            borderColor: '#3b82f6', // Blue line
+                            pointBackgroundColor: '#3b82f6',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: '#3b82f6',
+                            fill: 'origin',
+                            tension: 0.4
+                        }
+                    ]
+                };
+
+                // Update Monthly Change Bar Chart
+                this.barChartData = {
+                    labels: labels,
+                    datasets: [
+                        {
+                            data: monthlyChangeData,
+                            label: 'Monthly Change',
+                            backgroundColor: changeColors,
+                            hoverBackgroundColor: changeColors,
+                            borderRadius: 4
+                        }
+                    ]
+                };
+            });
+        });
+    }
+
+    loadInterestHeatmap() {
+        // Load all snapshots and calculate interest for each
+        this.debtService.getAvailableSnapshots().subscribe(snapshots => {
+            if (!snapshots || snapshots.length === 0) return;
+
+            // Sort by date (oldest first)
+            const sorted = snapshots.sort((a, b) =>
+                new Date(a.snapshotDate).getTime() - new Date(b.snapshotDate).getTime()
+            );
+
+            // Load accounts for each snapshot and calculate interest
+            const heatmapPromises = sorted.map(snapshot => {
+                return new Promise<{ month: string, interest: number }>((resolve) => {
+                    this.debtService.getSnapshotAccounts(snapshot.snapshotDate).subscribe(accounts => {
+                        let totalInterest = 0;
+                        accounts.forEach(account => {
+                            if (account.currentBalance && account.apr) {
+                                totalInterest += (account.currentBalance * account.apr) / 100 / 12;
+                            }
+                        });
+                        resolve({
+                            month: new Date(snapshot.snapshotDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+                            interest: totalInterest
+                        });
+                    });
+                });
+            });
+
+            Promise.all(heatmapPromises).then(data => {
+                // Find min and max for color scaling
+                const interests = data.map(d => d.interest);
+                const minInterest = Math.min(...interests);
+                const maxInterest = Math.max(...interests);
+
+                this.minInterest = minInterest;
+                this.maxInterest = maxInterest;
+
+                const range = maxInterest - minInterest;
+
+                // Calculate quartiles for legend
+                const q1 = minInterest + (range * 0.25);
+                const q2 = minInterest + (range * 0.5);
+                const q3 = minInterest + (range * 0.75);
+
+                this.interestRanges = [
+                    { label: `$${Math.floor(minInterest)} - $${Math.floor(q1)}`, color: '#10b981' },
+                    { label: `$${Math.floor(q1)} - $${Math.floor(q2)}`, color: '#84cc16' },
+                    { label: `$${Math.floor(q2)} - $${Math.floor(q3)}`, color: '#f59e0b' },
+                    { label: `$${Math.floor(q3)} - $${Math.floor(maxInterest)}`, color: '#ef4444' }
+                ];
+
+                // Assign colors based on interest amount
+                this.interestHeatmapData = data.map(item => ({
+                    ...item,
+                    color: this.getHeatmapColor(item.interest, minInterest, maxInterest)
+                }));
+
+                // Update Interest Chart Data
+                this.interestChartData = {
+                    labels: data.map(d => d.month),
+                    datasets: [{
+                        data: data.map(d => d.interest),
+                        backgroundColor: this.interestHeatmapData.map(d => d.color),
+                        hoverBackgroundColor: this.interestHeatmapData.map(d => d.color),
+                        borderRadius: 4,
+                        label: 'Monthly Interest'
+                    }]
+                };
+            });
+        });
+    }
+
+    loadCategoryTrends() {
+        // Load all snapshots and calculate category trends
+        this.debtService.getAvailableSnapshots().subscribe(snapshots => {
+            if (!snapshots || snapshots.length < 2) return;
+
+            // Sort by date (oldest first)
+            const sorted = snapshots.sort((a, b) =>
+                new Date(a.snapshotDate).getTime() - new Date(b.snapshotDate).getTime()
+            );
+
+            const firstSnapshot = sorted[0];
+            const lastSnapshot = sorted[sorted.length - 1];
+
+            // Load accounts for first and last snapshot
+            Promise.all([
+                new Promise<any[]>((resolve) => {
+                    this.debtService.getSnapshotAccounts(firstSnapshot.snapshotDate).subscribe(resolve);
+                }),
+                new Promise<any[]>((resolve) => {
+                    this.debtService.getSnapshotAccounts(lastSnapshot.snapshotDate).subscribe(resolve);
+                })
+            ]).then(([initialAccounts, currentAccounts]) => {
+                // Calculate totals by category
+                const categories = [
+                    { name: 'Credit Cards', type: 'CREDIT_CARD', color: '#3b82f6' },
+                    { name: 'Personal Loans', type: 'PERSONAL_LOAN', color: '#a855f7' },
+                    { name: 'Auto Loans', type: 'AUTO_LOAN', color: '#10b981' }
+                ];
+
+                this.categoryTrendData = categories.map(category => {
+                    const initialBalance = initialAccounts
+                        .filter(acc => acc.type === category.type)
+                        .reduce((sum, acc) => sum + (acc.currentBalance || 0), 0);
+
+                    const currentBalance = currentAccounts
+                        .filter(acc => acc.type === category.type)
+                        .reduce((sum, acc) => sum + (acc.currentBalance || 0), 0);
+
+                    const change = currentBalance - initialBalance;
+                    const percentChange = initialBalance > 0 ? (change / initialBalance) * 100 : 0;
+
+                    return {
+                        name: category.name,
+                        color: category.color,
+                        currentBalance,
+                        initialBalance,
+                        change,
+                        percentChange,
+                        isImproving: change < 0 // Negative change means debt decreased
+                    };
+                });
+            });
+        });
+    }
+
+    getHeatmapColor(value: number, min: number, max: number): string {
+        // Normalize value between 0 and 1
+        const normalized = (value - min) / (max - min);
+
+        // Color scale: green (low) -> yellow -> orange -> red (high)
+        if (normalized < 0.25) {
+            return '#10b981'; // Green
+        } else if (normalized < 0.5) {
+            return '#84cc16'; // Light green
+        } else if (normalized < 0.75) {
+            return '#f59e0b'; // Orange
+        } else {
+            return '#ef4444'; // Red
+        }
     }
 
     loadComparison(currentSnapshotDate?: string) {
