@@ -64,10 +64,101 @@ public class AccountService {
         return fileSnapshotService.getAccountsBySnapshotDate(snapshotDate);
     }
 
+    /**
+     * Calculate loan fields if they are not provided by the user.
+     * Calculates: principalPerMonth, monthsLeft, payoffDate, and notes
+     */
+    private void calculateLoanFields(Account account) {
+        // Only calculate for loan types (not credit cards)
+        if (account.getType() == AccountType.CREDIT_CARD) {
+            return;
+        }
+
+        // Skip if essential fields are missing
+        if (account.getCurrentBalance() == null || account.getApr() == null ||
+                account.getMonthlyPayment() == null || account.getCurrentBalance() <= 0 ||
+                account.getMonthlyPayment() <= 0) {
+            return;
+        }
+
+        double balance = account.getCurrentBalance();
+        double apr = account.getApr();
+        double monthlyPayment = account.getMonthlyPayment();
+        double monthlyInterestRate = (apr / 100) / 12;
+
+        // Calculate principal per month if not provided
+        if (account.getPrincipalPerMonth() == null) {
+            double interestPayment = balance * monthlyInterestRate;
+            double principalPerMonth = monthlyPayment - interestPayment;
+            account.setPrincipalPerMonth(Math.max(0, principalPerMonth));
+        }
+
+        // Calculate months left if not provided
+        if (account.getMonthsLeft() == null) {
+            int monthsLeft = 0;
+
+            if (monthlyInterestRate > 0 && monthlyPayment > balance * monthlyInterestRate) {
+                // Use loan amortization formula: n = -log(1 - r*P/M) / log(1 + r)
+                // where P = principal, r = monthly rate, M = monthly payment
+                double numerator = Math.log(1 - (monthlyInterestRate * balance / monthlyPayment));
+                double denominator = Math.log(1 + monthlyInterestRate);
+                monthsLeft = (int) Math.ceil(-numerator / denominator);
+            } else if (monthlyInterestRate == 0 && monthlyPayment > 0) {
+                // No interest case
+                monthsLeft = (int) Math.ceil(balance / monthlyPayment);
+            } else {
+                // Payment is too low to cover interest, set a high value
+                monthsLeft = 999;
+            }
+
+            account.setMonthsLeft(monthsLeft);
+        }
+
+        // Calculate payoff date if not provided
+        if (account.getPayoffDate() == null && account.getMonthsLeft() != null) {
+            LocalDate payoffDate = LocalDate.now().plusMonths(account.getMonthsLeft());
+            account.setPayoffDate(payoffDate);
+        }
+
+        // Generate default notes if not provided
+        if (account.getNotes() == null || account.getNotes().trim().isEmpty()) {
+            String notes = String.format("Auto-calculated on %s. Payoff in %d months with $%.2f monthly payment.",
+                    LocalDate.now(), account.getMonthsLeft(), monthlyPayment);
+            account.setNotes(notes);
+        }
+
+        // Calculate priority if not provided (based on APR - higher interest = higher
+        // priority)
+        if (account.getPriority() == null) {
+            // Priority scale: 1-5, where 5 is highest priority
+            // APR >= 20% = Priority 5
+            // APR >= 15% = Priority 4
+            // APR >= 10% = Priority 3
+            // APR >= 5% = Priority 2
+            // APR < 5% = Priority 1
+            int priority;
+            if (apr >= 20.0) {
+                priority = 5;
+            } else if (apr >= 15.0) {
+                priority = 4;
+            } else if (apr >= 10.0) {
+                priority = 3;
+            } else if (apr >= 5.0) {
+                priority = 2;
+            } else {
+                priority = 1;
+            }
+            account.setPriority(priority);
+        }
+    }
+
     public Account createAccount(Account account) {
         if (!isDbAvailable) {
             throw new IllegalStateException("Cannot create account in offline mode");
         }
+        // Calculate missing loan fields automatically
+        calculateLoanFields(account);
+
         account.setCreatedAt(LocalDateTime.now());
         account.setUpdatedAt(LocalDateTime.now());
         return accountRepository.save(account);
@@ -96,6 +187,9 @@ public class AccountService {
         account.setMonthsLeft(accountDetails.getMonthsLeft());
         account.setPriority(accountDetails.getPriority());
         account.setSnapshotDate(accountDetails.getSnapshotDate());
+
+        // Recalculate missing loan fields automatically
+        calculateLoanFields(account);
 
         account.setUpdatedAt(LocalDateTime.now());
         return accountRepository.save(account);

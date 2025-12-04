@@ -24,6 +24,34 @@ Expense tracker/
 - **Node.js** (v18+) and **npm** for the frontend
 - **MongoDB** instance running locally or remotely
 
+### Installing MongoDB on macOS
+
+If you don't have MongoDB installed, follow these steps:
+
+1. **Install Homebrew** (if not already installed):
+   ```bash
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+   ```
+
+2. **Add Homebrew to your PATH**:
+   ```bash
+   echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+   eval "$(/opt/homebrew/bin/brew shellenv)"
+   ```
+
+3. **Install MongoDB Community Edition**:
+   ```bash
+   brew tap mongodb/brew
+   brew install mongodb-community
+   ```
+
+4. **Start MongoDB**:
+   ```bash
+   brew services start mongodb-community
+   ```
+
+MongoDB will now run on `mongodb://localhost:27017` by default.
+
 ## Setup
 
 ### Backend
