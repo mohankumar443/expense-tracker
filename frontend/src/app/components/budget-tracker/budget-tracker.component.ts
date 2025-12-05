@@ -151,16 +151,66 @@ export class BudgetTrackerComponent implements OnInit {
             this.filterExpensesAndBudget();
         });
         this.loadExpenses();
+
+        // One-time cleanup of duplicate recurring expenses
+        const cleanupDone = localStorage.getItem('duplicateCleanupDone');
+        if (!cleanupDone) {
+            this.cleanupDuplicateRecurringExpenses();
+            localStorage.setItem('duplicateCleanupDone', 'true');
+        }
+    }
+
+    cleanupDuplicateRecurringExpenses() {
+        this.expenseService.getAllExpenses().subscribe(expenses => {
+            // Group by description + date + isRecurring
+            const groups = new Map<string, Expense[]>();
+
+            expenses.forEach(expense => {
+                if (expense.isRecurring) {
+                    const key = `${expense.description}_${expense.date}`;
+                    if (!groups.has(key)) {
+                        groups.set(key, []);
+                    }
+                    groups.get(key)!.push(expense);
+                }
+            });
+
+            // For each group, keep the first and delete the rest
+            groups.forEach((group, key) => {
+                if (group.length > 1) {
+                    console.log(`Found ${group.length} duplicates for ${key}, removing ${group.length - 1}`);
+                    // Sort by ID to be consistent, keep the first one
+                    group.sort((a, b) => (a.id || 0) - (b.id || 0));
+
+                    // Delete all except the first
+                    for (let i = 1; i < group.length; i++) {
+                        if (group[i].id) {
+                            this.expenseService.deleteExpense(group[i].id!).subscribe(() => {
+                                console.log(`Deleted duplicate: ${group[i].description} - ${group[i].date}`);
+                            });
+                        }
+                    }
+                }
+            });
+
+            // Reload after cleanup
+            setTimeout(() => this.loadExpenses(), 1000);
+        });
     }
 
     initializeRecurringExpensesForMonth(year: number, month: number) {
         // month is 0-indexed (0 = January, 11 = December)
         const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
-        const lastInitialized = localStorage.getItem(`lastRecurringInit_${monthKey}`);
+        const initKey = `lastRecurringInit_${monthKey}`;
+        const lastInitialized = localStorage.getItem(initKey);
 
+        // If already initialized, skip entirely
         if (lastInitialized === 'true') {
-            return; // Already initialized for this month
+            return;
         }
+
+        // Mark as initialized immediately to prevent duplicate calls
+        localStorage.setItem(initKey, 'true');
 
         // Check which fixed recurring items have been removed
         const removedItems = JSON.parse(localStorage.getItem('removedFixedRecurring') || '[]');
@@ -200,8 +250,6 @@ export class BudgetTrackerComponent implements OnInit {
 
         // Check if recurring expenses already exist for this month
         this.expenseService.getAllExpenses().subscribe(expenses => {
-            let needsInit = false;
-
             recurringExpenses.forEach(recurring => {
                 const exists = expenses.some(e =>
                     e.description === recurring.description &&
@@ -210,21 +258,15 @@ export class BudgetTrackerComponent implements OnInit {
                 );
 
                 if (!exists) {
-                    needsInit = true;
                     const newExpense = {
                         ...recurring,
                         date: firstDayOfMonth
                     };
                     this.expenseService.createExpense(newExpense).subscribe(() => {
-                        this.loadExpenses();
+                        // Reload will happen from filterExpensesAndBudget being called again
                     });
                 }
             });
-
-            // Mark as initialized
-            if (needsInit || recurringExpenses.length === 0) {
-                localStorage.setItem(`lastRecurringInit_${monthKey}`, 'true');
-            }
         });
     }
 
