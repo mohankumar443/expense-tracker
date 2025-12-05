@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy, ViewChild, ChangeDetectorRef } from '@angular/core';
+import { fadeIn, slideInUp, staggerFadeIn } from '../../animations';
 import { DebtAccountService, DebtSummary, DebtAccount } from '../../services/debt-account.service';
 import { SnapshotStateService } from '../../services/snapshot-state.service';
 import { AnalyticsService } from '../../services/analytics.service';
@@ -7,7 +8,8 @@ import { SnapshotManagerComponent } from '../snapshot-manager/snapshot-manager.c
 @Component({
     selector: 'app-debt-overview',
     templateUrl: './debt-overview.component.html',
-    styleUrls: ['./debt-overview.component.css']
+    styleUrls: ['./debt-overview.component.css'],
+    animations: [fadeIn, slideInUp, staggerFadeIn]
 })
 export class DebtOverviewComponent implements OnInit {
     Math = Math; // Expose Math to template
@@ -22,6 +24,8 @@ export class DebtOverviewComponent implements OnInit {
         autoLoanDebt: 0,
         totalAccounts: 0
     };
+
+    previousSummary: DebtSummary | null = null;
 
     highestInterestAccount: DebtAccount | null = null;
     availableSnapshots: any[] = [];
@@ -132,6 +136,20 @@ export class DebtOverviewComponent implements OnInit {
                 this.loading = false;
             }
         });
+
+        // Load Previous Month Summary
+        const currentIndex = this.availableSnapshots.findIndex(s => s.snapshotDate === date);
+        if (currentIndex > 0) {
+            const previousDate = this.availableSnapshots[currentIndex - 1].snapshotDate;
+            this.debtService.getSnapshotSummary(previousDate).subscribe({
+                next: (data) => {
+                    this.previousSummary = data;
+                },
+                error: (err) => console.error('Error loading previous summary', err)
+            });
+        } else {
+            this.previousSummary = null;
+        }
 
         // Load Accounts & Run Analytics
         this.debtService.getSnapshotAccounts(date).subscribe({
@@ -268,6 +286,16 @@ export class DebtOverviewComponent implements OnInit {
     getPercentage(amount: number): number {
         if (!this.summary || this.summary.totalDebt === 0) return 0;
         return (amount / this.summary.totalDebt) * 100;
+    }
+
+    getDebtChange(): number {
+        if (!this.previousSummary || !this.summary) return 0;
+        return this.summary.totalDebt - this.previousSummary.totalDebt;
+    }
+
+    getDebtChangePercentage(): number {
+        if (!this.previousSummary || !this.summary || this.previousSummary.totalDebt === 0) return 0;
+        return ((this.summary.totalDebt - this.previousSummary.totalDebt) / this.previousSummary.totalDebt) * 100;
     }
 
     isSnapshotChanged(): boolean {

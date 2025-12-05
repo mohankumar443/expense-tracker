@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { ExpenseService, Expense } from '../../services/expense.service';
+import { ExpenseService } from '../../services/expense.service';
+import { Expense } from '../../models/expense.model';
 import { trigger, transition, style, animate, query, stagger } from '@angular/animations';
 
 @Component({
@@ -32,7 +33,7 @@ export class ExpenseListComponent implements OnInit {
     }
 
     loadExpenses() {
-        this.expenseService.getExpenses().subscribe(data => {
+        this.expenseService.getAllExpenses().subscribe(data => {
             this.expenses = data;
         });
     }

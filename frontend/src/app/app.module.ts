@@ -23,6 +23,8 @@ import { AccountFormModalComponent } from './components/account-form-modal/accou
 import { ExpenseService } from './services/expense.service';
 
 import { StrategyDashboardComponent } from './components/strategy-dashboard/strategy-dashboard.component';
+import { CountUpDirective } from './directives/count-up.directive';
+import { BudgetTrackerComponent } from './components/budget-tracker/budget-tracker.component';
 
 @NgModule({
     declarations: [
@@ -38,7 +40,9 @@ import { StrategyDashboardComponent } from './components/strategy-dashboard/stra
         SnapshotManagerComponent,
         ConfirmationModalComponent,
         AccountFormModalComponent,
-        StrategyDashboardComponent
+        StrategyDashboardComponent,
+        CountUpDirective,
+        BudgetTrackerComponent
     ],
     imports: [
         BrowserModule,

@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
-import { ExpenseService, Expense } from '../../services/expense.service';
+import { ExpenseService } from '../../services/expense.service';
+import { Expense } from '../../models/expense.model';
 
 @Component({
     selector: 'app-expense-form',
@@ -17,7 +18,7 @@ export class ExpenseFormComponent {
     constructor(private expenseService: ExpenseService) { }
 
     onSubmit() {
-        this.expenseService.addExpense(this.expense).subscribe(() => {
+        this.expenseService.createExpense(this.expense).subscribe(() => {
             // Reset form or notify list to update
             this.expense = {
                 description: '',

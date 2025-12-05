@@ -25,7 +25,8 @@
                     ${{ animatedDebtChange | number:'1.0-0' }}
                 </h3>
             </div>
-            <p class="text-xs text-gray-400 mt-2">{{ animatedPercentChange | number:'1.2-2' }}% change</p>
+            <p class="text-xs text-gray-400 mt-2">{{ animatedPercentChange | number:'1.2-2' }}% change from ${{
+                previousMonthSummary?.totalDebt | number:'1.0-0' }}</p>
         </div>
 
         <!-- Monthly Interest Card -->

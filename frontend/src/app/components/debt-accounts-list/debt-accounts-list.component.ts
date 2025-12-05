@@ -8,6 +8,7 @@ import { SnapshotStateService } from '../../services/snapshot-state.service';
     styleUrls: ['./debt-accounts-list.component.css']
 })
 export class DebtAccountsListComponent implements OnInit {
+    Math = Math;
     creditCards: DebtAccount[] = [];
     personalLoans: DebtAccount[] = [];
     autoLoans: DebtAccount[] = [];
@@ -37,6 +38,7 @@ export class DebtAccountsListComponent implements OnInit {
     addAccountType: 'CREDIT_CARD' | 'PERSONAL_LOAN' | 'AUTO_LOAN' = 'CREDIT_CARD';
     currentSnapshotDate: string = '';
     deleteConfirmationMessage: string = '';
+    previousAccountsMap: Map<string, number> = new Map(); // Map<AccountName, PreviousBalance>
 
     // Dual Theme color palette - Clean Light & Dark Glass
     cardColors = [
@@ -128,6 +130,27 @@ export class DebtAccountsListComponent implements OnInit {
             this.creditCards = accounts.filter(a => a.type === 'CREDIT_CARD');
             this.personalLoans = accounts.filter(a => a.type === 'PERSONAL_LOAN');
             this.autoLoans = accounts.filter(a => a.type === 'AUTO_LOAN');
+
+            // Load previous month's data
+            this.debtService.getAvailableSnapshots().subscribe(snapshots => {
+                // Sort snapshots chronologically
+                const sorted = snapshots.sort((a, b) =>
+                    new Date(a.snapshotDate).getTime() - new Date(b.snapshotDate).getTime()
+                );
+
+                const currentIndex = sorted.findIndex(s => s.snapshotDate === fileName);
+                if (currentIndex > 0) {
+                    const previousDate = sorted[currentIndex - 1].snapshotDate;
+                    this.debtService.getSnapshotAccounts(previousDate).subscribe(prevAccounts => {
+                        this.previousAccountsMap.clear();
+                        prevAccounts.forEach(acc => {
+                            this.previousAccountsMap.set(acc.name, acc.currentBalance);
+                        });
+                    });
+                } else {
+                    this.previousAccountsMap.clear();
+                }
+            });
         });
     }
 
@@ -157,6 +180,53 @@ export class DebtAccountsListComponent implements OnInit {
 
     calculateMonthlyInterest(balance: number, apr: number): number {
         return (balance * apr) / 100 / 12;
+    }
+
+    getMonthlyChange(account: DebtAccount): number | null {
+        if (!this.previousAccountsMap.has(account.name)) return null;
+        const previousBalance = this.previousAccountsMap.get(account.name) || 0;
+        return account.currentBalance - previousBalance;
+    }
+
+    isNewAccount(account: DebtAccount): boolean {
+        // If we have previous data loaded but this account isn't in it, it's new
+        return this.previousAccountsMap.size > 0 && !this.previousAccountsMap.has(account.name);
+    }
+
+    getTotalChange(accounts: DebtAccount[]): number {
+        return accounts.reduce((sum, account) => {
+            if (this.isNewAccount(account)) return sum; // Don't count new accounts in change
+            const change = this.getMonthlyChange(account);
+            return sum + (change || 0);
+        }, 0);
+    }
+
+    getAccountsByType(type: 'credit' | 'personal' | 'auto'): DebtAccount[] {
+        if (type === 'credit') return this.creditCards;
+        if (type === 'personal') return this.personalLoans;
+        return this.autoLoans;
+    }
+
+    getTotalBalance(type: 'credit' | 'personal' | 'auto'): number {
+        return this.getAccountsByType(type).reduce((sum, acc) => sum + acc.currentBalance, 0);
+    }
+
+    getTotalMonthlyChange(type: 'credit' | 'personal' | 'auto'): number | null {
+        const accounts = this.getAccountsByType(type);
+        if (this.previousAccountsMap.size === 0) return null;
+        return this.getTotalChange(accounts);
+    }
+
+    getTotalInterest(type: 'credit' | 'personal' | 'auto'): number {
+        return this.getAccountsByType(type).reduce((sum, acc) => sum + this.calculateMonthlyInterest(acc.currentBalance, acc.apr), 0);
+    }
+
+    getTotalPrincipal(type: 'credit' | 'personal' | 'auto'): number {
+        return this.getAccountsByType(type).reduce((sum, acc) => sum + (acc.principalPerMonth || 0), 0);
+    }
+
+    getTotalMonthlyPayment(type: 'credit' | 'personal' | 'auto'): number {
+        return this.getAccountsByType(type).reduce((sum, acc) => sum + (acc.monthlyPayment || 0), 0);
     }
 
     // Sorting methods
@@ -240,6 +310,12 @@ export class DebtAccountsListComponent implements OnInit {
                 case 'monthsLeft':
                     aValue = a.monthsLeft || Number.MAX_SAFE_INTEGER;
                     bValue = b.monthsLeft || Number.MAX_SAFE_INTEGER;
+                    break;
+                case 'change':
+                    const aChange = this.isNewAccount(a) ? Number.MAX_SAFE_INTEGER : (this.getMonthlyChange(a) || 0);
+                    const bChange = this.isNewAccount(b) ? Number.MAX_SAFE_INTEGER : (this.getMonthlyChange(b) || 0);
+                    aValue = aChange;
+                    bValue = bChange;
                     break;
                 default:
                     return 0;

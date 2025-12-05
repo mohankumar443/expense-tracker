@@ -1,5 +1,9 @@
 import { Component, OnInit } from '@angular/core';
-import { ExpenseService, Expense } from '../../services/expense.service';
+import { ExpenseService } from '../../services/expense.service';
+import { Expense } from '../../models/expense.model';
+import { Chart, registerables } from 'chart.js';
+
+Chart.register(...registerables);
 
 @Component({
     selector: 'app-dashboard',
@@ -13,18 +17,24 @@ export class DashboardComponent implements OnInit {
 
     // Map categories to colors for visualization
     private categoryColors: { [key: string]: string } = {
-        'Minimum Payment': 'bg-blue-500',
-        'Extra Payment': 'bg-green-500',
-        'Full Balance': 'bg-emerald-500',
-        'Interest Charge': 'bg-red-500',
-        'Fee': 'bg-orange-500',
+        'Room rent': 'bg-purple-500',
+        'Grocery': 'bg-yellow-500',
+        'Phone bill': 'bg-cyan-500',
+        'Insurance': 'bg-indigo-500',
+        'Car EMI': 'bg-pink-500',
+        'Food': 'bg-blue-500',
+        'Transport': 'bg-green-500',
+        'Utilities': 'bg-emerald-500',
+        'Entertainment': 'bg-red-500',
+        'Shopping': 'bg-orange-500',
+        'Health': 'bg-teal-500',
         'Other': 'bg-gray-500'
     };
 
     constructor(private expenseService: ExpenseService) { }
 
     ngOnInit() {
-        this.expenseService.getExpenses().subscribe(expenses => {
+        this.expenseService.getAllExpenses().subscribe(expenses => {
             this.calculateStats(expenses);
         });
     }

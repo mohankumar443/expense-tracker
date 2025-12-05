@@ -545,7 +545,7 @@ export class ProgressTrackerComponent implements OnInit {
 
         // 3. Update Payoff Timeline (Mock data for now based on payoff dates)
         this.payoffTimeline = accounts
-            .filter(acc => acc.payoffDate)
+            .filter(acc => acc.payoffDate && acc.currentBalance > 0)
             .map(acc => ({
                 name: acc.name,
                 date: new Date(acc.payoffDate),

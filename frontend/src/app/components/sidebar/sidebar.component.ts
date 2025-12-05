@@ -1,11 +1,13 @@
 import { Component, OnInit, Output, EventEmitter } from '@angular/core';
+import { slideInLeft } from '../../animations';
 import { DebtAccountService, Snapshot } from '../../services/debt-account.service';
 import { SnapshotStateService } from '../../services/snapshot-state.service';
 
 @Component({
     selector: 'app-sidebar',
     templateUrl: './sidebar.component.html',
-    styleUrls: ['./sidebar.component.css']
+    styleUrls: ['./sidebar.component.css'],
+    animations: [slideInLeft]
 })
 export class SidebarComponent implements OnInit {
     isCollapsed = false;
@@ -82,6 +84,9 @@ export class SidebarComponent implements OnInit {
                 break;
             case 'accounts':
                 sectionId = 'accounts';
+                break;
+            case 'budget':
+                sectionId = 'budget';
                 break;
         }
 

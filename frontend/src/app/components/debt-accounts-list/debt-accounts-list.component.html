@@ -245,6 +245,13 @@
                                     <span class="material-icons text-sm">{{ getSortIcon('credit', 'balance') }}</span>
                                 </span>
                             </th>
+                            <th (click)="sort('credit', 'change')"
+                                class="px-4 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                <span class="inline-flex items-center gap-1">
+                                    Monthly Change
+                                    <span class="material-icons text-sm">{{ getSortIcon('credit', 'change') }}</span>
+                                </span>
+                            </th>
                             <th (click)="sort('credit', 'apr')"
                                 class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                                 <span class="inline-flex items-center gap-1">
@@ -308,7 +315,11 @@
                                 </span>
                             </td>
                             <td class="px-4 py-4 whitespace-nowrap">
-                                <div class="font-bold text-gray-900 dark:text-white text-lg">{{ account.name }}</div>
+                                <div class="font-bold text-gray-900 dark:text-white text-lg flex items-center gap-2">
+                                    {{ account.name }}
+                                    <span *ngIf="isNewAccount(account)"
+                                        class="px-2 py-0.5 text-xs font-bold bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300 rounded-full border border-blue-200 dark:border-blue-500/30">NEW</span>
+                                </div>
                                 <div *ngIf="isPromoExpiringSoon(account)"
                                     class="text-xs text-amber-600 dark:text-yellow-400 flex items-center mt-1">
                                     <span class="material-icons text-xs mr-1">warning</span>
@@ -319,6 +330,32 @@
                                 <div class="text-lg font-black text-gray-900 dark:text-white">${{ account.currentBalance
                                     | number:'1.0-0'
                                     }}</div>
+                            </td>
+                            <td class="px-4 py-4 whitespace-nowrap text-right">
+                                <ng-container *ngIf="isNewAccount(account)">
+                                    <span
+                                        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                                        NEW
+                                    </span>
+                                </ng-container>
+                                <ng-container *ngIf="!isNewAccount(account)">
+                                    <ng-container *ngIf="getMonthlyChange(account) !== null; else noChange">
+                                        <span *ngIf="getMonthlyChange(account)! < 0"
+                                            class="text-emerald-500 font-bold flex items-center justify-end gap-1">
+                                            <span class="material-icons text-sm">arrow_downward</span>
+                                            ${{ Math.abs(getMonthlyChange(account)!) | number:'1.0-0' }}
+                                        </span>
+                                        <span *ngIf="getMonthlyChange(account)! > 0"
+                                            class="text-rose-500 font-bold flex items-center justify-end gap-1">
+                                            <span class="material-icons text-sm">arrow_upward</span>
+                                            ${{ Math.abs(getMonthlyChange(account)!) | number:'1.0-0' }}
+                                        </span>
+                                        <span *ngIf="getMonthlyChange(account) === 0" class="text-gray-400">-</span>
+                                    </ng-container>
+                                    <ng-template #noChange>
+                                        <span class="text-gray-400">-</span>
+                                    </ng-template>
+                                </ng-container>
                             </td>
                             <td class="px-4 py-4 whitespace-nowrap text-center">
                                 <span
@@ -368,6 +405,46 @@
                             </td>
                         </tr>
                     </tbody>
+                    <tfoot class="bg-gray-50 dark:bg-[#0f1729] border-t border-gray-200 dark:border-gray-700">
+                        <tr>
+                            <td colspan="3"
+                                class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
+                                Total:
+                            </td>
+                            <td class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
+                                ${{ getTotalBalance('credit') | number:'1.0-0' }}
+                            </td>
+                            <td class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
+                                <ng-container *ngIf="getTotalMonthlyChange('credit') !== null; else noChangeTotal">
+                                    <span *ngIf="getTotalMonthlyChange('credit')! < 0"
+                                        class="text-emerald-500 font-bold flex items-center justify-end gap-1">
+                                        <span class="material-icons text-sm">arrow_downward</span>
+                                        ${{ Math.abs(getTotalMonthlyChange('credit')!) | number:'1.0-0' }}
+                                    </span>
+                                    <span *ngIf="getTotalMonthlyChange('credit')! > 0"
+                                        class="text-rose-500 font-bold flex items-center justify-end gap-1">
+                                        <span class="material-icons text-sm">arrow_upward</span>
+                                        ${{ Math.abs(getTotalMonthlyChange('credit')!) | number:'1.0-0' }}
+                                    </span>
+                                    <span *ngIf="getTotalMonthlyChange('credit') === 0" class="text-gray-400">-</span>
+                                </ng-container>
+                                <ng-template #noChangeTotal>
+                                    <span class="text-gray-400">-</span>
+                                </ng-template>
+                            </td>
+                            <td colspan="2"
+                                class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
+                                ${{ getTotalInterest('credit') | number:'1.2-2' }}
+                            </td>
+                            <td class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
+                                ${{ getTotalPrincipal('credit') | number:'1.2-2' }}
+                            </td>
+                            <td class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
+                                ${{ getTotalMonthlyPayment('credit') | number:'1.0-0' }}
+                            </td>
+                            <td colspan="4"></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </div>
@@ -425,6 +502,13 @@
                                 <span class="inline-flex items-center gap-1">
                                     Balance
                                     <span class="material-icons text-sm">{{ getSortIcon('personal', 'balance') }}</span>
+                                </span>
+                            </th>
+                            <th (click)="sort('personal', 'change')"
+                                class="px-4 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                <span class="inline-flex items-center gap-1">
+                                    Monthly Change
+                                    <span class="material-icons text-sm">{{ getSortIcon('personal', 'change') }}</span>
                                 </span>
                             </th>
                             <th (click)="sort('personal', 'apr')"
@@ -492,12 +576,35 @@
                                     {{ account.priority }}
                                 </span>
                             </td>
-                            <td class="px-4 py-4 whitespace-nowrap font-bold text-gray-900 dark:text-white text-lg">{{
-                                account.name }}</td>
+                            <td class="px-4 py-4 whitespace-nowrap">
+                                <div class="font-bold text-gray-900 dark:text-white text-lg flex items-center gap-2">
+                                    {{ account.name }}
+                                    <span *ngIf="isNewAccount(account)"
+                                        class="px-2 py-0.5 text-xs font-bold bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-300 rounded-full border border-purple-200 dark:border-purple-500/30">NEW</span>
+                                </div>
+                            </td>
                             <td class="px-4 py-4 whitespace-nowrap text-right">
                                 <div class="text-lg font-black text-gray-900 dark:text-white">${{ account.currentBalance
                                     | number:'1.0-0'
                                     }}</div>
+                            </td>
+                            <td class="px-4 py-4 whitespace-nowrap text-right">
+                                <ng-container *ngIf="getMonthlyChange(account) !== null; else noChange">
+                                    <span *ngIf="getMonthlyChange(account)! < 0"
+                                        class="text-emerald-500 font-bold flex items-center justify-end gap-1">
+                                        <span class="material-icons text-sm">arrow_downward</span>
+                                        ${{ Math.abs(getMonthlyChange(account)!) | number:'1.0-0' }}
+                                    </span>
+                                    <span *ngIf="getMonthlyChange(account)! > 0"
+                                        class="text-rose-500 font-bold flex items-center justify-end gap-1">
+                                        <span class="material-icons text-sm">arrow_upward</span>
+                                        ${{ Math.abs(getMonthlyChange(account)!) | number:'1.0-0' }}
+                                    </span>
+                                    <span *ngIf="getMonthlyChange(account) === 0" class="text-gray-400">-</span>
+                                </ng-container>
+                                <ng-template #noChange>
+                                    <span class="text-gray-400">-</span>
+                                </ng-template>
                             </td>
                             <td class="px-4 py-4 whitespace-nowrap text-center">
                                 <span
@@ -547,6 +654,46 @@
                             </td>
                         </tr>
                     </tbody>
+                    <tfoot class="bg-gray-50 dark:bg-[#0f1729] border-t border-gray-200 dark:border-gray-700">
+                        <tr>
+                            <td colspan="3"
+                                class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
+                                Total:
+                            </td>
+                            <td class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
+                                ${{ getTotalBalance('personal') | number:'1.0-0' }}
+                            </td>
+                            <td class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
+                                <ng-container *ngIf="getTotalMonthlyChange('personal') !== null; else noChangeTotal">
+                                    <span *ngIf="getTotalMonthlyChange('personal')! < 0"
+                                        class="text-emerald-500 font-bold flex items-center justify-end gap-1">
+                                        <span class="material-icons text-sm">arrow_downward</span>
+                                        ${{ Math.abs(getTotalMonthlyChange('personal')!) | number:'1.0-0' }}
+                                    </span>
+                                    <span *ngIf="getTotalMonthlyChange('personal')! > 0"
+                                        class="text-rose-500 font-bold flex items-center justify-end gap-1">
+                                        <span class="material-icons text-sm">arrow_upward</span>
+                                        ${{ Math.abs(getTotalMonthlyChange('personal')!) | number:'1.0-0' }}
+                                    </span>
+                                    <span *ngIf="getTotalMonthlyChange('personal') === 0" class="text-gray-400">-</span>
+                                </ng-container>
+                                <ng-template #noChangeTotal>
+                                    <span class="text-gray-400">-</span>
+                                </ng-template>
+                            </td>
+                            <td colspan="2"
+                                class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
+                                ${{ getTotalInterest('personal') | number:'1.2-2' }}
+                            </td>
+                            <td class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
+                                ${{ getTotalPrincipal('personal') | number:'1.2-2' }}
+                            </td>
+                            <td class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
+                                ${{ getTotalMonthlyPayment('personal') | number:'1.0-0' }}
+                            </td>
+                            <td colspan="4"></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </div>
@@ -601,6 +748,13 @@
                                 <span class="inline-flex items-center gap-1">
                                     Balance
                                     <span class="material-icons text-sm">{{ getSortIcon('auto', 'balance') }}</span>
+                                </span>
+                            </th>
+                            <th (click)="sort('auto', 'change')"
+                                class="px-4 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                <span class="inline-flex items-center gap-1">
+                                    Monthly Change
+                                    <span class="material-icons text-sm">{{ getSortIcon('auto', 'change') }}</span>
                                 </span>
                             </th>
                             <th (click)="sort('auto', 'apr')"
@@ -665,13 +819,44 @@
                                     {{ account.priority }}
                                 </span>
                             </td>
-                            <td class="px-4 py-4 whitespace-nowrap font-bold text-gray-900 dark:text-white text-lg">{{
-                                account.name }}</td>
+                            <td
+                                class="px-4 py-4 whitespace-nowrap font-bold text-gray-900 dark:text-white text-lg flex items-center gap-2">
+                                {{ account.name }}
+                                <span *ngIf="isNewAccount(account)"
+                                    class="px-2 py-0.5 text-xs font-bold bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-300 rounded-full border border-green-200 dark:border-green-500/30">NEW</span>
+                            </td>
                             <td class="px-4 py-4 whitespace-nowrap text-right">
                                 <div class="text-lg font-black text-gray-900 dark:text-white">${{ account.currentBalance
                                     | number:'1.0-0'
                                     }}</div>
                             </td>
+                            <td class="px-4 py-4 whitespace-nowrap text-right">
+                                <ng-container *ngIf="isNewAccount(account)">
+                                    <span
+                                        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                                        NEW
+                                    </span>
+                                </ng-container>
+                                <ng-container *ngIf="!isNewAccount(account)">
+                                    <ng-container *ngIf="getMonthlyChange(account) !== null; else noChange">
+                                        <span *ngIf="getMonthlyChange(account)! < 0"
+                                            class="text-emerald-500 font-bold flex items-center justify-end gap-1">
+                                            <span class="material-icons text-sm">arrow_downward</span>
+                                            ${{ Math.abs(getMonthlyChange(account)!) | number:'1.0-0' }}
+                                        </span>
+                                        <span *ngIf="getMonthlyChange(account)! > 0"
+                                            class="text-rose-500 font-bold flex items-center justify-end gap-1">
+                                            <span class="material-icons text-sm">arrow_upward</span>
+                                            ${{ Math.abs(getMonthlyChange(account)!) | number:'1.0-0' }}
+                                        </span>
+                                        <span *ngIf="getMonthlyChange(account) === 0" class="text-gray-400">-</span>
+                                    </ng-container>
+                                    <ng-template #noChange>
+                                        <span class="text-gray-400">-</span>
+                                    </ng-template>
+                                </ng-container>
+                            </td>
+
                             <td class="px-4 py-4 whitespace-nowrap text-center">
                                 <span
                                     [class]="'px-3 py-1 rounded-full text-xs font-bold ' + getAprBadgeClass(account.apr)">

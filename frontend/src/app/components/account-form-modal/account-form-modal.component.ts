@@ -1,10 +1,12 @@
 import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { scaleIn, fadeIn } from '../../animations';
 import { DebtAccount } from '../../services/debt-account.service';
 
 @Component({
     selector: 'app-account-form-modal',
     templateUrl: './account-form-modal.component.html',
-    styleUrls: ['./account-form-modal.component.css']
+    styleUrls: ['./account-form-modal.component.css'],
+    animations: [scaleIn, fadeIn]
 })
 export class AccountFormModalComponent implements OnInit {
     @Input() isVisible = false;
