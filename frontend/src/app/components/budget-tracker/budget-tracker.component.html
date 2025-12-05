@@ -1,278 +1,613 @@
 <div class="space-y-6 animate-fade-in">
     <!-- Top Bar: Navigation & Month Info -->
-    <div
-        class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+    <!-- Top Bar: Navigation & Month Info -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <!-- Sub Navigation -->
-        <div class="flex space-x-1 bg-gray-100 dark:bg-gray-700/50 p-1 rounded-xl">
+        <div class="flex space-x-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
             <button (click)="setView('dashboard')"
                 [class]="'px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 ' + 
-                (activeView === 'dashboard' ? 'bg-white dark:bg-gray-800 text-primary shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200')">
+                (activeView === 'dashboard' ? 'bg-white dark:bg-gray-700 text-primary shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200')">
                 Dashboard
             </button>
             <button (click)="setView('transactions')"
                 [class]="'px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 ' + 
-                (activeView === 'transactions' ? 'bg-white dark:bg-gray-800 text-primary shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200')">
+                (activeView === 'transactions' ? 'bg-white dark:bg-gray-700 text-primary shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200')">
                 Transactions
             </button>
             <button (click)="setView('analytics')"
                 [class]="'px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 ' + 
-                (activeView === 'analytics' ? 'bg-white dark:bg-gray-800 text-primary shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200')">
+                (activeView === 'analytics' ? 'bg-white dark:bg-gray-700 text-primary shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200')">
                 Analytics
             </button>
         </div>
 
         <!-- Month Info -->
-        <div class="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
-            <span class="material-icons text-lg">calendar_today</span>
-            <span class="font-medium">{{ currentSnapshotDate | date:'MMMM yyyy' }}</span>
+        <div
+            class="flex items-center space-x-4 bg-white dark:bg-gray-800 px-4 py-2 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+            <button class="text-gray-400 hover:text-primary transition-colors"><span
+                    class="material-icons">chevron_left</span></button>
+            <div class="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-200">
+                <span class="material-icons text-lg text-primary">calendar_today</span>
+                <span class="font-bold">Budget for {{ targetDate | date:'MMMM yyyy' }}</span>
+            </div>
+            <button class="text-gray-400 hover:text-primary transition-colors"><span
+                    class="material-icons">chevron_right</span></button>
         </div>
     </div>
 
     <!-- DASHBOARD VIEW -->
-    <div *ngIf="activeView === 'dashboard'" class="space-y-6">
-        <!-- Summary Cards -->
+    <div *ngIf="activeView === 'dashboard'" class="space-y-8">
+
+        <!-- HERO SECTION: Score & Insights -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Budget Scorecard (4 cols) -->
+            <div
+                class="lg:col-span-4 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-10">
+                    <span class="material-icons text-9xl">speed</span>
+                </div>
+
+                <h3 class="text-indigo-100 text-sm font-bold uppercase tracking-wider mb-4">Budget Health Score</h3>
+
+                <div class="flex items-end space-x-2 mb-6">
+                    <span class="text-6xl font-black">{{ budgetScore?.score || 0 }}</span>
+                    <span class="text-xl font-medium opacity-80 mb-2">/ 100</span>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="flex justify-between text-sm">
+                        <span class="opacity-80">Spending Control</span>
+                        <span class="font-bold">{{ budgetScore?.factors?.spendingControl || 0 }}/40</span>
+                    </div>
+                    <div class="w-full bg-white/20 rounded-full h-1.5">
+                        <div class="bg-white h-1.5 rounded-full"
+                            [style.width.%]="((budgetScore?.factors?.spendingControl || 0) / 40) * 100"></div>
+                    </div>
+
+                    <div class="flex justify-between text-sm">
+                        <span class="opacity-80">Category Balance</span>
+                        <span class="font-bold">{{ budgetScore?.factors?.categoryBalance || 0 }}/30</span>
+                    </div>
+                    <div class="w-full bg-white/20 rounded-full h-1.5">
+                        <div class="bg-white h-1.5 rounded-full"
+                            [style.width.%]="((budgetScore?.factors?.categoryBalance || 0) / 30) * 100"></div>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-6 border-t border-white/10 flex justify-between items-center">
+                    <span class="text-sm font-medium bg-white/20 px-3 py-1 rounded-full">{{ budgetScore?.status ||
+                        'Calculating...' }}</span>
+                    <span class="text-xs opacity-60">Updated just now</span>
+                </div>
+            </div>
+
+            <!-- Smart Insights (8 cols) -->
+            <div class="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Prediction Card -->
+                <div
+                    class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center space-x-2 mb-2">
+                            <span class="material-icons text-blue-500">analytics</span>
+                            <h4 class="font-bold text-gray-900 dark:text-white">Month-End Projection</h4>
+                        </div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Based on your daily average of {{
+                            prediction?.dailyAverage | currency }}</p>
+                    </div>
+                    <div class="mt-4">
+                        <span class="text-3xl font-black text-gray-900 dark:text-white">{{ prediction?.predictedTotal |
+                            currency }}</span>
+                        <div class="flex items-center mt-1 space-x-2">
+                            <span
+                                [class]="'text-xs font-bold px-2 py-0.5 rounded ' + (prediction?.status === 'Over Budget' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700')">
+                                {{ prediction?.status }}
+                            </span>
+                            <span class="text-xs text-gray-500" *ngIf="(prediction?.deviation ?? 0) !== 0">
+                                {{ (prediction?.deviation ?? 0) > 0 ? '+' : '' }}{{ prediction?.deviation | currency }}
+                                vs
+                                Budget
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Insights List -->
+                <div
+                    class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-y-auto max-h-60">
+                    <h4 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+                        <span class="material-icons text-purple-500 mr-2">auto_awesome</span>
+                        Smart Insights
+                    </h4>
+                    <div class="space-y-3">
+                        <div *ngFor="let insight of insights" [class]="'p-3 rounded-xl border-l-4 text-sm ' + 
+                            (insight.type === 'warning' ? 'bg-orange-50 border-orange-500 text-orange-900 dark:bg-orange-900/20 dark:text-orange-100' : 
+                             insight.type === 'success' ? 'bg-emerald-50 border-emerald-500 text-emerald-900 dark:bg-emerald-900/20 dark:text-emerald-100' : 
+                             'bg-blue-50 border-blue-500 text-blue-900 dark:bg-blue-900/20 dark:text-blue-100')">
+                            <p class="font-bold">{{ insight.message }}</p>
+                            <p class="opacity-80 text-xs mt-0.5">{{ insight.details }}</p>
+                        </div>
+                        <div *ngIf="insights.length === 0" class="text-center text-gray-400 text-sm py-4">
+                            No alerts for this month. You're doing great!
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Row (Budget vs Spent) -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- Monthly Budget -->
             <div
-                class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 relative overflow-hidden group">
-                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <span class="material-icons text-6xl text-primary">account_balance_wallet</span>
+                class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Monthly Budget</p>
+                    <div class="flex items-baseline space-x-2">
+                        <span class="text-2xl font-black text-gray-900 dark:text-white">{{ monthlyBudget | currency
+                            }}</span>
+                        <button (click)="updateBudget()" class="text-xs text-primary hover:underline">Edit</button>
+                    </div>
+                    <input type="number" [(ngModel)]="monthlyBudget" (change)="updateBudget()"
+                        class="mt-1 w-24 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border-none rounded text-xs focus:ring-1 focus:ring-primary">
                 </div>
-                <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Monthly
-                    Budget</h3>
-                <div class="flex items-baseline space-x-2">
-                    <span class="text-3xl font-black text-gray-900 dark:text-white">{{ monthlyBudget | currency
-                        }}</span>
-                    <button (click)="updateBudget()" class="text-xs text-primary hover:underline">Edit</button>
+                <div class="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-full text-indigo-500">
+                    <span class="material-icons">account_balance_wallet</span>
                 </div>
-                <input type="number" [(ngModel)]="monthlyBudget" (change)="updateBudget()"
-                    class="mt-2 w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border-none rounded-lg text-sm focus:ring-2 focus:ring-primary">
             </div>
 
             <!-- Total Spent -->
             <div
-                class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 relative overflow-hidden group">
-                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <span class="material-icons text-6xl text-rose-500">shopping_cart</span>
+                class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Total Spent</p>
+                    <span class="text-2xl font-black text-gray-900 dark:text-white">{{ totalSpent | currency }}</span>
+                    <p class="text-xs text-gray-500 mt-1">{{ getProgressPercentage() | number:'1.0-0' }}% of budget</p>
                 </div>
-                <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Total Spent
-                </h3>
-                <span class="text-3xl font-black text-rose-500">{{ totalSpent | currency }}</span>
-                <div class="mt-4 w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
-                    <div [class]="'h-full transition-all duration-500 ' + getProgressColor()"
-                        [style.width.%]="getProgressPercentage()"></div>
+                <div class="p-3 bg-rose-50 dark:bg-rose-900/30 rounded-full text-rose-500">
+                    <span class="material-icons">shopping_cart</span>
                 </div>
-                <p class="text-xs text-right mt-1 text-gray-500">{{ getProgressPercentage() | number:'1.0-0' }}% used
-                </p>
             </div>
 
             <!-- Remaining -->
             <div
-                class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 relative overflow-hidden group">
-                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <span class="material-icons text-6xl text-emerald-500">savings</span>
-                </div>
-                <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Remaining
-                </h3>
-                <span
-                    [class]="'text-3xl font-black ' + (monthlyBudget - totalSpent >= 0 ? 'text-emerald-500' : 'text-red-500')">
-                    {{ monthlyBudget - totalSpent | currency }}
-                </span>
-                <p class="text-sm text-gray-500 mt-2" *ngIf="monthlyBudget - totalSpent >= 0">Safe to spend</p>
-                <p class="text-sm text-red-400 mt-2" *ngIf="monthlyBudget - totalSpent < 0">Over budget!</p>
-            </div>
-        </div>
-
-        <!-- Insights Section -->
-        <div *ngIf="insights.length > 0"
-            class="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800/50">
-            <h3 class="flex items-center text-lg font-bold text-indigo-900 dark:text-indigo-100 mb-4">
-                <span class="material-icons mr-2 text-indigo-500">auto_awesome</span>
-                AI Insights
-            </h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div *ngFor="let insight of insights"
-                    [class]="'p-4 rounded-xl border flex items-start space-x-3 ' + 
-                    (insight.type === 'warning' ? 'bg-orange-50 border-orange-100 text-orange-800 dark:bg-orange-900/20 dark:border-orange-800 dark:text-orange-200' : 
-                     insight.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-800 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-200' : 
-                     'bg-blue-50 border-blue-100 text-blue-800 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-200')">
-                    <span class="material-icons text-xl mt-0.5">
-                        {{ insight.type === 'warning' ? 'warning' : insight.type === 'success' ? 'trending_down' :
-                        'info' }}
+                class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Remaining</p>
+                    <span
+                        [class]="'text-2xl font-black ' + (monthlyBudget - totalSpent >= 0 ? 'text-emerald-500' : 'text-red-500')">
+                        {{ monthlyBudget - totalSpent | currency }}
                     </span>
-                    <div>
-                        <p class="font-bold">{{ insight.message }}</p>
-                        <p class="text-sm opacity-80">{{ insight.details }}</p>
-                    </div>
+                    <p class="text-xs text-gray-500 mt-1" *ngIf="monthlyBudget - totalSpent >= 0">Safe to spend</p>
+                    <p class="text-xs text-red-400 mt-1" *ngIf="monthlyBudget - totalSpent < 0">Over budget!</p>
+                </div>
+                <div class="p-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-full text-emerald-500">
+                    <span class="material-icons">savings</span>
                 </div>
             </div>
         </div>
 
-        <!-- Charts Row -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Spending by Category -->
+        <!-- Recurring Expenses & EMI Summary -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Recurring Monthly Expenses -->
             <div
-                class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-6">Spending by Category</h3>
-                <div class="h-64 flex items-center justify-center">
-                    <canvas baseChart [data]="donutChartData" [options]="donutChartOptions" [type]="'doughnut'">
-                    </canvas>
-                </div>
-            </div>
-
-            <!-- Monthly Trend -->
-            <div
-                class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Spending Trend</h3>
-                    <div class="flex space-x-1 bg-gray-100 dark:bg-gray-700/50 p-1 rounded-lg">
-                        <button *ngFor="let range of timeRanges" (click)="setTimeRange(range)"
-                            [class]="'px-2 py-1 text-xs font-bold rounded-md transition-all ' + 
-                            (selectedTimeRange === range ? 'bg-white dark:bg-gray-600 text-primary shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200')">
-                            {{ range }}
-                        </button>
-                    </div>
-                </div>
-                <div class="h-64">
-                    <canvas baseChart [data]="trendChartData" [options]="trendChartOptions" [type]="'line'">
-                    </canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- TRANSACTIONS VIEW -->
-    <div *ngIf="activeView === 'transactions'" class="space-y-6">
-        <!-- Add Expense Form -->
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-            <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">Add New Expense</h3>
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                <div class="md:col-span-4">
-                    <label
-                        class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Description</label>
-                    <input type="text" [(ngModel)]="newExpense.description"
-                        (ngModelChange)="onDescriptionChange($event)" placeholder="e.g. Starbucks, Uber, Rent"
-                        class="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 rounded-xl focus:ring-primary focus:border-primary">
-                </div>
-                <div class="md:col-span-2">
-                    <label
-                        class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Amount</label>
-                    <input type="number" [(ngModel)]="newExpense.amount"
-                        class="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 rounded-xl focus:ring-primary focus:border-primary">
-                </div>
-                <div class="md:col-span-3">
-                    <label
-                        class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Category</label>
-                    <select [(ngModel)]="newExpense.category"
-                        class="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 rounded-xl focus:ring-primary focus:border-primary">
-                        <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
-                    </select>
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Date</label>
-                    <input type="date" [(ngModel)]="newExpense.date"
-                        class="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 rounded-xl focus:ring-primary focus:border-primary">
-                </div>
-                <div class="md:col-span-1">
-                    <button (click)="addExpense()"
-                        class="w-full h-[42px] bg-primary hover:bg-primary-dark text-white rounded-xl flex items-center justify-center shadow-lg shadow-primary/30 transition-all hover:scale-105">
-                        <span class="material-icons">add</span>
+                class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-gray-900 dark:text-white flex items-center">
+                        <span class="material-icons text-blue-500 mr-2">repeat</span>
+                        Recurring Monthly Expenses
+                    </h3>
+                    <button (click)="showSubscriptionForm = !showSubscriptionForm"
+                        class="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center">
+                        <span class="material-icons text-sm mr-1">{{ showSubscriptionForm ? 'close' : 'add' }}</span>
+                        {{ showSubscriptionForm ? 'Cancel' : 'Add Subscription' }}
                     </button>
                 </div>
+
+                <!-- Add Subscription Form -->
+                <div *ngIf="showSubscriptionForm" class="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                    <div class="grid grid-cols-2 gap-3">
+                        <input type="text" [(ngModel)]="newSubscription.name" placeholder="Subscription name"
+                            class="px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg text-sm">
+                        <input type="number" [(ngModel)]="newSubscription.amount" placeholder="Amount"
+                            class="px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg text-sm">
+                    </div>
+                    <button
+                        (click)="addSubscription(newSubscription.name, newSubscription.amount); newSubscription = {name: '', amount: 0}; showSubscriptionForm = false"
+                        class="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                        Add Subscription
+                    </button>
+                </div>
+
+                <div class="space-y-3">
+                    <!-- Fixed Recurring -->
+                    <div *ngIf="!isFixedRecurringRemoved('Room Rent')"
+                        class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl">
+                        <div class="flex-1">
+                            <p class="font-medium text-gray-900 dark:text-white">Room Rent</p>
+                            <p class="text-xs text-gray-500">1st of every month</p>
+                        </div>
+                        <span class="font-bold text-gray-900 dark:text-white mr-3">$1,168</span>
+                        <button (click)="removeFixedRecurring('Room Rent'); loadExpenses()"
+                            class="text-red-500 hover:text-red-700 p-1">
+                            <span class="material-icons text-sm">delete</span>
+                        </button>
+                    </div>
+                    <div *ngIf="!isFixedRecurringRemoved('Roth IRA Investment')"
+                        class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl">
+                        <div class="flex-1">
+                            <p class="font-medium text-gray-900 dark:text-white">Roth IRA Investment</p>
+                            <p class="text-xs text-gray-500">1st of every month</p>
+                        </div>
+                        <span class="font-bold text-gray-900 dark:text-white mr-3">$583</span>
+                        <button (click)="removeFixedRecurring('Roth IRA Investment'); loadExpenses()"
+                            class="text-red-500 hover:text-red-700 p-1">
+                            <span class="material-icons text-sm">delete</span>
+                        </button>
+                    </div>
+
+                    <!-- Dynamic Subscriptions -->
+                    <div *ngFor="let sub of getSubscriptions()"
+                        class="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+                        <div class="flex-1">
+                            <p class="font-medium text-gray-900 dark:text-white">{{ sub.name }}</p>
+                            <p class="text-xs text-gray-500">Subscription • 1st of month</p>
+                        </div>
+                        <span class="font-bold text-gray-900 dark:text-white mr-3">${{ sub.amount }}</span>
+                        <button (click)="removeSubscription(sub.name); loadExpenses()"
+                            class="text-red-500 hover:text-red-700 p-1">
+                            <span class="material-icons text-sm">delete</span>
+                        </button>
+                    </div>
+
+                    <div class="pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Total Recurring</span>
+                            <span class="text-lg font-bold text-blue-600">{{ getTotalRecurring() | currency }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EMI Summary -->
+            <div
+                class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-bold text-gray-900 dark:text-white flex items-center">
+                        <span class="material-icons text-orange-500 mr-2">account_balance</span>
+                        Monthly EMI Payments
+                    </h3>
+                    <button (click)="showEMIForm = !showEMIForm"
+                        class="px-3 py-1.5 text-sm bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 hover:bg-orange-200 dark:hover:bg-orange-900/50 rounded-lg flex items-center gap-1 transition-colors">
+                        <span class="material-icons text-base">{{ showEMIForm ? 'close' : 'add' }}</span>
+                        <span>{{ showEMIForm ? 'Cancel' : 'Add EMI' }}</span>
+                    </button>
+                </div>
+
+                <!-- Add EMI Form -->
+                <div *ngIf="showEMIForm" class="mb-4 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-xl">
+                    <div class="space-y-3">
+                        <input type="text" [(ngModel)]="newEMI.description"
+                            placeholder="EMI Description (e.g., Car Loan)"
+                            class="w-full px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg text-sm">
+                        <input type="number" [(ngModel)]="newEMI.amount" placeholder="Monthly Amount"
+                            class="w-full px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg text-sm">
+                        <select [(ngModel)]="newEMI.category"
+                            class="w-full px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-lg text-sm">
+                            <option value="Car EMI">Car EMI</option>
+                            <option value="Loan EMI">Loan EMI</option>
+                        </select>
+                    </div>
+                    <button (click)="addEMI()"
+                        class="mt-3 w-full bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                        Add EMI Payment
+                    </button>
+                </div>
+
+                <div class="space-y-3">
+                    <!-- Dynamic EMI Payments -->
+                    <div *ngFor="let emi of getEMIPayments()"
+                        class="flex justify-between items-center p-3 bg-orange-50 dark:bg-orange-900/20 rounded-xl border border-orange-200 dark:border-orange-800">
+                        <div class="flex-1">
+                            <p class="font-medium text-gray-900 dark:text-white">{{ emi.description }}</p>
+                            <p class="text-xs text-gray-500">{{ emi.category }} • Monthly</p>
+                        </div>
+                        <span class="font-bold text-gray-900 dark:text-white mr-3">${{ emi.amount }}</span>
+                        <button (click)="removeEMIPayment(emi.description); loadExpenses()"
+                            class="text-red-500 hover:text-red-700 p-1">
+                            <span class="material-icons text-sm">delete</span>
+                        </button>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div *ngIf="getEMIPayments().length === 0" class="text-center py-8 text-gray-400">
+                        <span class="material-icons text-4xl mb-2 opacity-50">account_balance</span>
+                        <p class="text-sm">No EMI payments added yet</p>
+                        <p class="text-xs">Click "Add EMI" to get started</p>
+                    </div>
+
+                    <div class="pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Total EMI</span>
+                            <span class="text-lg font-bold text-orange-600">{{ getTotalEMIFromList() | currency
+                                }}</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Saved EMI payments</p>
+                    </div>
+                </div>
             </div>
         </div>
+    </div>
+</div>
 
-        <!-- Recent Expenses List -->
-        <div
-            class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-            <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
-                <h3 class="text-lg font-bold text-gray-900 dark:text-white">Recent Transactions</h3>
-                <span class="text-sm text-gray-500">{{ expenses.length }} transactions</span>
+<!-- CHARTS ROW 1: Trend & Allocation -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Main Chart: Daily Spend Trend (2 cols) -->
+    <div
+        class="lg:col-span-2 bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h3 class="font-bold text-gray-900 dark:text-white">Spending Trend</h3>
+                <p class="text-xs text-gray-500">Daily cumulative spending vs Budget pace</p>
             </div>
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gray-50 dark:bg-gray-900/50">
-                        <tr>
-                            <th
-                                class="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                Date</th>
-                            <th
-                                class="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                Description</th>
-                            <th
-                                class="px-6 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                Category</th>
-                            <th
-                                class="px-6 py-4 text-right text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                Amount</th>
-                            <th
-                                class="px-6 py-4 text-center text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                        <tr *ngFor="let expense of expenses"
-                            class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                            <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                                {{ expense.date | date:'MMM d, y' }}
-                            </td>
-                            <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
-                                {{ expense.description }}
-                            </td>
-                            <td class="px-6 py-4">
-                                <span
-                                    class="px-3 py-1 rounded-full text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
-                                    {{ expense.category }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 text-sm font-bold text-gray-900 dark:text-white text-right">
-                                {{ expense.amount | currency }}
-                            </td>
-                            <td class="px-6 py-4 text-center">
-                                <button (click)="deleteExpense(expense.id)"
-                                    class="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20">
-                                    <span class="material-icons text-lg">delete</span>
-                                </button>
-                            </td>
-                        </tr>
-                        <tr *ngIf="expenses.length === 0">
-                            <td colspan="5" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                                <span class="material-icons text-4xl mb-2 opacity-50">receipt_long</span>
-                                <p>No expenses found for this month.</p>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="flex space-x-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+                <button *ngFor="let range of timeRanges" (click)="setTimeRange(range)"
+                    [class]="'px-3 py-1 text-xs font-bold rounded-md transition-all ' + 
+                            (selectedTimeRange === range ? 'bg-white dark:bg-gray-600 text-primary shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700')">
+                    {{ range }}
+                </button>
+            </div>
+        </div>
+        <div class="h-80 w-full">
+            <canvas baseChart [data]="trendChartData" [options]="trendChartOptions" [type]="'line'"></canvas>
+        </div>
+    </div>
+
+    <!-- Side Chart: Category Allocation (1 col) -->
+    <div
+        class="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
+        <h3 class="font-bold text-gray-900 dark:text-white mb-2">Where your money goes</h3>
+        <div class="flex-grow flex items-center justify-center relative">
+            <canvas baseChart [data]="donutChartData" [options]="donutChartOptions" [type]="'doughnut'"></canvas>
+            <!-- Center Text -->
+            <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span class="text-xs text-gray-400 font-bold uppercase">Total</span>
+                <span class="text-xl font-black text-gray-900 dark:text-white">{{ totalSpent |
+                    currency:'USD':'symbol':'1.0-0' }}</span>
+            </div>
+        </div>
+        <!-- Top 3 Categories Legend -->
+        <div class="mt-4 space-y-2">
+            <div *ngFor="let cat of categoryBreakdown | slice:0:3" class="flex items-center justify-between text-sm">
+                <div class="flex items-center space-x-2">
+                    <div class="w-3 h-3 rounded-full" [style.backgroundColor]="cat.color"></div>
+                    <span class="text-gray-600 dark:text-gray-300">{{ cat.category }}</span>
+                </div>
+                <span class="font-bold">{{ cat.percentage | number:'1.0-0' }}%</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CHARTS ROW 2: Cash Flow & Comparison -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Cash Flow -->
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="font-bold text-gray-900 dark:text-white">Cash Flow</h3>
+            <div class="flex space-x-1 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+                <button *ngFor="let range of ['1M', '3M', '6M', 'YTD', '1Y']" (click)="setCashFlowRange(range)"
+                    [class]="'px-3 py-1 text-xs font-bold rounded-md transition-all ' + 
+                            (selectedCashFlowRange === range ? 'bg-white dark:bg-gray-600 text-primary shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700')">
+                    {{ range }}
+                </button>
+            </div>
+        </div>
+        <div class="h-64">
+            <canvas baseChart [data]="cashFlowChartData" [options]="cashFlowChartOptions" [type]="'bar'"></canvas>
+        </div>
+    </div>
+
+    <!-- Left to Spend (Pie) -->
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
+        <h3 class="font-bold text-gray-900 dark:text-white mb-6">Budget Utilization</h3>
+        <div class="h-64 flex items-center justify-center">
+            <canvas baseChart [data]="leftToSpendChartData" [options]="leftToSpendChartOptions" [type]="'pie'"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- TRANSACTIONS VIEW -->
+<div *ngIf="activeView === 'transactions'" class="space-y-6">
+    <!-- Add Expense Form -->
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+                {{ isEditing ? 'Edit Expense' : 'Add New Expense' }}
+            </h3>
+            <button *ngIf="isEditing" (click)="cancelEdit()"
+                class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                Cancel
+            </button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+            <div class="md:col-span-4">
+                <label
+                    class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Description</label>
+                <input type="text" [(ngModel)]="newExpense.description" (ngModelChange)="onDescriptionChange($event)"
+                    placeholder="e.g. Starbucks, Uber, Rent"
+                    class="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 rounded-xl focus:ring-primary focus:border-primary">
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Amount</label>
+                <input type="number" [(ngModel)]="newExpense.amount" placeholder="0.00"
+                    class="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 rounded-xl focus:ring-primary focus:border-primary">
+            </div>
+            <div class="md:col-span-3">
+                <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Category</label>
+                <select [(ngModel)]="newExpense.category"
+                    class="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 rounded-xl focus:ring-primary focus:border-primary">
+                    <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
+                </select>
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Date</label>
+                <input type="date" [(ngModel)]="newExpense.date"
+                    class="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 rounded-xl focus:ring-primary focus:border-primary">
+            </div>
+            <div class="md:col-span-1 flex space-x-2">
+                <button (click)="addExpense()"
+                    class="flex-1 h-[42px] bg-primary hover:bg-primary-dark text-white rounded-xl flex items-center justify-center shadow-lg shadow-primary/30 transition-all hover:scale-105">
+                    <span class="material-icons">{{ isEditing ? 'save' : 'add' }}</span>
+                </button>
+                <button (click)="toggleFilters()"
+                    [class]="'flex-1 h-[42px] rounded-xl flex items-center justify-center transition-all ' + 
+                        (showFilters ? 'bg-primary text-white shadow-lg shadow-primary/30' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600')">
+                    <span class="material-icons">filter_list</span>
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- ANALYTICS VIEW -->
-    <div *ngIf="activeView === 'analytics'" class="space-y-6">
-        <!-- Detailed Breakdown Table -->
-        <div
-            class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-            <div class="p-6 border-b border-gray-100 dark:border-gray-700">
-                <h3 class="text-lg font-bold text-gray-900 dark:text-white">Category Breakdown</h3>
+    <!-- Filters & Search (Conditionally Visible) -->
+    <div *ngIf="showFilters"
+        class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
+        <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Filters
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <!-- Search -->
+            <div>
+                <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="applyFilters()"
+                    placeholder="Search transactions..."
+                    class="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-primary focus:border-primary">
             </div>
-            <div class="p-6">
-                <div class="space-y-4">
-                    <div *ngFor="let item of categoryBreakdown" class="flex items-center justify-between">
-                        <div class="flex items-center space-x-3 flex-1">
-                            <div class="w-3 h-3 rounded-full" [style.backgroundColor]="item.color"></div>
-                            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ item.category
-                                }}</span>
-                        </div>
-                        <div class="flex items-center space-x-6">
-                            <div class="w-32 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                                <div class="h-full rounded-full" [style.backgroundColor]="item.color"
-                                    [style.width.%]="item.percentage"></div>
+            <!-- Category -->
+            <div>
+                <select [(ngModel)]="filterCategory" (ngModelChange)="applyFilters()"
+                    class="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-primary focus:border-primary">
+                    <option value="All">All Categories</option>
+                    <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
+                </select>
+            </div>
+            <!-- Min Amount -->
+            <div>
+                <input type="number" [(ngModel)]="filterMinAmount" (ngModelChange)="applyFilters()"
+                    placeholder="Min Amount"
+                    class="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-primary focus:border-primary">
+            </div>
+            <!-- Max Amount -->
+            <div>
+                <input type="number" [(ngModel)]="filterMaxAmount" (ngModelChange)="applyFilters()"
+                    placeholder="Max Amount"
+                    class="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-primary focus:border-primary">
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Expenses List -->
+    <div
+        class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Recent Transactions</h3>
+            <span class="text-sm text-gray-500">{{ filteredExpenses.length }} transactions</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50 dark:bg-gray-900/50">
+                    <tr>
+                        <th
+                            class="px-3 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                            Date</th>
+                        <th
+                            class="px-3 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Description</th>
+                        <th
+                            class="px-3 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                            Category</th>
+                        <th
+                            class="px-3 py-4 text-right text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                            Amount</th>
+                        <th
+                            class="px-3 py-4 text-right text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                            Running Total</th>
+                        <th
+                            class="px-3 py-4 text-center text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                            Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                    <tr *ngFor="let expense of filteredExpenses"
+                        class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                        <td class="px-3 py-3 text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                            {{ expense.date | date:'MMM d, y' }}
+                        </td>
+                        <td class="px-3 py-3 text-sm font-medium text-gray-900 dark:text-white">
+                            {{ expense.description }}
+                        </td>
+                        <td class="px-3 py-3 whitespace-nowrap">
+                            <span class="px-2 py-0.5 rounded-full text-xs font-bold text-white shadow-sm inline-block"
+                                [style.backgroundColor]="expense.categoryColor">
+                                {{ expense.category }}
+                            </span>
+                        </td>
+                        <td
+                            class="px-3 py-3 text-sm font-bold text-gray-900 dark:text-white text-right whitespace-nowrap">
+                            {{ expense.amount | currency }}
+                        </td>
+                        <td class="px-3 py-3 text-sm text-gray-500 dark:text-gray-400 text-right whitespace-nowrap">
+                            {{ expense.runningTotal | currency }}
+                        </td>
+                        <td class="px-3 py-3 text-center whitespace-nowrap">
+                            <div class="flex items-center justify-center space-x-1">
+                                <button (click)="editExpense(expense)"
+                                    class="text-gray-400 hover:text-blue-500 transition-colors p-1 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                    title="Edit">
+                                    <span class="material-icons text-lg">edit</span>
+                                </button>
+                                <button (click)="deleteExpense(expense.id)"
+                                    class="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+                                    title="Delete">
+                                    <span class="material-icons text-lg">delete</span>
+                                </button>
                             </div>
-                            <span class="text-sm font-bold text-gray-900 dark:text-white w-20 text-right">{{ item.amount
-                                | currency }}</span>
-                            <span class="text-xs text-gray-500 w-12 text-right">{{ item.percentage | number:'1.1-1'
-                                }}%</span>
+                        </td>
+                    </tr>
+                    <tr *ngIf="filteredExpenses.length === 0">
+                        <td colspan="6" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                            <span class="material-icons text-4xl mb-2 opacity-50">search_off</span>
+                            <p>No transactions match your filters.</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ANALYTICS VIEW -->
+<div *ngIf="activeView === 'analytics'" class="space-y-6">
+    <!-- Detailed Breakdown Table -->
+    <div
+        class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div class="p-6 border-b border-gray-100 dark:border-gray-700">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Category Breakdown</h3>
+        </div>
+        <div class="p-6">
+            <div class="space-y-4">
+                <div *ngFor="let item of categoryBreakdown" class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3 flex-1">
+                        <div class="w-3 h-3 rounded-full" [style.backgroundColor]="item.color"></div>
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ item.category
+                            }}</span>
+                    </div>
+                    <div class="flex items-center space-x-6">
+                        <div class="w-32 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div class="h-full rounded-full" [style.backgroundColor]="item.color"
+                                [style.width.%]="item.percentage"></div>
                         </div>
+                        <span class="text-sm font-bold text-gray-900 dark:text-white w-20 text-right">{{
+                            item.amount
+                            | currency }}</span>
+                        <span class="text-xs text-gray-500 w-12 text-right">{{ item.percentage | number:'1.1-1'
+                            }}%</span>
                     </div>
                 </div>
             </div>

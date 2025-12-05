@@ -21,23 +21,49 @@ export interface Insight {
     details?: string;
 }
 
+export interface BudgetScore {
+    score: number;
+    status: 'Excellent' | 'Good' | 'Fair' | 'Critical';
+    factors: {
+        spendingControl: number; // 0-40
+        categoryBalance: number; // 0-30
+        timing: number; // 0-30
+    };
+}
+
+export interface Prediction {
+    predictedTotal: number;
+    dailyAverage: number;
+    daysRemaining: number;
+    status: 'On Track' | 'At Risk' | 'Over Budget';
+    deviation: number; // Amount over/under budget
+}
+
 @Injectable({
     providedIn: 'root'
 })
 export class BudgetAnalyticsService {
 
     private categoryColors: { [key: string]: string } = {
-        'Room rent': '#a855f7', // purple-500
-        'Grocery': '#eab308', // yellow-500
-        'Phone bill': '#06b6d4', // cyan-500
-        'Insurance': '#6366f1', // indigo-500
-        'Car EMI': '#ec4899', // pink-500
-        'Food': '#3b82f6', // blue-500
-        'Transport': '#22c55e', // green-500
-        'Utilities': '#10b981', // emerald-500
-        'Entertainment': '#ef4444', // red-500
-        'Shopping': '#f97316', // orange-500
-        'Health': '#14b8a6', // teal-500
+        'Room Rent': '#a855f7', // purple-500
+        'Costco': '#f97316', // orange-500
+        'Indian Grocery Stores': '#eab308', // yellow-500
+        'Eating Out': '#ef4444', // red-500
+        'Walmart/Schnuks': '#3b82f6', // blue-500
+        'Hair Cutting': '#ec4899', // pink-500
+        'Baby Supplies': '#14b8a6', // teal-500
+        'Car Insurance': '#6366f1', // indigo-500
+        'Mobile Payment': '#06b6d4', // cyan-500
+        'Car EMI': '#8b5cf6', // violet-500
+        'Loan EMI': '#d946ef', // fuchsia-500
+        'Gas': '#f59e0b', // amber-500
+        'Shopping/Clothes/Online Shopping': '#f97316', // orange-500
+        'Investments': '#22c55e', // green-500
+        'Hospital Bill': '#ef4444', // red-500
+        'Car Wash': '#0ea5e9', // sky-500
+        'Subscriptions': '#db2777', // pink-600
+        'Credit Card Payment': '#f43f5e', // rose-500
+        'India Loan Repayment': '#10b981', // emerald-500
         'Other': '#6b7280' // gray-500
     };
 
@@ -88,7 +114,10 @@ export class BudgetAnalyticsService {
             case 'All':
                 // Find the earliest expense date
                 if (allExpenses.length > 0) {
-                    const dates = allExpenses.map(e => new Date(e.date).getTime());
+                    const dates = allExpenses.map(e => {
+                        const [y, m, d] = e.date.split('-').map(Number);
+                        return new Date(y, m - 1, d).getTime();
+                    });
                     const minDate = new Date(Math.min(...dates));
                     const diffMonths = (today.getFullYear() - minDate.getFullYear()) * 12 + (today.getMonth() - minDate.getMonth());
                     monthsToCheck = diffMonths + 1;
@@ -131,7 +160,8 @@ export class BudgetAnalyticsService {
                 const monthIndex = date.getMonth();
 
                 const monthlyExpenses = allExpenses.filter(e => {
-                    const eDate = new Date(e.date);
+                    const [y, m, d] = e.date.split('-').map(Number);
+                    const eDate = new Date(y, m - 1, d);
                     return eDate.getMonth() === monthIndex && eDate.getFullYear() === year;
                 });
 
@@ -155,57 +185,128 @@ export class BudgetAnalyticsService {
         return stats;
     }
 
-    generateInsights(currentMonthExpenses: Expense[], previousMonthExpenses: Expense[]): Insight[] {
+    calculateBudgetScore(totalSpent: number, budget: number, expenses: Expense[]): BudgetScore {
+        let score = 100;
+        const spendingRatio = totalSpent / budget;
+
+        // 1. Spending Control (40 points)
+        let spendingControl = 40;
+        if (spendingRatio > 1.0) spendingControl = 0;
+        else if (spendingRatio > 0.9) spendingControl = 10;
+        else if (spendingRatio > 0.75) spendingControl = 25;
+
+        // 2. Category Balance (30 points)
+        // Penalize if one category takes up > 50% of budget (excluding Rent/EMI)
+        let categoryBalance = 30;
+        const breakdown = this.calculateCategoryBreakdown(expenses, totalSpent);
+        const dominantCategory = breakdown.find(c => c.percentage > 50 && !['Room Rent', 'Car EMI', 'Loan EMI'].includes(c.category));
+        if (dominantCategory) categoryBalance = 10;
+
+        // 3. Timing (30 points) - Simple heuristic: penalties for very late large expenses? 
+        // For now, let's base it on transaction count vs total. High frequency small txns vs low frequency big ones.
+        // Actually, let's use "Uncategorized" or "Other" as a penalty for data quality.
+        let timing = 30;
+        const otherSpend = breakdown.find(c => c.category === 'Other')?.amount || 0;
+        if (otherSpend > (totalSpent * 0.1)) timing = 15; // Penalty if "Other" is > 10%
+
+        score = spendingControl + categoryBalance + timing;
+
+        let status: 'Excellent' | 'Good' | 'Fair' | 'Critical' = 'Good';
+        if (score >= 90) status = 'Excellent';
+        else if (score >= 75) status = 'Good';
+        else if (score >= 50) status = 'Fair';
+        else status = 'Critical';
+
+        return {
+            score,
+            status,
+            factors: { spendingControl, categoryBalance, timing }
+        };
+    }
+
+    predictMonthEnd(totalSpent: number, budget: number, currentDate: Date): Prediction {
+        const today = new Date();
+        const isCurrentMonth = today.getMonth() === currentDate.getMonth() && today.getFullYear() === currentDate.getFullYear();
+
+        // If viewing a past month, prediction is just the actual
+        if (currentDate < new Date(today.getFullYear(), today.getMonth(), 1)) {
+            return {
+                predictedTotal: totalSpent,
+                dailyAverage: totalSpent / 30, // Approx
+                daysRemaining: 0,
+                status: totalSpent > budget ? 'Over Budget' : 'On Track',
+                deviation: totalSpent - budget
+            };
+        }
+
+        const dayOfMonth = today.getDate();
+        const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+        const daysRemaining = daysInMonth - dayOfMonth;
+
+        // Simple linear projection
+        const dailyAverage = totalSpent / dayOfMonth;
+        const predictedTotal = isCurrentMonth ? totalSpent + (dailyAverage * daysRemaining) : totalSpent; // Only project if current month
+
+        let status: 'On Track' | 'At Risk' | 'Over Budget' = 'On Track';
+        if (predictedTotal > budget) status = 'Over Budget';
+        else if (predictedTotal > budget * 0.9) status = 'At Risk';
+
+        return {
+            predictedTotal,
+            dailyAverage,
+            daysRemaining: isCurrentMonth ? daysRemaining : 0,
+            status,
+            deviation: predictedTotal - budget
+        };
+    }
+
+    generateInsights(currentMonthExpenses: Expense[], previousMonthExpenses: Expense[], budget: number): Insight[] {
         const insights: Insight[] = [];
         const currentTotal = currentMonthExpenses.reduce((sum, e) => sum + e.amount, 0);
         const previousTotal = previousMonthExpenses.reduce((sum, e) => sum + e.amount, 0);
 
-        // 1. Overspending Alert
-        if (currentTotal > previousTotal && previousTotal > 0) {
-            const increase = ((currentTotal - previousTotal) / previousTotal) * 100;
-            if (increase > 10) {
-                insights.push({
-                    type: 'warning',
-                    message: `Spending increased by ${increase.toFixed(1)}%`,
-                    details: `You spent $${(currentTotal - previousTotal).toFixed(2)} more than last month.`
-                });
-            }
-        } else if (currentTotal < previousTotal && previousTotal > 0) {
-            const decrease = ((previousTotal - currentTotal) / previousTotal) * 100;
-            if (decrease > 10) {
-                insights.push({
-                    type: 'success',
-                    message: `Great job! Spending down ${decrease.toFixed(1)}%`,
-                    details: `You saved $${(previousTotal - currentTotal).toFixed(2)} compared to last month.`
-                });
-            }
+        // 1. Overspending Alert (Critical)
+        if (currentTotal > budget) {
+            const over = currentTotal - budget;
+            insights.push({
+                type: 'warning',
+                message: `Over Budget by $${over.toFixed(0)}`,
+                details: `You have exceeded your monthly limit of $${budget}.`
+            });
         }
 
-        // 2. Category Spikes
+        // 2. Month-over-Month Spike
+        if (currentTotal > previousTotal * 1.2 && previousTotal > 0) {
+            const diff = currentTotal - previousTotal;
+            insights.push({
+                type: 'warning',
+                message: `Spending Spike Detected`,
+                details: `Spending is $${diff.toFixed(0)} higher than last month.`
+            });
+        }
+
+        // 3. Category Insights
         const currentBreakdown = this.calculateCategoryBreakdown(currentMonthExpenses, currentTotal);
         const previousBreakdown = this.calculateCategoryBreakdown(previousMonthExpenses, previousTotal);
 
         currentBreakdown.forEach(cat => {
             const prevCat = previousBreakdown.find(p => p.category === cat.category);
-            if (prevCat) {
-                const diff = cat.amount - prevCat.amount;
-                if (diff > 100) { // Threshold: $100 increase
-                    insights.push({
-                        type: 'warning',
-                        message: `${cat.category} spending spiked`,
-                        details: `You spent $${diff.toFixed(0)} more on ${cat.category} this month.`
-                    });
-                }
+            if (prevCat && cat.amount > prevCat.amount * 1.5 && cat.amount > 100) {
+                insights.push({
+                    type: 'info',
+                    message: `Unusual ${cat.category} Activity`,
+                    details: `You spent 50% more on ${cat.category} than usual.`
+                });
             }
         });
 
-        // 3. Eating Out Check (Food Category)
-        const foodSpend = currentBreakdown.find(c => c.category === 'Food')?.amount || 0;
-        if (foodSpend > 500) {
+        // 4. Prediction Insight
+        const prediction = this.predictMonthEnd(currentTotal, budget, new Date()); // Assuming current context
+        if (prediction.status === 'Over Budget' && currentTotal < budget) {
             insights.push({
                 type: 'info',
-                message: 'Consider cooking more at home',
-                details: `Food & Dining expenses are high ($${foodSpend.toFixed(0)}) this month.`
+                message: 'Projected to Overspend',
+                details: `At this pace, you will exceed budget by $${prediction.deviation.toFixed(0)}.`
             });
         }
 

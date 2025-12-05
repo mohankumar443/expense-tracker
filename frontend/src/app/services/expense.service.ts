@@ -22,4 +22,8 @@ export class ExpenseService {
     deleteExpense(id: number): Observable<void> {
         return this.http.delete<void>(`${this.apiUrl}/${id}`);
     }
+
+    updateExpense(id: number, expense: Expense): Observable<Expense> {
+        return this.http.put<Expense>(`${this.apiUrl}/${id}`, expense);
+    }
 }
