@@ -366,11 +366,14 @@
                 <div class="flex-grow flex items-center justify-center relative">
                     <canvas baseChart [data]="donutChartData" [options]="donutChartOptions"
                         [type]="'doughnut'"></canvas>
-                    <!-- Center Text -->
-                    <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                        <span class="text-xs text-gray-400 font-bold uppercase">Total</span>
-                        <span class="text-xl font-black text-gray-900 dark:text-white">{{ totalSpent |
-                            currency:'USD':'symbol':'1.0-0' }}</span>
+                    <!-- Center Text with Background -->
+                    <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
+                        <div class="bg-white dark:bg-gray-800 rounded-full px-6 py-3 shadow-sm">
+                            <span class="text-xs text-gray-400 font-bold uppercase block text-center">Total</span>
+                            <span class="text-2xl font-black text-gray-900 dark:text-white block text-center">{{
+                                totalSpent |
+                                currency:'USD':'symbol':'1.0-0' }}</span>
+                        </div>
                     </div>
                 </div>
                 <!-- Top 3 Categories Legend -->
