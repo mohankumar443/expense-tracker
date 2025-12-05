@@ -151,17 +151,14 @@ export class BudgetTrackerComponent implements OnInit {
             this.filterExpensesAndBudget();
         });
         this.loadExpenses();
-        this.initializeRecurringExpenses();
     }
 
-    initializeRecurringExpenses() {
-        // Check if we've already initialized for this month
-        const currentMonth = new Date().getMonth();
-        const currentYear = new Date().getFullYear();
-        const monthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
-        const lastInitialized = localStorage.getItem('lastRecurringInit');
+    initializeRecurringExpensesForMonth(year: number, month: number) {
+        // month is 0-indexed (0 = January, 11 = December)
+        const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+        const lastInitialized = localStorage.getItem(`lastRecurringInit_${monthKey}`);
 
-        if (lastInitialized === monthKey) {
+        if (lastInitialized === 'true') {
             return; // Already initialized for this month
         }
 
@@ -199,7 +196,7 @@ export class BudgetTrackerComponent implements OnInit {
             });
         });
 
-        const firstDayOfMonth = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`;
+        const firstDayOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-01`;
 
         // Check if recurring expenses already exist for this month
         this.expenseService.getAllExpenses().subscribe(expenses => {
@@ -224,9 +221,9 @@ export class BudgetTrackerComponent implements OnInit {
                 }
             });
 
-            // Mark as initialized only if we actually added expenses
-            if (needsInit) {
-                localStorage.setItem('lastRecurringInit', monthKey);
+            // Mark as initialized
+            if (needsInit || recurringExpenses.length === 0) {
+                localStorage.setItem(`lastRecurringInit_${monthKey}`, 'true');
             }
         });
     }
@@ -356,6 +353,9 @@ export class BudgetTrackerComponent implements OnInit {
 
         const targetMonth = this.targetDate.getMonth();
         const targetYear = this.targetDate.getFullYear();
+
+        // Initialize recurring expenses for the target month
+        this.initializeRecurringExpensesForMonth(targetYear, targetMonth);
 
         // 1. Filter target month expenses
         this.expenses = this.allExpenses.filter(expense => {
