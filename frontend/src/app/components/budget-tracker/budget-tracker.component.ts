@@ -27,6 +27,8 @@ export class BudgetTrackerComponent implements OnInit {
     categoryBreakdown: CategoryBreakdown[] = [];
     monthlyStats: MonthlyStats[] = [];
     insights: Insight[] = [];
+    selectedTimeRange: string = '6M';
+    timeRanges: string[] = ['1M', '3M', '6M', 'YTD', '1Y', '3Y', '5Y', 'All'];
 
     // Form
     newExpense: Expense = {
@@ -118,8 +120,7 @@ export class BudgetTrackerComponent implements OnInit {
         this.categoryBreakdown = this.analyticsService.calculateCategoryBreakdown(this.expenses, this.totalSpent);
         this.updateDonutChart();
 
-        // Monthly Trends (Last 6 months)
-        this.monthlyStats = this.analyticsService.calculateMonthlyStats(this.allExpenses);
+        // Monthly Trends
         this.updateTrendChart();
 
         // Insights (Compare with previous month)
@@ -143,7 +144,13 @@ export class BudgetTrackerComponent implements OnInit {
         };
     }
 
+    setTimeRange(range: string) {
+        this.selectedTimeRange = range;
+        this.updateTrendChart();
+    }
+
     updateTrendChart() {
+        this.monthlyStats = this.analyticsService.calculateTrendStats(this.allExpenses, this.selectedTimeRange);
         this.trendChartData = {
             labels: this.monthlyStats.map(s => s.month),
             datasets: [
