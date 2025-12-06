@@ -19,6 +19,16 @@ export class DebtAccountsListComponent implements OnInit {
     personalLoansCollapsed = false;
     autoLoansCollapsed = false;
 
+    // Filter states
+    hideZeroBalance = false;
+
+    get visibleCreditCards(): DebtAccount[] {
+        if (this.hideZeroBalance) {
+            return this.creditCards.filter(card => card.currentBalance > 0);
+        }
+        return this.creditCards;
+    }
+
     // Sorting state
     sortColumn: string = 'priority';
     sortDirection: 'asc' | 'desc' = 'asc';

@@ -37,308 +37,609 @@
                     class="material-icons text-gray-400 transform transition-transform duration-300 group-hover:text-gray-600 dark:group-hover:text-white"
                     [class.rotate-180]="creditCardsCollapsed">expand_more</span>
             </div>
-            <div *ngIf="!creditCardsCollapsed" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div *ngFor="let account of creditCards; let i = index"
-                    [class]="'rounded-xl shadow-lg p-6 border border-gray-100 dark:border-white/5 hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] animate-fade-in-up ' + getCardGradient(i)"
-                    [style.animation-delay]="(i * 100) + 'ms'">
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="flex items-center gap-3">
+            <div *ngIf="!creditCardsCollapsed">
+                <!-- Filter Checkbox -->
+                <div class="mb-4 flex items-center justify-end px-2">
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="checkbox" [(ngModel)]="hideZeroBalance"
+                            class="form-checkbox h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 transition duration-150 ease-in-out">
+                        <span class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Hide Zero Balance
+                            Cards</span>
+                    </label>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div *ngFor="let account of visibleCreditCards; let i = index"
+                        [class]="'rounded-xl shadow-lg p-6 border border-gray-100 dark:border-white/5 hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] animate-fade-in-up ' + getCardGradient(i)"
+                        [style.animation-delay]="(i * 100) + 'ms'">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex items-center gap-3">
+                                <span
+                                    [class]="'flex items-center justify-center w-8 h-8 rounded-full font-black text-sm shadow-lg border-2 ' + getNumberColorClass(i)">
+                                    {{ i + 1 }}
+                                </span>
+                                <h4
+                                    class="font-bold text-gray-900 dark:text-white text-xl drop-shadow-sm dark:drop-shadow-md">
+                                    {{ account.name }}</h4>
+                            </div>
                             <span
-                                [class]="'flex items-center justify-center w-8 h-8 rounded-full font-black text-sm shadow-lg border-2 ' + getNumberColorClass(i)">
-                                {{ i + 1 }}
+                                class="px-3 py-1 rounded-full text-xs font-bold bg-white/50 dark:bg-white/20 text-gray-900 dark:text-white backdrop-blur-md border border-white/30 shadow-sm">
+                                {{ account.apr }}% APR
                             </span>
-                            <h4
-                                class="font-bold text-gray-900 dark:text-white text-xl drop-shadow-sm dark:drop-shadow-md">
-                                {{ account.name }}</h4>
                         </div>
-                        <span
-                            class="px-3 py-1 rounded-full text-xs font-bold bg-white/50 dark:bg-white/20 text-gray-900 dark:text-white backdrop-blur-md border border-white/30 shadow-sm">
-                            {{ account.apr }}% APR
-                        </span>
-                    </div>
-                    <div
-                        class="text-4xl font-black text-gray-900 dark:text-white mb-3 drop-shadow-sm dark:drop-shadow-md">
-                        ${{ account.currentBalance | number:'1.0-0' }}
-                    </div>
-                    <div *ngIf="account.monthlyPayment"
-                        class="text-sm text-gray-700 dark:text-white/90 mb-3 flex items-center font-medium">
-                        <span class="material-icons text-emerald-500 dark:text-emerald-400 text-sm mr-1">payments</span>
-                        Monthly: <span class="text-gray-900 dark:text-white font-bold ml-1">${{ account.monthlyPayment |
-                            number:'1.0-0'
-                            }}</span>
-                    </div>
-                    <div *ngIf="isPromoExpiringSoon(account)"
-                        class="bg-white/50 dark:bg-white/20 border border-white/30 rounded-lg p-3 mt-3 backdrop-blur-sm">
-                        <p class="text-xs font-bold text-gray-900 dark:text-white flex items-center">
-                            <span class="material-icons text-sm mr-2 text-amber-500 dark:text-yellow-400">warning</span>
-                            Promo expires {{ account.promoExpires | date:'MMM yyyy' }}
+                        <div
+                            class="text-4xl font-black text-gray-900 dark:text-white mb-3 drop-shadow-sm dark:drop-shadow-md">
+                            ${{ account.currentBalance | number:'1.0-0' }}
+                        </div>
+                        <div *ngIf="account.monthlyPayment"
+                            class="text-sm text-gray-700 dark:text-white/90 mb-3 flex items-center font-medium">
+                            <span
+                                class="material-icons text-emerald-500 dark:text-emerald-400 text-sm mr-1">payments</span>
+                            Monthly: <span class="text-gray-900 dark:text-white font-bold ml-1">${{
+                                account.monthlyPayment |
+                                number:'1.0-0'
+                                }}</span>
+                        </div>
+                        <div *ngIf="isPromoExpiringSoon(account)"
+                            class="bg-white/50 dark:bg-white/20 border border-white/30 rounded-lg p-3 mt-3 backdrop-blur-sm">
+                            <p class="text-xs font-bold text-gray-900 dark:text-white flex items-center">
+                                <span
+                                    class="material-icons text-sm mr-2 text-amber-500 dark:text-yellow-400">warning</span>
+                                Promo expires {{ account.promoExpires | date:'MMM yyyy' }}
+                            </p>
+                        </div>
+                        <p *ngIf="account.notes"
+                            class="text-xs text-gray-600 dark:text-white/80 mt-3 border-t border-gray-200 dark:border-white/20 pt-3 font-medium">
+                            {{ account.notes }}
                         </p>
                     </div>
-                    <p *ngIf="account.notes"
-                        class="text-xs text-gray-600 dark:text-white/80 mt-3 border-t border-gray-200 dark:border-white/20 pt-3 font-medium">
-                        {{ account.notes }}
-                    </p>
                 </div>
             </div>
-        </div>
 
-        <!-- Personal Loans Section -->
-        <div id="personal-loans" *ngIf="personalLoans.length > 0">
-            <div class="flex items-center justify-between mb-6 cursor-pointer group bg-white dark:bg-[#1a2332] p-4 rounded-xl border-l-4 border-purple-500 shadow-lg hover:bg-gray-50 dark:hover:bg-[#252f40] transition-all"
-                (click)="personalLoansCollapsed = !personalLoansCollapsed">
-                <h3 class="text-2xl font-black text-gray-900 dark:text-white flex items-center">
-                    <span
-                        class="material-icons text-purple-600 dark:text-purple-400 mr-3 text-3xl">account_balance</span>
-                    Personal Loans
-                    <span
-                        class="ml-3 px-3 py-1 bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-300 text-sm font-bold rounded-full border border-purple-200 dark:border-purple-500/30">{{
-                        personalLoans.length }} Accounts</span>
-                </h3>
-                <span
-                    class="material-icons text-gray-400 transform transition-transform duration-300 group-hover:text-gray-600 dark:group-hover:text-white"
-                    [class.rotate-180]="personalLoansCollapsed">expand_more</span>
-            </div>
-            <div *ngIf="!personalLoansCollapsed" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div *ngFor="let account of personalLoans; let i = index"
-                    [class]="'rounded-xl shadow-lg p-6 border border-gray-100 dark:border-white/5 hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] animate-fade-in-up ' + getCardGradient(i + 3)"
-                    [style.animation-delay]="(i * 100) + 'ms'">
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="flex items-center gap-3">
-                            <span
-                                [class]="'flex items-center justify-center w-8 h-8 rounded-full font-black text-sm shadow-lg border-2 ' + getNumberColorClass(i + 3)">
-                                {{ i + 1 }}
-                            </span>
-                            <h4
-                                class="font-bold text-gray-900 dark:text-white text-xl drop-shadow-sm dark:drop-shadow-md">
-                                {{ account.name }}</h4>
-                        </div>
+            <!-- Personal Loans Section -->
+            <div id="personal-loans" *ngIf="personalLoans.length > 0">
+                <div class="flex items-center justify-between mb-6 cursor-pointer group bg-white dark:bg-[#1a2332] p-4 rounded-xl border-l-4 border-purple-500 shadow-lg hover:bg-gray-50 dark:hover:bg-[#252f40] transition-all"
+                    (click)="personalLoansCollapsed = !personalLoansCollapsed">
+                    <h3 class="text-2xl font-black text-gray-900 dark:text-white flex items-center">
                         <span
-                            class="px-3 py-1 rounded-full text-xs font-bold bg-white/50 dark:bg-white/20 text-gray-900 dark:text-white backdrop-blur-md border border-white/30 shadow-sm">
-                            {{ account.apr }}% APR
-                        </span>
-                    </div>
-                    <div
-                        class="text-4xl font-black text-gray-900 dark:text-white mb-3 drop-shadow-sm dark:drop-shadow-md">
-                        ${{ account.currentBalance | number:'1.0-0' }}
-                    </div>
-                    <div *ngIf="account.monthlyPayment"
-                        class="text-sm text-gray-700 dark:text-white/90 mb-3 flex items-center font-medium">
-                        <span class="material-icons text-emerald-500 dark:text-emerald-400 text-sm mr-1">payments</span>
-                        Monthly: <span class="text-gray-900 dark:text-white font-bold ml-1">${{ account.monthlyPayment |
-                            number:'1.0-0'
-                            }}</span>
-                    </div>
-                    <p *ngIf="account.notes"
-                        class="text-xs text-gray-600 dark:text-white/80 mt-3 border-t border-gray-200 dark:border-white/20 pt-3 font-medium">
-                        {{ account.notes }}
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Auto Loans Section -->
-        <div id="auto-loans" *ngIf="autoLoans.length > 0">
-            <div class="flex items-center justify-between mb-6 cursor-pointer group bg-white dark:bg-[#1a2332] p-4 rounded-xl border-l-4 border-green-500 shadow-lg hover:bg-gray-50 dark:hover:bg-[#252f40] transition-all"
-                (click)="autoLoansCollapsed = !autoLoansCollapsed">
-                <h3 class="text-2xl font-black text-gray-900 dark:text-white flex items-center">
-                    <span class="material-icons text-green-600 dark:text-green-400 mr-3 text-3xl">directions_car</span>
-                    Auto Loans
-                    <span
-                        class="ml-3 px-3 py-1 bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-300 text-sm font-bold rounded-full border border-green-200 dark:border-green-500/30">{{
-                        autoLoans.length }} Accounts</span>
-                </h3>
-                <span
-                    class="material-icons text-gray-400 transform transition-transform duration-300 group-hover:text-gray-600 dark:group-hover:text-white"
-                    [class.rotate-180]="autoLoansCollapsed">expand_more</span>
-            </div>
-            <div *ngIf="!autoLoansCollapsed" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div *ngFor="let account of autoLoans; let i = index"
-                    [class]="'rounded-xl shadow-lg p-6 border border-gray-100 dark:border-white/5 hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] animate-fade-in-up ' + getCardGradient(i + 6)"
-                    [style.animation-delay]="(i * 100) + 'ms'">
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="flex items-center gap-3">
-                            <span
-                                [class]="'flex items-center justify-center w-8 h-8 rounded-full font-black text-sm shadow-lg border-2 ' + getNumberColorClass(i + 6)">
-                                {{ i + 1 }}
-                            </span>
-                            <h4
-                                class="font-bold text-gray-900 dark:text-white text-xl drop-shadow-sm dark:drop-shadow-md">
-                                {{ account.name }}</h4>
-                        </div>
+                            class="material-icons text-purple-600 dark:text-purple-400 mr-3 text-3xl">account_balance</span>
+                        Personal Loans
                         <span
-                            class="px-3 py-1 rounded-full text-xs font-bold bg-white/50 dark:bg-white/20 text-gray-900 dark:text-white backdrop-blur-md border border-white/30 shadow-sm">
-                            {{ account.apr }}% APR
-                        </span>
+                            class="ml-3 px-3 py-1 bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-300 text-sm font-bold rounded-full border border-purple-200 dark:border-purple-500/30">{{
+                            personalLoans.length }} Accounts</span>
+                    </h3>
+                    <span
+                        class="material-icons text-gray-400 transform transition-transform duration-300 group-hover:text-gray-600 dark:group-hover:text-white"
+                        [class.rotate-180]="personalLoansCollapsed">expand_more</span>
+                </div>
+                <div *ngIf="!personalLoansCollapsed" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div *ngFor="let account of personalLoans; let i = index"
+                        [class]="'rounded-xl shadow-lg p-6 border border-gray-100 dark:border-white/5 hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] animate-fade-in-up ' + getCardGradient(i + 3)"
+                        [style.animation-delay]="(i * 100) + 'ms'">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex items-center gap-3">
+                                <span
+                                    [class]="'flex items-center justify-center w-8 h-8 rounded-full font-black text-sm shadow-lg border-2 ' + getNumberColorClass(i + 3)">
+                                    {{ i + 1 }}
+                                </span>
+                                <h4
+                                    class="font-bold text-gray-900 dark:text-white text-xl drop-shadow-sm dark:drop-shadow-md">
+                                    {{ account.name }}</h4>
+                            </div>
+                            <span
+                                class="px-3 py-1 rounded-full text-xs font-bold bg-white/50 dark:bg-white/20 text-gray-900 dark:text-white backdrop-blur-md border border-white/30 shadow-sm">
+                                {{ account.apr }}% APR
+                            </span>
+                        </div>
+                        <div
+                            class="text-4xl font-black text-gray-900 dark:text-white mb-3 drop-shadow-sm dark:drop-shadow-md">
+                            ${{ account.currentBalance | number:'1.0-0' }}
+                        </div>
+                        <div *ngIf="account.monthlyPayment"
+                            class="text-sm text-gray-700 dark:text-white/90 mb-3 flex items-center font-medium">
+                            <span
+                                class="material-icons text-emerald-500 dark:text-emerald-400 text-sm mr-1">payments</span>
+                            Monthly: <span class="text-gray-900 dark:text-white font-bold ml-1">${{
+                                account.monthlyPayment |
+                                number:'1.0-0'
+                                }}</span>
+                        </div>
+                        <p *ngIf="account.notes"
+                            class="text-xs text-gray-600 dark:text-white/80 mt-3 border-t border-gray-200 dark:border-white/20 pt-3 font-medium">
+                            {{ account.notes }}
+                        </p>
                     </div>
-                    <div
-                        class="text-4xl font-black text-gray-900 dark:text-white mb-3 drop-shadow-sm dark:drop-shadow-md">
-                        ${{ account.currentBalance | number:'1.0-0' }}
+                </div>
+            </div>
+
+            <!-- Auto Loans Section -->
+            <div id="auto-loans" *ngIf="autoLoans.length > 0">
+                <div class="flex items-center justify-between mb-6 cursor-pointer group bg-white dark:bg-[#1a2332] p-4 rounded-xl border-l-4 border-green-500 shadow-lg hover:bg-gray-50 dark:hover:bg-[#252f40] transition-all"
+                    (click)="autoLoansCollapsed = !autoLoansCollapsed">
+                    <h3 class="text-2xl font-black text-gray-900 dark:text-white flex items-center">
+                        <span
+                            class="material-icons text-green-600 dark:text-green-400 mr-3 text-3xl">directions_car</span>
+                        Auto Loans
+                        <span
+                            class="ml-3 px-3 py-1 bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-300 text-sm font-bold rounded-full border border-green-200 dark:border-green-500/30">{{
+                            autoLoans.length }} Accounts</span>
+                    </h3>
+                    <span
+                        class="material-icons text-gray-400 transform transition-transform duration-300 group-hover:text-gray-600 dark:group-hover:text-white"
+                        [class.rotate-180]="autoLoansCollapsed">expand_more</span>
+                </div>
+                <div *ngIf="!autoLoansCollapsed" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div *ngFor="let account of autoLoans; let i = index"
+                        [class]="'rounded-xl shadow-lg p-6 border border-gray-100 dark:border-white/5 hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] animate-fade-in-up ' + getCardGradient(i + 6)"
+                        [style.animation-delay]="(i * 100) + 'ms'">
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex items-center gap-3">
+                                <span
+                                    [class]="'flex items-center justify-center w-8 h-8 rounded-full font-black text-sm shadow-lg border-2 ' + getNumberColorClass(i + 6)">
+                                    {{ i + 1 }}
+                                </span>
+                                <h4
+                                    class="font-bold text-gray-900 dark:text-white text-xl drop-shadow-sm dark:drop-shadow-md">
+                                    {{ account.name }}</h4>
+                            </div>
+                            <span
+                                class="px-3 py-1 rounded-full text-xs font-bold bg-white/50 dark:bg-white/20 text-gray-900 dark:text-white backdrop-blur-md border border-white/30 shadow-sm">
+                                {{ account.apr }}% APR
+                            </span>
+                        </div>
+                        <div
+                            class="text-4xl font-black text-gray-900 dark:text-white mb-3 drop-shadow-sm dark:drop-shadow-md">
+                            ${{ account.currentBalance | number:'1.0-0' }}
+                        </div>
+                        <div *ngIf="account.monthlyPayment"
+                            class="text-sm text-gray-700 dark:text-white/90 mb-3 flex items-center font-medium">
+                            <span
+                                class="material-icons text-emerald-500 dark:text-emerald-400 text-sm mr-1">payments</span>
+                            Monthly: <span class="text-gray-900 dark:text-white font-bold ml-1">${{
+                                account.monthlyPayment |
+                                number:'1.0-0'
+                                }}</span>
+                        </div>
+                        <p *ngIf="account.notes"
+                            class="text-xs text-gray-600 dark:text-white/80 mt-3 border-t border-gray-200 dark:border-white/20 pt-3 font-medium">
+                            {{ account.notes }}
+                        </p>
                     </div>
-                    <div *ngIf="account.monthlyPayment"
-                        class="text-sm text-gray-700 dark:text-white/90 mb-3 flex items-center font-medium">
-                        <span class="material-icons text-emerald-500 dark:text-emerald-400 text-sm mr-1">payments</span>
-                        Monthly: <span class="text-gray-900 dark:text-white font-bold ml-1">${{ account.monthlyPayment |
-                            number:'1.0-0'
-                            }}</span>
-                    </div>
-                    <p *ngIf="account.notes"
-                        class="text-xs text-gray-600 dark:text-white/80 mt-3 border-t border-gray-200 dark:border-white/20 pt-3 font-medium">
-                        {{ account.notes }}
-                    </p>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Table View -->
-    <div *ngIf="viewMode === 'table'">
-        <!-- Credit Cards Table -->
-        <div *ngIf="creditCards.length > 0" class="mb-8">
-            <div class="flex items-center justify-between mb-4 cursor-pointer group bg-white dark:bg-[#1a2332] p-4 rounded-xl border-l-4 border-blue-500 shadow-lg hover:bg-gray-50 dark:hover:bg-[#252f40] transition-all"
-                (click)="creditCardsCollapsed = !creditCardsCollapsed">
-                <h3 class="text-2xl font-black text-gray-900 dark:text-white flex items-center">
-                    <span class="material-icons text-blue-600 dark:text-blue-400 mr-3 text-3xl">credit_card</span>
-                    Credit Cards
+        <!-- Table View -->
+        <div *ngIf="viewMode === 'table'">
+            <!-- Credit Cards Table -->
+            <div *ngIf="creditCards.length > 0" class="mb-8">
+                <div class="flex items-center justify-between mb-4 cursor-pointer group bg-white dark:bg-[#1a2332] p-4 rounded-xl border-l-4 border-blue-500 shadow-lg hover:bg-gray-50 dark:hover:bg-[#252f40] transition-all"
+                    (click)="creditCardsCollapsed = !creditCardsCollapsed">
+                    <h3 class="text-2xl font-black text-gray-900 dark:text-white flex items-center">
+                        <span class="material-icons text-blue-600 dark:text-blue-400 mr-3 text-3xl">credit_card</span>
+                        Credit Cards
+                        <span
+                            class="ml-3 px-3 py-1 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300 text-sm font-bold rounded-full border border-blue-200 dark:border-blue-500/30">{{
+                            creditCards.length }} Accounts</span>
+                    </h3>
                     <span
-                        class="ml-3 px-3 py-1 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300 text-sm font-bold rounded-full border border-blue-200 dark:border-blue-500/30">{{
-                        creditCards.length }} Accounts</span>
-                </h3>
-                <span
-                    class="material-icons text-gray-400 transform transition-transform duration-300 group-hover:text-gray-600 dark:group-hover:text-white"
-                    [class.rotate-180]="creditCardsCollapsed">expand_more</span>
-            </div>
+                        class="material-icons text-gray-400 transform transition-transform duration-300 group-hover:text-gray-600 dark:group-hover:text-white"
+                        [class.rotate-180]="creditCardsCollapsed">expand_more</span>
+                </div>
 
-            <!-- Add New Account Button -->
-            <button *ngIf="!creditCardsCollapsed" (click)="addNewAccount('CREDIT_CARD')"
-                class="mb-4 px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-2">
-                <span class="material-icons text-sm">add_circle</span>
-                Add New Credit Card
-            </button>
+                <!-- Add New Account Button & Filter -->
+                <div *ngIf="!creditCardsCollapsed" class="flex justify-between items-center mb-4">
+                    <button (click)="addNewAccount('CREDIT_CARD')"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-2">
+                        <span class="material-icons text-sm">add_circle</span>
+                        Add New Credit Card
+                    </button>
 
-            <div *ngIf="!creditCardsCollapsed"
-                class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 shadow-softer bg-white dark:bg-[#1a2332]">
-                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead class="bg-gray-50 dark:bg-[#0f1729]">
-                        <tr>
-                            <th
-                                class="px-4 py-4 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                #
-                            </th>
-                            <th (click)="sort('credit', 'priority')"
-                                class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">
-                                    Priority
-                                    <span class="material-icons text-sm">{{ getSortIcon('credit', 'priority') }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('credit', 'name')"
-                                class="px-4 py-4 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">
-                                    Account
-                                    <span class="material-icons text-sm">{{ getSortIcon('credit', 'name') }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('credit', 'balance')"
-                                class="px-4 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">
-                                    Balance
-                                    <span class="material-icons text-sm">{{ getSortIcon('credit', 'balance') }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('credit', 'change')"
-                                class="px-4 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">
-                                    Monthly Change
-                                    <span class="material-icons text-sm">{{ getSortIcon('credit', 'change') }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('credit', 'apr')"
-                                class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">
-                                    APR
-                                    <span class="material-icons text-sm">{{ getSortIcon('credit', 'apr') }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('credit', 'interest')"
-                                class="px-4 py-4 text-right text-xs font-black text-orange-600 dark:text-orange-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">Interest <span
-                                        class="material-icons text-sm">trending_up</span>
-                                    <span class="material-icons text-sm">{{ getSortIcon('credit', 'interest') }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('credit', 'principal')"
-                                class="px-4 py-4 text-right text-xs font-black text-green-600 dark:text-green-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">Principal <span
-                                        class="material-icons text-sm">trending_down</span>
-                                    <span class="material-icons text-sm">{{ getSortIcon('credit', 'principal') }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('credit', 'monthly')"
-                                class="px-4 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">
-                                    Monthly
-                                    <span class="material-icons text-sm">{{ getSortIcon('credit', 'monthly') }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('credit', 'payoff')"
-                                class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">Payoff <span
-                                        class="material-icons text-sm">event</span>
-                                    <span class="material-icons text-sm">{{ getSortIcon('credit', 'payoff') }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('credit', 'monthsLeft')"
-                                class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">
-                                    Left
-                                    <span class="material-icons text-sm">{{ getSortIcon('credit', 'monthsLeft')
-                                        }}</span>
-                                </span>
-                            </th>
-                            <th
-                                class="px-4 py-4 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                Notes</th>
-                            <th
-                                class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                        <tr *ngFor="let account of creditCards; let i = index"
-                            class="hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-all duration-200">
-                            <td class="px-4 py-4 whitespace-nowrap text-blue-600 dark:text-blue-400 font-black text-lg">
-                                {{ i + 1 }}</td>
-                            <td class="px-4 py-4 whitespace-nowrap text-center">
-                                <span *ngIf="account.priority"
-                                    class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs font-bold border border-red-200 dark:border-red-800">
-                                    {{ account.priority }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-4 whitespace-nowrap">
-                                <div class="font-bold text-gray-900 dark:text-white text-lg flex items-center gap-2">
-                                    {{ account.name }}
-                                    <span *ngIf="isNewAccount(account)"
-                                        class="px-2 py-0.5 text-xs font-bold bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300 rounded-full border border-blue-200 dark:border-blue-500/30">NEW</span>
-                                </div>
-                                <div *ngIf="isPromoExpiringSoon(account)"
-                                    class="text-xs text-amber-600 dark:text-yellow-400 flex items-center mt-1">
-                                    <span class="material-icons text-xs mr-1">warning</span>
-                                    Promo expires {{ account.promoExpires | date:'MMM yyyy' }}
-                                </div>
-                            </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-right">
-                                <div class="text-lg font-black text-gray-900 dark:text-white">${{ account.currentBalance
-                                    | number:'1.0-0'
-                                    }}</div>
-                            </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-right">
-                                <ng-container *ngIf="isNewAccount(account)">
-                                    <span
-                                        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                                        NEW
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="checkbox" [(ngModel)]="hideZeroBalance"
+                            class="form-checkbox h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 transition duration-150 ease-in-out">
+                        <span class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Hide Zero Balance
+                            Cards</span>
+                    </label>
+                </div>
+
+                <div *ngIf="!creditCardsCollapsed"
+                    class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 shadow-softer bg-white dark:bg-[#1a2332]">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-[#0f1729]">
+                            <tr>
+                                <th
+                                    class="px-4 py-4 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    #
+                                </th>
+                                <th (click)="sort('credit', 'priority')"
+                                    class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">
+                                        Priority
+                                        <span class="material-icons text-sm">{{ getSortIcon('credit', 'priority')
+                                            }}</span>
                                     </span>
-                                </ng-container>
-                                <ng-container *ngIf="!isNewAccount(account)">
+                                </th>
+                                <th (click)="sort('credit', 'name')"
+                                    class="px-4 py-4 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">
+                                        Account
+                                        <span class="material-icons text-sm">{{ getSortIcon('credit', 'name') }}</span>
+                                    </span>
+                                </th>
+                                <th (click)="sort('credit', 'balance')"
+                                    class="px-4 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">
+                                        Balance
+                                        <span class="material-icons text-sm">{{ getSortIcon('credit', 'balance')
+                                            }}</span>
+                                    </span>
+                                </th>
+                                <th (click)="sort('credit', 'change')"
+                                    class="px-4 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">
+                                        Monthly Change
+                                        <span class="material-icons text-sm">{{ getSortIcon('credit', 'change')
+                                            }}</span>
+                                    </span>
+                                </th>
+                                <th (click)="sort('credit', 'apr')"
+                                    class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">
+                                        APR
+                                        <span class="material-icons text-sm">{{ getSortIcon('credit', 'apr') }}</span>
+                                    </span>
+                                </th>
+                                <th (click)="sort('credit', 'interest')"
+                                    class="px-4 py-4 text-right text-xs font-black text-orange-600 dark:text-orange-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">Interest <span
+                                            class="material-icons text-sm">trending_up</span>
+                                        <span class="material-icons text-sm">{{ getSortIcon('credit', 'interest')
+                                            }}</span>
+                                    </span>
+                                </th>
+                                <th (click)="sort('credit', 'principal')"
+                                    class="px-4 py-4 text-right text-xs font-black text-green-600 dark:text-green-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">Principal <span
+                                            class="material-icons text-sm">trending_down</span>
+                                        <span class="material-icons text-sm">{{ getSortIcon('credit', 'principal')
+                                            }}</span>
+                                    </span>
+                                </th>
+                                <th (click)="sort('credit', 'monthly')"
+                                    class="px-4 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">
+                                        Monthly
+                                        <span class="material-icons text-sm">{{ getSortIcon('credit', 'monthly')
+                                            }}</span>
+                                    </span>
+                                </th>
+                                <th (click)="sort('credit', 'payoff')"
+                                    class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">Payoff <span
+                                            class="material-icons text-sm">event</span>
+                                        <span class="material-icons text-sm">{{ getSortIcon('credit', 'payoff')
+                                            }}</span>
+                                    </span>
+                                </th>
+                                <th (click)="sort('credit', 'monthsLeft')"
+                                    class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">
+                                        Left
+                                        <span class="material-icons text-sm">{{ getSortIcon('credit', 'monthsLeft')
+                                            }}</span>
+                                    </span>
+                                </th>
+                                <th
+                                    class="px-4 py-4 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    Notes</th>
+                                <th
+                                    class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                            <tr *ngFor="let account of visibleCreditCards; let i = index"
+                                class="hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-all duration-200">
+                                <td
+                                    class="px-4 py-4 whitespace-nowrap text-blue-600 dark:text-blue-400 font-black text-lg">
+                                    {{ i + 1 }}</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-center">
+                                    <span *ngIf="account.priority"
+                                        class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs font-bold border border-red-200 dark:border-red-800">
+                                        {{ account.priority }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap">
+                                    <div
+                                        class="font-bold text-gray-900 dark:text-white text-lg flex items-center gap-2">
+                                        {{ account.name }}
+                                        <span *ngIf="isNewAccount(account)"
+                                            class="px-2 py-0.5 text-xs font-bold bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300 rounded-full border border-blue-200 dark:border-blue-500/30">NEW</span>
+                                    </div>
+                                    <div *ngIf="isPromoExpiringSoon(account)"
+                                        class="text-xs text-amber-600 dark:text-yellow-400 flex items-center mt-1">
+                                        <span class="material-icons text-xs mr-1">warning</span>
+                                        Promo expires {{ account.promoExpires | date:'MMM yyyy' }}
+                                    </div>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-right">
+                                    <div class="text-lg font-black text-gray-900 dark:text-white">${{
+                                        account.currentBalance
+                                        | number:'1.0-0'
+                                        }}</div>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-right">
+                                    <ng-container *ngIf="isNewAccount(account)">
+                                        <span
+                                            class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                                            NEW
+                                        </span>
+                                    </ng-container>
+                                    <ng-container *ngIf="!isNewAccount(account)">
+                                        <ng-container *ngIf="getMonthlyChange(account) !== null; else noChange">
+                                            <span *ngIf="getMonthlyChange(account)! < 0"
+                                                class="text-emerald-500 font-bold flex items-center justify-end gap-1">
+                                                <span class="material-icons text-sm">arrow_downward</span>
+                                                ${{ Math.abs(getMonthlyChange(account)!) | number:'1.0-0' }}
+                                            </span>
+                                            <span *ngIf="getMonthlyChange(account)! > 0"
+                                                class="text-rose-500 font-bold flex items-center justify-end gap-1">
+                                                <span class="material-icons text-sm">arrow_upward</span>
+                                                ${{ Math.abs(getMonthlyChange(account)!) | number:'1.0-0' }}
+                                            </span>
+                                            <span *ngIf="getMonthlyChange(account) === 0" class="text-gray-400">-</span>
+                                        </ng-container>
+                                        <ng-template #noChange>
+                                            <span class="text-gray-400">-</span>
+                                        </ng-template>
+                                    </ng-container>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-center">
+                                    <span
+                                        [class]="'px-3 py-1 rounded-full text-xs font-bold ' + getAprBadgeClass(account.apr)">
+                                        {{ account.apr }}%
+                                    </span>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-right">
+                                    <span *ngIf="account.apr > 0"
+                                        class="text-orange-600 dark:text-orange-400 font-bold">
+                                        ${{ calculateMonthlyInterest(account.currentBalance, account.apr) |
+                                        number:'1.2-2'
+                                        }}
+                                    </span>
+                                    <span *ngIf="account.apr === 0"
+                                        class="text-gray-400 dark:text-gray-600">$0.00</span>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-right">
+                                    <span *ngIf="account.principalPerMonth !== undefined"
+                                        class="text-green-600 dark:text-green-400 font-bold">
+                                        ${{ account.principalPerMonth | number:'1.2-2' }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-right text-gray-500 dark:text-gray-400">
+                                    {{ account.monthlyPayment ? ('$' + (account.monthlyPayment | number:'1.0-0')) : '$0'
+                                    }}
+                                </td>
+                                <td
+                                    class="px-4 py-4 whitespace-nowrap text-center text-gray-700 dark:text-gray-300 font-medium">
+                                    {{ account.payoffDate ? (account.payoffDate | date:'MMM yyyy') : '-' }}
+                                </td>
+                                <td
+                                    class="px-4 py-4 whitespace-nowrap text-center text-gray-700 dark:text-gray-300 font-medium">
+                                    {{ account.monthsLeft ? account.monthsLeft + ' mo' : '-' }}
+                                </td>
+                                <td class="px-4 py-4 text-sm text-gray-500 max-w-xs truncate"
+                                    [title]="account.notes || ''">
+                                    {{ account.notes }}</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-center">
+                                    <div class="flex items-center justify-center gap-2">
+                                        <button (click)="editAccount(account)"
+                                            class="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                            title="Edit">
+                                            <span class="material-icons text-sm">edit</span>
+                                        </button>
+                                        <button (click)="deleteAccount(account)"
+                                            class="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                            title="Delete">
+                                            <span class="material-icons text-sm">delete</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot class="bg-gray-50 dark:bg-[#0f1729] border-t border-gray-200 dark:border-gray-700">
+                            <tr>
+                                <td colspan="3"
+                                    class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
+                                    Total:
+                                </td>
+                                <td class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
+                                    ${{ getTotalBalance('credit') | number:'1.0-0' }}
+                                </td>
+                                <td class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
+                                    <ng-container *ngIf="getTotalMonthlyChange('credit') !== null; else noChangeTotal">
+                                        <span *ngIf="getTotalMonthlyChange('credit')! < 0"
+                                            class="text-emerald-500 font-bold flex items-center justify-end gap-1">
+                                            <span class="material-icons text-sm">arrow_downward</span>
+                                            ${{ Math.abs(getTotalMonthlyChange('credit')!) | number:'1.0-0' }}
+                                        </span>
+                                        <span *ngIf="getTotalMonthlyChange('credit')! > 0"
+                                            class="text-rose-500 font-bold flex items-center justify-end gap-1">
+                                            <span class="material-icons text-sm">arrow_upward</span>
+                                            ${{ Math.abs(getTotalMonthlyChange('credit')!) | number:'1.0-0' }}
+                                        </span>
+                                        <span *ngIf="getTotalMonthlyChange('credit') === 0"
+                                            class="text-gray-400">-</span>
+                                    </ng-container>
+                                    <ng-template #noChangeTotal>
+                                        <span class="text-gray-400">-</span>
+                                    </ng-template>
+                                </td>
+                                <td colspan="2"
+                                    class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
+                                    ${{ getTotalInterest('credit') | number:'1.2-2' }}
+                                </td>
+                                <td class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
+                                    ${{ getTotalPrincipal('credit') | number:'1.2-2' }}
+                                </td>
+                                <td class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
+                                    ${{ getTotalMonthlyPayment('credit') | number:'1.0-0' }}
+                                </td>
+                                <td colspan="4"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Personal Loans Table -->
+            <div *ngIf="personalLoans.length > 0" class="mb-8">
+                <div class="flex items-center justify-between mb-4 cursor-pointer group bg-white dark:bg-[#1a2332] p-4 rounded-xl border-l-4 border-purple-500 shadow-lg hover:bg-gray-50 dark:hover:bg-[#252f40] transition-all"
+                    (click)="personalLoansCollapsed = !personalLoansCollapsed">
+                    <h3 class="text-2xl font-black text-gray-900 dark:text-white flex items-center">
+                        <span
+                            class="material-icons text-purple-600 dark:text-purple-400 mr-3 text-3xl">account_balance</span>
+                        Personal Loans
+                        <span
+                            class="ml-3 px-3 py-1 bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-300 text-sm font-bold rounded-full border border-purple-200 dark:border-purple-500/30">{{
+                            personalLoans.length }} Accounts</span>
+                    </h3>
+                    <span
+                        class="material-icons text-gray-400 transform transition-transform duration-300 group-hover:text-gray-600 dark:group-hover:text-white"
+                        [class.rotate-180]="personalLoansCollapsed">expand_more</span>
+                </div>
+
+                <!-- Add New Account Button -->
+                <button *ngIf="!personalLoansCollapsed" (click)="addNewAccount('PERSONAL_LOAN')"
+                    class="mb-4 px-4 py-2 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700 transition-colors flex items-center gap-2">
+                    <span class="material-icons text-sm">add_circle</span>
+                    Add New Personal Loan
+                </button>
+
+                <div *ngIf="!personalLoansCollapsed"
+                    class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 shadow-softer bg-white dark:bg-[#1a2332]">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-[#0f1729]">
+                            <tr>
+                                <th
+                                    class="px-4 py-4 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    #
+                                </th>
+                                <th (click)="sort('personal', 'priority')"
+                                    class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">
+                                        Priority
+                                        <span class="material-icons text-sm">{{ getSortIcon('personal', 'priority')
+                                            }}</span>
+                                    </span>
+                                </th>
+                                <th (click)="sort('personal', 'name')"
+                                    class="px-4 py-4 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">
+                                        Account
+                                        <span class="material-icons text-sm">{{ getSortIcon('personal', 'name')
+                                            }}</span>
+                                    </span>
+                                </th>
+                                <th (click)="sort('personal', 'balance')"
+                                    class="px-4 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">
+                                        Balance
+                                        <span class="material-icons text-sm">{{ getSortIcon('personal', 'balance')
+                                            }}</span>
+                                    </span>
+                                </th>
+                                <th (click)="sort('personal', 'change')"
+                                    class="px-4 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">
+                                        Monthly Change
+                                        <span class="material-icons text-sm">{{ getSortIcon('personal', 'change')
+                                            }}</span>
+                                    </span>
+                                </th>
+                                <th (click)="sort('personal', 'apr')"
+                                    class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">
+                                        APR
+                                        <span class="material-icons text-sm">{{ getSortIcon('personal', 'apr') }}</span>
+                                    </span>
+                                </th>
+                                <th (click)="sort('personal', 'interest')"
+                                    class="px-4 py-4 text-right text-xs font-black text-orange-600 dark:text-orange-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">Interest <span
+                                            class="material-icons text-sm">trending_up</span>
+                                        <span class="material-icons text-sm">{{ getSortIcon('personal', 'interest')
+                                            }}</span>
+                                    </span>
+                                </th>
+                                <th (click)="sort('personal', 'principal')"
+                                    class="px-4 py-4 text-right text-xs font-black text-green-600 dark:text-green-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">Principal <span
+                                            class="material-icons text-sm">trending_down</span>
+                                        <span class="material-icons text-sm">{{ getSortIcon('personal', 'principal')
+                                            }}</span>
+                                    </span>
+                                </th>
+                                <th (click)="sort('personal', 'monthly')"
+                                    class="px-4 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">
+                                        Monthly
+                                        <span class="material-icons text-sm">{{ getSortIcon('personal', 'monthly')
+                                            }}</span>
+                                    </span>
+                                </th>
+                                <th (click)="sort('personal', 'payoff')"
+                                    class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">Payoff <span
+                                            class="material-icons text-sm">event</span>
+                                        <span class="material-icons text-sm">{{ getSortIcon('personal', 'payoff')
+                                            }}</span>
+                                    </span>
+                                </th>
+                                <th (click)="sort('personal', 'monthsLeft')"
+                                    class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">
+                                        Left
+                                        <span class="material-icons text-sm">{{ getSortIcon('personal', 'monthsLeft')
+                                            }}</span>
+                                    </span>
+                                </th>
+                                <th
+                                    class="px-4 py-4 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    Notes</th>
+                                <th
+                                    class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                            <tr *ngFor="let account of personalLoans; let i = index"
+                                class="hover:bg-purple-50/50 dark:hover:bg-purple-900/10 transition-all duration-200">
+                                <td
+                                    class="px-4 py-4 whitespace-nowrap text-purple-600 dark:text-purple-400 font-black text-lg">
+                                    {{ i + 1 }}</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-center">
+                                    <span *ngIf="account.priority"
+                                        class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs font-bold border border-red-200 dark:border-red-800">
+                                        {{ account.priority }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap">
+                                    <div
+                                        class="font-bold text-gray-900 dark:text-white text-lg flex items-center gap-2">
+                                        {{ account.name }}
+                                        <span *ngIf="isNewAccount(account)"
+                                            class="px-2 py-0.5 text-xs font-bold bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-300 rounded-full border border-purple-200 dark:border-purple-500/30">NEW</span>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-right">
+                                    <div class="text-lg font-black text-gray-900 dark:text-white">${{
+                                        account.currentBalance
+                                        | number:'1.0-0'
+                                        }}</div>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-right">
                                     <ng-container *ngIf="getMonthlyChange(account) !== null; else noChange">
                                         <span *ngIf="getMonthlyChange(account)! < 0"
                                             class="text-emerald-500 font-bold flex items-center justify-end gap-1">
@@ -355,573 +656,341 @@
                                     <ng-template #noChange>
                                         <span class="text-gray-400">-</span>
                                     </ng-template>
-                                </ng-container>
-                            </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-center">
-                                <span
-                                    [class]="'px-3 py-1 rounded-full text-xs font-bold ' + getAprBadgeClass(account.apr)">
-                                    {{ account.apr }}%
-                                </span>
-                            </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-right">
-                                <span *ngIf="account.apr > 0" class="text-orange-600 dark:text-orange-400 font-bold">
-                                    ${{ calculateMonthlyInterest(account.currentBalance, account.apr) | number:'1.2-2'
-                                    }}
-                                </span>
-                                <span *ngIf="account.apr === 0" class="text-gray-400 dark:text-gray-600">$0.00</span>
-                            </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-right">
-                                <span *ngIf="account.principalPerMonth !== undefined"
-                                    class="text-green-600 dark:text-green-400 font-bold">
-                                    ${{ account.principalPerMonth | number:'1.2-2' }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-right text-gray-500 dark:text-gray-400">
-                                {{ account.monthlyPayment ? ('$' + (account.monthlyPayment | number:'1.0-0')) : '$0' }}
-                            </td>
-                            <td
-                                class="px-4 py-4 whitespace-nowrap text-center text-gray-700 dark:text-gray-300 font-medium">
-                                {{ account.payoffDate ? (account.payoffDate | date:'MMM yyyy') : '-' }}
-                            </td>
-                            <td
-                                class="px-4 py-4 whitespace-nowrap text-center text-gray-700 dark:text-gray-300 font-medium">
-                                {{ account.monthsLeft ? account.monthsLeft + ' mo' : '-' }}
-                            </td>
-                            <td class="px-4 py-4 text-sm text-gray-500 max-w-xs truncate" [title]="account.notes || ''">
-                                {{ account.notes }}</td>
-                            <td class="px-4 py-4 whitespace-nowrap text-center">
-                                <div class="flex items-center justify-center gap-2">
-                                    <button (click)="editAccount(account)"
-                                        class="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                                        title="Edit">
-                                        <span class="material-icons text-sm">edit</span>
-                                    </button>
-                                    <button (click)="deleteAccount(account)"
-                                        class="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                        title="Delete">
-                                        <span class="material-icons text-sm">delete</span>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                    <tfoot class="bg-gray-50 dark:bg-[#0f1729] border-t border-gray-200 dark:border-gray-700">
-                        <tr>
-                            <td colspan="3"
-                                class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
-                                Total:
-                            </td>
-                            <td class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
-                                ${{ getTotalBalance('credit') | number:'1.0-0' }}
-                            </td>
-                            <td class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
-                                <ng-container *ngIf="getTotalMonthlyChange('credit') !== null; else noChangeTotal">
-                                    <span *ngIf="getTotalMonthlyChange('credit')! < 0"
-                                        class="text-emerald-500 font-bold flex items-center justify-end gap-1">
-                                        <span class="material-icons text-sm">arrow_downward</span>
-                                        ${{ Math.abs(getTotalMonthlyChange('credit')!) | number:'1.0-0' }}
-                                    </span>
-                                    <span *ngIf="getTotalMonthlyChange('credit')! > 0"
-                                        class="text-rose-500 font-bold flex items-center justify-end gap-1">
-                                        <span class="material-icons text-sm">arrow_upward</span>
-                                        ${{ Math.abs(getTotalMonthlyChange('credit')!) | number:'1.0-0' }}
-                                    </span>
-                                    <span *ngIf="getTotalMonthlyChange('credit') === 0" class="text-gray-400">-</span>
-                                </ng-container>
-                                <ng-template #noChangeTotal>
-                                    <span class="text-gray-400">-</span>
-                                </ng-template>
-                            </td>
-                            <td colspan="2"
-                                class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
-                                ${{ getTotalInterest('credit') | number:'1.2-2' }}
-                            </td>
-                            <td class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
-                                ${{ getTotalPrincipal('credit') | number:'1.2-2' }}
-                            </td>
-                            <td class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
-                                ${{ getTotalMonthlyPayment('credit') | number:'1.0-0' }}
-                            </td>
-                            <td colspan="4"></td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-        </div>
-
-        <!-- Personal Loans Table -->
-        <div *ngIf="personalLoans.length > 0" class="mb-8">
-            <div class="flex items-center justify-between mb-4 cursor-pointer group bg-white dark:bg-[#1a2332] p-4 rounded-xl border-l-4 border-purple-500 shadow-lg hover:bg-gray-50 dark:hover:bg-[#252f40] transition-all"
-                (click)="personalLoansCollapsed = !personalLoansCollapsed">
-                <h3 class="text-2xl font-black text-gray-900 dark:text-white flex items-center">
-                    <span
-                        class="material-icons text-purple-600 dark:text-purple-400 mr-3 text-3xl">account_balance</span>
-                    Personal Loans
-                    <span
-                        class="ml-3 px-3 py-1 bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-300 text-sm font-bold rounded-full border border-purple-200 dark:border-purple-500/30">{{
-                        personalLoans.length }} Accounts</span>
-                </h3>
-                <span
-                    class="material-icons text-gray-400 transform transition-transform duration-300 group-hover:text-gray-600 dark:group-hover:text-white"
-                    [class.rotate-180]="personalLoansCollapsed">expand_more</span>
-            </div>
-
-            <!-- Add New Account Button -->
-            <button *ngIf="!personalLoansCollapsed" (click)="addNewAccount('PERSONAL_LOAN')"
-                class="mb-4 px-4 py-2 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700 transition-colors flex items-center gap-2">
-                <span class="material-icons text-sm">add_circle</span>
-                Add New Personal Loan
-            </button>
-
-            <div *ngIf="!personalLoansCollapsed"
-                class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 shadow-softer bg-white dark:bg-[#1a2332]">
-                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead class="bg-gray-50 dark:bg-[#0f1729]">
-                        <tr>
-                            <th
-                                class="px-4 py-4 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                #
-                            </th>
-                            <th (click)="sort('personal', 'priority')"
-                                class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">
-                                    Priority
-                                    <span class="material-icons text-sm">{{ getSortIcon('personal', 'priority')
-                                        }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('personal', 'name')"
-                                class="px-4 py-4 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">
-                                    Account
-                                    <span class="material-icons text-sm">{{ getSortIcon('personal', 'name') }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('personal', 'balance')"
-                                class="px-4 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">
-                                    Balance
-                                    <span class="material-icons text-sm">{{ getSortIcon('personal', 'balance') }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('personal', 'change')"
-                                class="px-4 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">
-                                    Monthly Change
-                                    <span class="material-icons text-sm">{{ getSortIcon('personal', 'change') }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('personal', 'apr')"
-                                class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">
-                                    APR
-                                    <span class="material-icons text-sm">{{ getSortIcon('personal', 'apr') }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('personal', 'interest')"
-                                class="px-4 py-4 text-right text-xs font-black text-orange-600 dark:text-orange-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">Interest <span
-                                        class="material-icons text-sm">trending_up</span>
-                                    <span class="material-icons text-sm">{{ getSortIcon('personal', 'interest')
-                                        }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('personal', 'principal')"
-                                class="px-4 py-4 text-right text-xs font-black text-green-600 dark:text-green-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">Principal <span
-                                        class="material-icons text-sm">trending_down</span>
-                                    <span class="material-icons text-sm">{{ getSortIcon('personal', 'principal')
-                                        }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('personal', 'monthly')"
-                                class="px-4 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">
-                                    Monthly
-                                    <span class="material-icons text-sm">{{ getSortIcon('personal', 'monthly') }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('personal', 'payoff')"
-                                class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">Payoff <span
-                                        class="material-icons text-sm">event</span>
-                                    <span class="material-icons text-sm">{{ getSortIcon('personal', 'payoff') }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('personal', 'monthsLeft')"
-                                class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">
-                                    Left
-                                    <span class="material-icons text-sm">{{ getSortIcon('personal', 'monthsLeft')
-                                        }}</span>
-                                </span>
-                            </th>
-                            <th
-                                class="px-4 py-4 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                Notes</th>
-                            <th
-                                class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                        <tr *ngFor="let account of personalLoans; let i = index"
-                            class="hover:bg-purple-50/50 dark:hover:bg-purple-900/10 transition-all duration-200">
-                            <td
-                                class="px-4 py-4 whitespace-nowrap text-purple-600 dark:text-purple-400 font-black text-lg">
-                                {{ i + 1 }}</td>
-                            <td class="px-4 py-4 whitespace-nowrap text-center">
-                                <span *ngIf="account.priority"
-                                    class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs font-bold border border-red-200 dark:border-red-800">
-                                    {{ account.priority }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-4 whitespace-nowrap">
-                                <div class="font-bold text-gray-900 dark:text-white text-lg flex items-center gap-2">
-                                    {{ account.name }}
-                                    <span *ngIf="isNewAccount(account)"
-                                        class="px-2 py-0.5 text-xs font-bold bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-300 rounded-full border border-purple-200 dark:border-purple-500/30">NEW</span>
-                                </div>
-                            </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-right">
-                                <div class="text-lg font-black text-gray-900 dark:text-white">${{ account.currentBalance
-                                    | number:'1.0-0'
-                                    }}</div>
-                            </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-right">
-                                <ng-container *ngIf="getMonthlyChange(account) !== null; else noChange">
-                                    <span *ngIf="getMonthlyChange(account)! < 0"
-                                        class="text-emerald-500 font-bold flex items-center justify-end gap-1">
-                                        <span class="material-icons text-sm">arrow_downward</span>
-                                        ${{ Math.abs(getMonthlyChange(account)!) | number:'1.0-0' }}
-                                    </span>
-                                    <span *ngIf="getMonthlyChange(account)! > 0"
-                                        class="text-rose-500 font-bold flex items-center justify-end gap-1">
-                                        <span class="material-icons text-sm">arrow_upward</span>
-                                        ${{ Math.abs(getMonthlyChange(account)!) | number:'1.0-0' }}
-                                    </span>
-                                    <span *ngIf="getMonthlyChange(account) === 0" class="text-gray-400">-</span>
-                                </ng-container>
-                                <ng-template #noChange>
-                                    <span class="text-gray-400">-</span>
-                                </ng-template>
-                            </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-center">
-                                <span
-                                    [class]="'px-3 py-1 rounded-full text-xs font-bold ' + getAprBadgeClass(account.apr)">
-                                    {{ account.apr }}%
-                                </span>
-                            </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-right">
-                                <span *ngIf="account.apr > 0" class="text-orange-600 dark:text-orange-400 font-bold">
-                                    ${{ calculateMonthlyInterest(account.currentBalance, account.apr) | number:'1.2-2'
-                                    }}
-                                </span>
-                                <span *ngIf="account.apr === 0" class="text-gray-400 dark:text-gray-600">$0.00</span>
-                            </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-right">
-                                <span *ngIf="account.principalPerMonth !== undefined"
-                                    class="text-green-600 dark:text-green-400 font-bold">
-                                    ${{ account.principalPerMonth | number:'1.2-2' }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-right text-gray-500 dark:text-gray-400">
-                                {{ account.monthlyPayment ? ('$' + (account.monthlyPayment | number:'1.0-0')) : '$0' }}
-                            </td>
-                            <td
-                                class="px-4 py-4 whitespace-nowrap text-center text-gray-700 dark:text-gray-300 font-medium">
-                                {{ account.payoffDate ? (account.payoffDate | date:'MMM yyyy') : '-' }}
-                            </td>
-                            <td
-                                class="px-4 py-4 whitespace-nowrap text-center text-gray-700 dark:text-gray-300 font-medium">
-                                {{ account.monthsLeft ? account.monthsLeft + ' mo' : '-' }}
-                            </td>
-                            <td class="px-4 py-4 text-sm text-gray-500 max-w-xs truncate" [title]="account.notes || ''">
-                                {{ account.notes }}</td>
-                            <td class="px-4 py-4 whitespace-nowrap text-center">
-                                <div class="flex items-center justify-center gap-2">
-                                    <button (click)="editAccount(account)"
-                                        class="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                                        title="Edit">
-                                        <span class="material-icons text-sm">edit</span>
-                                    </button>
-                                    <button (click)="deleteAccount(account)"
-                                        class="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                        title="Delete">
-                                        <span class="material-icons text-sm">delete</span>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                    <tfoot class="bg-gray-50 dark:bg-[#0f1729] border-t border-gray-200 dark:border-gray-700">
-                        <tr>
-                            <td colspan="3"
-                                class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
-                                Total:
-                            </td>
-                            <td class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
-                                ${{ getTotalBalance('personal') | number:'1.0-0' }}
-                            </td>
-                            <td class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
-                                <ng-container *ngIf="getTotalMonthlyChange('personal') !== null; else noChangeTotal">
-                                    <span *ngIf="getTotalMonthlyChange('personal')! < 0"
-                                        class="text-emerald-500 font-bold flex items-center justify-end gap-1">
-                                        <span class="material-icons text-sm">arrow_downward</span>
-                                        ${{ Math.abs(getTotalMonthlyChange('personal')!) | number:'1.0-0' }}
-                                    </span>
-                                    <span *ngIf="getTotalMonthlyChange('personal')! > 0"
-                                        class="text-rose-500 font-bold flex items-center justify-end gap-1">
-                                        <span class="material-icons text-sm">arrow_upward</span>
-                                        ${{ Math.abs(getTotalMonthlyChange('personal')!) | number:'1.0-0' }}
-                                    </span>
-                                    <span *ngIf="getTotalMonthlyChange('personal') === 0" class="text-gray-400">-</span>
-                                </ng-container>
-                                <ng-template #noChangeTotal>
-                                    <span class="text-gray-400">-</span>
-                                </ng-template>
-                            </td>
-                            <td colspan="2"
-                                class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
-                                ${{ getTotalInterest('personal') | number:'1.2-2' }}
-                            </td>
-                            <td class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
-                                ${{ getTotalPrincipal('personal') | number:'1.2-2' }}
-                            </td>
-                            <td class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
-                                ${{ getTotalMonthlyPayment('personal') | number:'1.0-0' }}
-                            </td>
-                            <td colspan="4"></td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-        </div>
-
-        <!-- Auto Loans Table -->
-        <div *ngIf="autoLoans.length > 0">
-            <div class="flex items-center justify-between mb-4 cursor-pointer group bg-white dark:bg-[#1a2332] p-4 rounded-xl border-l-4 border-green-500 shadow-lg hover:bg-gray-50 dark:hover:bg-[#252f40] transition-all"
-                (click)="autoLoansCollapsed = !autoLoansCollapsed">
-                <h3 class="text-2xl font-black text-gray-900 dark:text-white flex items-center">
-                    <span class="material-icons text-green-600 dark:text-green-400 mr-3 text-3xl">directions_car</span>
-                    Auto Loans
-                    <span
-                        class="ml-3 px-3 py-1 bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-300 text-sm font-bold rounded-full border border-green-200 dark:border-green-500/30">{{
-                        autoLoans.length }} Accounts</span>
-                </h3>
-                <span
-                    class="material-icons text-gray-400 transform transition-transform duration-300 group-hover:text-gray-600 dark:group-hover:text-white"
-                    [class.rotate-180]="autoLoansCollapsed">expand_more</span>
-            </div>
-
-            <!-- Add New Account Button -->
-            <button *ngIf="!autoLoansCollapsed" (click)="addNewAccount('AUTO_LOAN')"
-                class="mb-4 px-4 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition-colors flex items-center gap-2">
-                <span class="material-icons text-sm">add_circle</span>
-                Add New Auto Loan
-            </button>
-            <div *ngIf="!autoLoansCollapsed"
-                class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 shadow-softer bg-white dark:bg-[#1a2332]">
-                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                    <thead class="bg-gray-50 dark:bg-[#0f1729]">
-                        <tr>
-                            <th
-                                class="px-4 py-4 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                #
-                            </th>
-                            <th (click)="sort('auto', 'priority')"
-                                class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">
-                                    Priority
-                                    <span class="material-icons text-sm">{{ getSortIcon('auto', 'priority') }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('auto', 'name')"
-                                class="px-4 py-4 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">
-                                    Account
-                                    <span class="material-icons text-sm">{{ getSortIcon('auto', 'name') }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('auto', 'balance')"
-                                class="px-4 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">
-                                    Balance
-                                    <span class="material-icons text-sm">{{ getSortIcon('auto', 'balance') }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('auto', 'change')"
-                                class="px-4 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">
-                                    Monthly Change
-                                    <span class="material-icons text-sm">{{ getSortIcon('auto', 'change') }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('auto', 'apr')"
-                                class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">
-                                    APR
-                                    <span class="material-icons text-sm">{{ getSortIcon('auto', 'apr') }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('auto', 'interest')"
-                                class="px-4 py-4 text-right text-xs font-black text-orange-600 dark:text-orange-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">Interest <span
-                                        class="material-icons text-sm">trending_up</span>
-                                    <span class="material-icons text-sm">{{ getSortIcon('auto', 'interest') }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('auto', 'principal')"
-                                class="px-4 py-4 text-right text-xs font-black text-green-600 dark:text-green-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">Principal <span
-                                        class="material-icons text-sm">trending_down</span>
-                                    <span class="material-icons text-sm">{{ getSortIcon('auto', 'principal') }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('auto', 'monthly')"
-                                class="px-4 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">
-                                    Monthly
-                                    <span class="material-icons text-sm">{{ getSortIcon('auto', 'monthly') }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('auto', 'payoff')"
-                                class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">Payoff <span
-                                        class="material-icons text-sm">event</span>
-                                    <span class="material-icons text-sm">{{ getSortIcon('auto', 'payoff') }}</span>
-                                </span>
-                            </th>
-                            <th (click)="sort('auto', 'monthsLeft')"
-                                class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                                <span class="inline-flex items-center gap-1">
-                                    Left
-                                    <span class="material-icons text-sm">{{ getSortIcon('auto', 'monthsLeft') }}</span>
-                                </span>
-                            </th>
-                            <th
-                                class="px-4 py-4 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                Notes</th>
-                            <th
-                                class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                        <tr *ngFor="let account of autoLoans; let i = index"
-                            class="hover:bg-green-50/50 dark:hover:bg-green-900/10 transition-all duration-200">
-                            <td
-                                class="px-4 py-4 whitespace-nowrap text-green-600 dark:text-green-400 font-black text-lg">
-                                {{ i + 1 }}</td>
-                            <td class="px-4 py-4 whitespace-nowrap text-center">
-                                <span *ngIf="account.priority"
-                                    class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs font-bold border border-red-200 dark:border-red-800">
-                                    {{ account.priority }}
-                                </span>
-                            </td>
-                            <td
-                                class="px-4 py-4 whitespace-nowrap font-bold text-gray-900 dark:text-white text-lg flex items-center gap-2">
-                                {{ account.name }}
-                                <span *ngIf="isNewAccount(account)"
-                                    class="px-2 py-0.5 text-xs font-bold bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-300 rounded-full border border-green-200 dark:border-green-500/30">NEW</span>
-                            </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-right">
-                                <div class="text-lg font-black text-gray-900 dark:text-white">${{ account.currentBalance
-                                    | number:'1.0-0'
-                                    }}</div>
-                            </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-right">
-                                <ng-container *ngIf="isNewAccount(account)">
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-center">
                                     <span
-                                        class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                                        NEW
+                                        [class]="'px-3 py-1 rounded-full text-xs font-bold ' + getAprBadgeClass(account.apr)">
+                                        {{ account.apr }}%
                                     </span>
-                                </ng-container>
-                                <ng-container *ngIf="!isNewAccount(account)">
-                                    <ng-container *ngIf="getMonthlyChange(account) !== null; else noChange">
-                                        <span *ngIf="getMonthlyChange(account)! < 0"
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-right">
+                                    <span *ngIf="account.apr > 0"
+                                        class="text-orange-600 dark:text-orange-400 font-bold">
+                                        ${{ calculateMonthlyInterest(account.currentBalance, account.apr) |
+                                        number:'1.2-2'
+                                        }}
+                                    </span>
+                                    <span *ngIf="account.apr === 0"
+                                        class="text-gray-400 dark:text-gray-600">$0.00</span>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-right">
+                                    <span *ngIf="account.principalPerMonth !== undefined"
+                                        class="text-green-600 dark:text-green-400 font-bold">
+                                        ${{ account.principalPerMonth | number:'1.2-2' }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-right text-gray-500 dark:text-gray-400">
+                                    {{ account.monthlyPayment ? ('$' + (account.monthlyPayment | number:'1.0-0')) : '$0'
+                                    }}
+                                </td>
+                                <td
+                                    class="px-4 py-4 whitespace-nowrap text-center text-gray-700 dark:text-gray-300 font-medium">
+                                    {{ account.payoffDate ? (account.payoffDate | date:'MMM yyyy') : '-' }}
+                                </td>
+                                <td
+                                    class="px-4 py-4 whitespace-nowrap text-center text-gray-700 dark:text-gray-300 font-medium">
+                                    {{ account.monthsLeft ? account.monthsLeft + ' mo' : '-' }}
+                                </td>
+                                <td class="px-4 py-4 text-sm text-gray-500 max-w-xs truncate"
+                                    [title]="account.notes || ''">
+                                    {{ account.notes }}</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-center">
+                                    <div class="flex items-center justify-center gap-2">
+                                        <button (click)="editAccount(account)"
+                                            class="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                            title="Edit">
+                                            <span class="material-icons text-sm">edit</span>
+                                        </button>
+                                        <button (click)="deleteAccount(account)"
+                                            class="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                            title="Delete">
+                                            <span class="material-icons text-sm">delete</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot class="bg-gray-50 dark:bg-[#0f1729] border-t border-gray-200 dark:border-gray-700">
+                            <tr>
+                                <td colspan="3"
+                                    class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
+                                    Total:
+                                </td>
+                                <td class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
+                                    ${{ getTotalBalance('personal') | number:'1.0-0' }}
+                                </td>
+                                <td class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
+                                    <ng-container
+                                        *ngIf="getTotalMonthlyChange('personal') !== null; else noChangeTotal">
+                                        <span *ngIf="getTotalMonthlyChange('personal')! < 0"
                                             class="text-emerald-500 font-bold flex items-center justify-end gap-1">
                                             <span class="material-icons text-sm">arrow_downward</span>
-                                            ${{ Math.abs(getMonthlyChange(account)!) | number:'1.0-0' }}
+                                            ${{ Math.abs(getTotalMonthlyChange('personal')!) | number:'1.0-0' }}
                                         </span>
-                                        <span *ngIf="getMonthlyChange(account)! > 0"
+                                        <span *ngIf="getTotalMonthlyChange('personal')! > 0"
                                             class="text-rose-500 font-bold flex items-center justify-end gap-1">
                                             <span class="material-icons text-sm">arrow_upward</span>
-                                            ${{ Math.abs(getMonthlyChange(account)!) | number:'1.0-0' }}
+                                            ${{ Math.abs(getTotalMonthlyChange('personal')!) | number:'1.0-0' }}
                                         </span>
-                                        <span *ngIf="getMonthlyChange(account) === 0" class="text-gray-400">-</span>
+                                        <span *ngIf="getTotalMonthlyChange('personal') === 0"
+                                            class="text-gray-400">-</span>
                                     </ng-container>
-                                    <ng-template #noChange>
+                                    <ng-template #noChangeTotal>
                                         <span class="text-gray-400">-</span>
                                     </ng-template>
-                                </ng-container>
-                            </td>
+                                </td>
+                                <td colspan="2"
+                                    class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
+                                    ${{ getTotalInterest('personal') | number:'1.2-2' }}
+                                </td>
+                                <td class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
+                                    ${{ getTotalPrincipal('personal') | number:'1.2-2' }}
+                                </td>
+                                <td class="px-4 py-4 text-right text-lg font-black text-gray-900 dark:text-white">
+                                    ${{ getTotalMonthlyPayment('personal') | number:'1.0-0' }}
+                                </td>
+                                <td colspan="4"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
 
-                            <td class="px-4 py-4 whitespace-nowrap text-center">
-                                <span
-                                    [class]="'px-3 py-1 rounded-full text-xs font-bold ' + getAprBadgeClass(account.apr)">
-                                    {{ account.apr }}%
-                                </span>
-                            </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-right">
-                                <span *ngIf="account.apr > 0" class="text-orange-600 dark:text-orange-400 font-bold">
-                                    ${{ calculateMonthlyInterest(account.currentBalance, account.apr) | number:'1.2-2'
+            <!-- Auto Loans Table -->
+            <div *ngIf="autoLoans.length > 0">
+                <div class="flex items-center justify-between mb-4 cursor-pointer group bg-white dark:bg-[#1a2332] p-4 rounded-xl border-l-4 border-green-500 shadow-lg hover:bg-gray-50 dark:hover:bg-[#252f40] transition-all"
+                    (click)="autoLoansCollapsed = !autoLoansCollapsed">
+                    <h3 class="text-2xl font-black text-gray-900 dark:text-white flex items-center">
+                        <span
+                            class="material-icons text-green-600 dark:text-green-400 mr-3 text-3xl">directions_car</span>
+                        Auto Loans
+                        <span
+                            class="ml-3 px-3 py-1 bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-300 text-sm font-bold rounded-full border border-green-200 dark:border-green-500/30">{{
+                            autoLoans.length }} Accounts</span>
+                    </h3>
+                    <span
+                        class="material-icons text-gray-400 transform transition-transform duration-300 group-hover:text-gray-600 dark:group-hover:text-white"
+                        [class.rotate-180]="autoLoansCollapsed">expand_more</span>
+                </div>
+
+                <!-- Add New Account Button -->
+                <button *ngIf="!autoLoansCollapsed" (click)="addNewAccount('AUTO_LOAN')"
+                    class="mb-4 px-4 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition-colors flex items-center gap-2">
+                    <span class="material-icons text-sm">add_circle</span>
+                    Add New Auto Loan
+                </button>
+                <div *ngIf="!autoLoansCollapsed"
+                    class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 shadow-softer bg-white dark:bg-[#1a2332]">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-[#0f1729]">
+                            <tr>
+                                <th
+                                    class="px-4 py-4 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    #
+                                </th>
+                                <th (click)="sort('auto', 'priority')"
+                                    class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">
+                                        Priority
+                                        <span class="material-icons text-sm">{{ getSortIcon('auto', 'priority')
+                                            }}</span>
+                                    </span>
+                                </th>
+                                <th (click)="sort('auto', 'name')"
+                                    class="px-4 py-4 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">
+                                        Account
+                                        <span class="material-icons text-sm">{{ getSortIcon('auto', 'name') }}</span>
+                                    </span>
+                                </th>
+                                <th (click)="sort('auto', 'balance')"
+                                    class="px-4 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">
+                                        Balance
+                                        <span class="material-icons text-sm">{{ getSortIcon('auto', 'balance') }}</span>
+                                    </span>
+                                </th>
+                                <th (click)="sort('auto', 'change')"
+                                    class="px-4 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">
+                                        Monthly Change
+                                        <span class="material-icons text-sm">{{ getSortIcon('auto', 'change') }}</span>
+                                    </span>
+                                </th>
+                                <th (click)="sort('auto', 'apr')"
+                                    class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">
+                                        APR
+                                        <span class="material-icons text-sm">{{ getSortIcon('auto', 'apr') }}</span>
+                                    </span>
+                                </th>
+                                <th (click)="sort('auto', 'interest')"
+                                    class="px-4 py-4 text-right text-xs font-black text-orange-600 dark:text-orange-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">Interest <span
+                                            class="material-icons text-sm">trending_up</span>
+                                        <span class="material-icons text-sm">{{ getSortIcon('auto', 'interest')
+                                            }}</span>
+                                    </span>
+                                </th>
+                                <th (click)="sort('auto', 'principal')"
+                                    class="px-4 py-4 text-right text-xs font-black text-green-600 dark:text-green-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">Principal <span
+                                            class="material-icons text-sm">trending_down</span>
+                                        <span class="material-icons text-sm">{{ getSortIcon('auto', 'principal')
+                                            }}</span>
+                                    </span>
+                                </th>
+                                <th (click)="sort('auto', 'monthly')"
+                                    class="px-4 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">
+                                        Monthly
+                                        <span class="material-icons text-sm">{{ getSortIcon('auto', 'monthly') }}</span>
+                                    </span>
+                                </th>
+                                <th (click)="sort('auto', 'payoff')"
+                                    class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">Payoff <span
+                                            class="material-icons text-sm">event</span>
+                                        <span class="material-icons text-sm">{{ getSortIcon('auto', 'payoff') }}</span>
+                                    </span>
+                                </th>
+                                <th (click)="sort('auto', 'monthsLeft')"
+                                    class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                                    <span class="inline-flex items-center gap-1">
+                                        Left
+                                        <span class="material-icons text-sm">{{ getSortIcon('auto', 'monthsLeft')
+                                            }}</span>
+                                    </span>
+                                </th>
+                                <th
+                                    class="px-4 py-4 text-left text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    Notes</th>
+                                <th
+                                    class="px-4 py-4 text-center text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                    Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                            <tr *ngFor="let account of autoLoans; let i = index"
+                                class="hover:bg-green-50/50 dark:hover:bg-green-900/10 transition-all duration-200">
+                                <td
+                                    class="px-4 py-4 whitespace-nowrap text-green-600 dark:text-green-400 font-black text-lg">
+                                    {{ i + 1 }}</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-center">
+                                    <span *ngIf="account.priority"
+                                        class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs font-bold border border-red-200 dark:border-red-800">
+                                        {{ account.priority }}
+                                    </span>
+                                </td>
+                                <td
+                                    class="px-4 py-4 whitespace-nowrap font-bold text-gray-900 dark:text-white text-lg flex items-center gap-2">
+                                    {{ account.name }}
+                                    <span *ngIf="isNewAccount(account)"
+                                        class="px-2 py-0.5 text-xs font-bold bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-300 rounded-full border border-green-200 dark:border-green-500/30">NEW</span>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-right">
+                                    <div class="text-lg font-black text-gray-900 dark:text-white">${{
+                                        account.currentBalance
+                                        | number:'1.0-0'
+                                        }}</div>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-right">
+                                    <ng-container *ngIf="isNewAccount(account)">
+                                        <span
+                                            class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                                            NEW
+                                        </span>
+                                    </ng-container>
+                                    <ng-container *ngIf="!isNewAccount(account)">
+                                        <ng-container *ngIf="getMonthlyChange(account) !== null; else noChange">
+                                            <span *ngIf="getMonthlyChange(account)! < 0"
+                                                class="text-emerald-500 font-bold flex items-center justify-end gap-1">
+                                                <span class="material-icons text-sm">arrow_downward</span>
+                                                ${{ Math.abs(getMonthlyChange(account)!) | number:'1.0-0' }}
+                                            </span>
+                                            <span *ngIf="getMonthlyChange(account)! > 0"
+                                                class="text-rose-500 font-bold flex items-center justify-end gap-1">
+                                                <span class="material-icons text-sm">arrow_upward</span>
+                                                ${{ Math.abs(getMonthlyChange(account)!) | number:'1.0-0' }}
+                                            </span>
+                                            <span *ngIf="getMonthlyChange(account) === 0" class="text-gray-400">-</span>
+                                        </ng-container>
+                                        <ng-template #noChange>
+                                            <span class="text-gray-400">-</span>
+                                        </ng-template>
+                                    </ng-container>
+                                </td>
+
+                                <td class="px-4 py-4 whitespace-nowrap text-center">
+                                    <span
+                                        [class]="'px-3 py-1 rounded-full text-xs font-bold ' + getAprBadgeClass(account.apr)">
+                                        {{ account.apr }}%
+                                    </span>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-right">
+                                    <span *ngIf="account.apr > 0"
+                                        class="text-orange-600 dark:text-orange-400 font-bold">
+                                        ${{ calculateMonthlyInterest(account.currentBalance, account.apr) |
+                                        number:'1.2-2'
+                                        }}
+                                    </span>
+                                    <span *ngIf="account.apr === 0"
+                                        class="text-gray-400 dark:text-gray-600">$0.00</span>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-right">
+                                    <span *ngIf="account.principalPerMonth !== undefined"
+                                        class="text-green-600 dark:text-green-400 font-bold">
+                                        ${{ account.principalPerMonth | number:'1.2-2' }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-right text-gray-500 dark:text-gray-400">
+                                    {{ account.monthlyPayment ? ('$' + (account.monthlyPayment | number:'1.0-0')) : '$0'
                                     }}
-                                </span>
-                                <span *ngIf="account.apr === 0" class="text-gray-400 dark:text-gray-600">$0.00</span>
-                            </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-right">
-                                <span *ngIf="account.principalPerMonth !== undefined"
-                                    class="text-green-600 dark:text-green-400 font-bold">
-                                    ${{ account.principalPerMonth | number:'1.2-2' }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-right text-gray-500 dark:text-gray-400">
-                                {{ account.monthlyPayment ? ('$' + (account.monthlyPayment | number:'1.0-0')) : '$0' }}
-                            </td>
-                            <td
-                                class="px-4 py-4 whitespace-nowrap text-center text-gray-700 dark:text-gray-300 font-medium">
-                                {{ account.payoffDate ? (account.payoffDate | date:'MMM yyyy') : '-' }}
-                            </td>
-                            <td
-                                class="px-4 py-4 whitespace-nowrap text-center text-gray-700 dark:text-gray-300 font-medium">
-                                {{ account.monthsLeft ? account.monthsLeft + ' mo' : '-' }}
-                            </td>
-                            <td class="px-4 py-4 text-sm text-gray-500 max-w-xs truncate" [title]="account.notes || ''">
-                                {{ account.notes }}</td>
-                            <td class="px-4 py-4 whitespace-nowrap text-center">
-                                <div class="flex items-center justify-center gap-2">
-                                    <button (click)="editAccount(account)"
-                                        class="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                                        title="Edit">
-                                        <span class="material-icons text-sm">edit</span>
-                                    </button>
-                                    <button (click)="deleteAccount(account)"
-                                        class="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                        title="Delete">
-                                        <span class="material-icons text-sm">delete</span>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                                </td>
+                                <td
+                                    class="px-4 py-4 whitespace-nowrap text-center text-gray-700 dark:text-gray-300 font-medium">
+                                    {{ account.payoffDate ? (account.payoffDate | date:'MMM yyyy') : '-' }}
+                                </td>
+                                <td
+                                    class="px-4 py-4 whitespace-nowrap text-center text-gray-700 dark:text-gray-300 font-medium">
+                                    {{ account.monthsLeft ? account.monthsLeft + ' mo' : '-' }}
+                                </td>
+                                <td class="px-4 py-4 text-sm text-gray-500 max-w-xs truncate"
+                                    [title]="account.notes || ''">
+                                    {{ account.notes }}</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-center">
+                                    <div class="flex items-center justify-center gap-2">
+                                        <button (click)="editAccount(account)"
+                                            class="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                            title="Edit">
+                                            <span class="material-icons text-sm">edit</span>
+                                        </button>
+                                        <button (click)="deleteAccount(account)"
+                                            class="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                            title="Delete">
+                                            <span class="material-icons text-sm">delete</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
+
+        <!-- Modals -->
+        <app-account-form-modal [isVisible]="showEditModal" [account]="editingAccount"
+            [accountType]="editingAccount?.type || 'CREDIT_CARD'" [mode]="'edit'" [snapshotDate]="currentSnapshotDate"
+            (save)="saveAccount($event)" (cancel)="cancelEdit()">
+        </app-account-form-modal>
+
+        <app-account-form-modal [isVisible]="showAddModal" [account]="null" [accountType]="addAccountType"
+            [mode]="'add'" [snapshotDate]="currentSnapshotDate" (save)="saveAccount($event)" (cancel)="cancelAdd()">
+        </app-account-form-modal>
+
+        <app-confirmation-modal [isVisible]="showDeleteConfirmation" [title]="'Delete Account'"
+            [message]="deleteConfirmationMessage" [confirmText]="'Delete'" [cancelText]="'Cancel'" [isDanger]="true"
+            (confirm)="confirmDelete()" (cancel)="cancelDelete()">
+        </app-confirmation-modal>
     </div>
-
-    <!-- Modals -->
-    <app-account-form-modal [isVisible]="showEditModal" [account]="editingAccount"
-        [accountType]="editingAccount?.type || 'CREDIT_CARD'" [mode]="'edit'" [snapshotDate]="currentSnapshotDate"
-        (save)="saveAccount($event)" (cancel)="cancelEdit()">
-    </app-account-form-modal>
-
-    <app-account-form-modal [isVisible]="showAddModal" [account]="null" [accountType]="addAccountType" [mode]="'add'"
-        [snapshotDate]="currentSnapshotDate" (save)="saveAccount($event)" (cancel)="cancelAdd()">
-    </app-account-form-modal>
-
-    <app-confirmation-modal [isVisible]="showDeleteConfirmation" [title]="'Delete Account'"
-        [message]="deleteConfirmationMessage" [confirmText]="'Delete'" [cancelText]="'Cancel'" [isDanger]="true"
-        (confirm)="confirmDelete()" (cancel)="cancelDelete()">
-    </app-confirmation-modal>
-</div>
