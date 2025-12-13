@@ -218,44 +218,22 @@
                 </div>
 
                 <div class="space-y-3">
-                    <!-- Fixed Recurring -->
-                    <div *ngIf="!isFixedRecurringRemoved('Room Rent')"
-                        class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl">
+                    <!-- Dynamic Subscriptions and Fixed Recurring (Unified) -->
+                    <div *ngFor="let sub of getSubscriptions()"
+                        class="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
                         <div class="flex-1">
-                            <p class="font-medium text-gray-900 dark:text-white">Room Rent</p>
-                            <p class="text-xs text-gray-500">1st of every month</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ sub.description }}</p>
+                            <p class="text-xs text-gray-500">{{ sub.category }} • {{ sub.dayOfMonth }}th of month</p>
                         </div>
-                        <span class="font-bold text-gray-900 dark:text-white mr-3">$1,168</span>
-                        <button (click)="removeFixedRecurring('Room Rent'); loadExpenses()"
-                            class="text-red-500 hover:text-red-700 p-1">
-                            <span class="material-icons text-sm">delete</span>
-                        </button>
-                    </div>
-                    <div *ngIf="!isFixedRecurringRemoved('Roth IRA Investment')"
-                        class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-900/50 rounded-xl">
-                        <div class="flex-1">
-                            <p class="font-medium text-gray-900 dark:text-white">Roth IRA Investment</p>
-                            <p class="text-xs text-gray-500">1st of every month</p>
-                        </div>
-                        <span class="font-bold text-gray-900 dark:text-white mr-3">$583</span>
-                        <button (click)="removeFixedRecurring('Roth IRA Investment'); loadExpenses()"
+                        <span class="font-bold text-gray-900 dark:text-white mr-3">{{ sub.amount | currency }}</span>
+                        <button (click)="removeSubscription(sub.description); loadExpenses()"
                             class="text-red-500 hover:text-red-700 p-1">
                             <span class="material-icons text-sm">delete</span>
                         </button>
                     </div>
 
-                    <!-- Dynamic Subscriptions -->
-                    <div *ngFor="let sub of getSubscriptions()"
-                        class="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
-                        <div class="flex-1">
-                            <p class="font-medium text-gray-900 dark:text-white">{{ sub.name }}</p>
-                            <p class="text-xs text-gray-500">Subscription • 1st of month</p>
-                        </div>
-                        <span class="font-bold text-gray-900 dark:text-white mr-3">${{ sub.amount }}</span>
-                        <button (click)="removeSubscription(sub.name); loadExpenses()"
-                            class="text-red-500 hover:text-red-700 p-1">
-                            <span class="material-icons text-sm">delete</span>
-                        </button>
+                    <div *ngIf="getSubscriptions().length === 0" class="text-center py-4 text-gray-400 text-sm">
+                        No recurring expenses found.
                     </div>
 
                     <div class="pt-3 border-t border-gray-200 dark:border-gray-700">

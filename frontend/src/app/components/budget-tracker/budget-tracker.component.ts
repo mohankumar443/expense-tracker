@@ -4,6 +4,7 @@ import { ExpenseService } from '../../services/expense.service';
 import { SnapshotStateService } from '../../services/snapshot-state.service';
 import { AutoCategorizationService } from '../../services/auto-categorization.service';
 import { BudgetAnalyticsService, CategoryBreakdown, Insight, MonthlyStats, BudgetScore, Prediction } from '../../services/budget-analytics.service';
+import { RecurringExpenseService, RecurringExpense } from '../../services/recurring-expense.service';
 import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 
@@ -27,6 +28,9 @@ export class BudgetTrackerComponent implements OnInit {
     targetDate: Date = new Date();
     monthlyBudget: number = 5000;
     totalSpent: number = 0;
+
+    // New Recurring State
+    recurringExpensesList: RecurringExpense[] = [];
 
     // Dashboard State
     activeView: 'dashboard' | 'transactions' | 'analytics' = 'dashboard';
@@ -142,7 +146,8 @@ export class BudgetTrackerComponent implements OnInit {
         private expenseService: ExpenseService,
         private snapshotStateService: SnapshotStateService,
         private autoCategorizationService: AutoCategorizationService,
-        private analyticsService: BudgetAnalyticsService
+        private analyticsService: BudgetAnalyticsService,
+        private recurringExpenseService: RecurringExpenseService
     ) { }
 
     ngOnInit(): void {
@@ -151,232 +156,77 @@ export class BudgetTrackerComponent implements OnInit {
             this.filterExpensesAndBudget();
         });
         this.loadExpenses();
-
-        // One-time cleanup of duplicate recurring expenses
-        const cleanupDone = localStorage.getItem('duplicateCleanupDone');
-        if (!cleanupDone) {
-            this.cleanupDuplicateRecurringExpenses();
-            localStorage.setItem('duplicateCleanupDone', 'true');
-        }
+        this.loadRecurringExpenses();
     }
 
-    cleanupDuplicateRecurringExpenses() {
-        this.expenseService.getAllExpenses().subscribe(expenses => {
-            // Group by description + date + isRecurring
-            const groups = new Map<string, Expense[]>();
-
-            expenses.forEach(expense => {
-                if (expense.isRecurring) {
-                    const key = `${expense.description}_${expense.date}`;
-                    if (!groups.has(key)) {
-                        groups.set(key, []);
-                    }
-                    groups.get(key)!.push(expense);
-                }
-            });
-
-            // For each group, keep the first and delete the rest
-            groups.forEach((group, key) => {
-                if (group.length > 1) {
-                    console.log(`Found ${group.length} duplicates for ${key}, removing ${group.length - 1}`);
-                    // Sort by ID to be consistent, keep the first one
-                    group.sort((a, b) => (a.id || 0) - (b.id || 0));
-
-                    // Delete all except the first
-                    for (let i = 1; i < group.length; i++) {
-                        if (group[i].id) {
-                            this.expenseService.deleteExpense(group[i].id!).subscribe(() => {
-                                console.log(`Deleted duplicate: ${group[i].description} - ${group[i].date}`);
-                            });
-                        }
-                    }
-                }
-            });
-
-            // Reload after cleanup
-            setTimeout(() => this.loadExpenses(), 1000);
+    loadRecurringExpenses() {
+        this.recurringExpenseService.getAll().subscribe(data => {
+            this.recurringExpensesList = data;
         });
     }
 
-    initializeRecurringExpensesForMonth(year: number, month: number) {
-        // month is 0-indexed (0 = January, 11 = December)
-        const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
-        const initKey = `lastRecurringInit_${monthKey}`;
-        const lastInitialized = localStorage.getItem(initKey);
-
-        // If already initialized, skip entirely
-        if (lastInitialized === 'true') {
-            return;
-        }
-
-        // Mark as initialized immediately to prevent duplicate calls
-        localStorage.setItem(initKey, 'true');
-
-        // Check which fixed recurring items have been removed
-        const removedItems = JSON.parse(localStorage.getItem('removedFixedRecurring') || '[]');
-
-        const recurringExpenses: Array<{ description: string, amount: number, category: string, isRecurring: boolean }> = [];
-        // Only add if not removed
-        if (!removedItems.includes('Room Rent')) {
-            recurringExpenses.push({ description: 'Room Rent', amount: 1168, category: 'Room Rent', isRecurring: true });
-        }
-        if (!removedItems.includes('Roth IRA Investment')) {
-            recurringExpenses.push({ description: 'Roth IRA Investment', amount: 583, category: 'Investments', isRecurring: true });
-        }
-
-        // Get subscriptions from localStorage
-        const subscriptions = this.getSubscriptions();
-        subscriptions.forEach(sub => {
-            recurringExpenses.push({
-                description: sub.name,
-                amount: sub.amount,
-                category: 'Subscriptions',
-                isRecurring: true
-            });
-        });
-
-        // Get EMI payments from localStorage
-        const emiPayments = this.getEMIPayments();
-        emiPayments.forEach(emi => {
-            recurringExpenses.push({
-                description: emi.description,
-                amount: emi.amount,
-                category: emi.category,
-                isRecurring: true
-            });
-        });
-
-        const firstDayOfMonth = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-
-        // Check if recurring expenses already exist for this month
-        this.expenseService.getAllExpenses().subscribe(expenses => {
-            recurringExpenses.forEach(recurring => {
-                const exists = expenses.some(e =>
-                    e.description === recurring.description &&
-                    e.date.startsWith(monthKey) &&
-                    e.isRecurring === true
-                );
-
-                if (!exists) {
-                    const newExpense = {
-                        ...recurring,
-                        date: firstDayOfMonth
-                    };
-                    this.expenseService.createExpense(newExpense).subscribe(() => {
-                        // Reload will happen from filterExpensesAndBudget being called again
-                    });
-                }
-            });
-        });
-    }
-
-    getSubscriptions(): Array<{ name: string, amount: number }> {
-        const subs = localStorage.getItem('subscriptions');
-        return subs ? JSON.parse(subs) : [];
+    getSubscriptions(): RecurringExpense[] {
+        return this.recurringExpensesList.filter(e => !e.emi && e.active);
     }
 
     addSubscription(name: string, amount: number) {
-        const subscriptions = this.getSubscriptions();
-        subscriptions.push({ name, amount });
-        localStorage.setItem('subscriptions', JSON.stringify(subscriptions));
-
-        // Add to current month
-        const currentMonth = new Date().getMonth();
-        const currentYear = new Date().getFullYear();
-        const firstDayOfMonth = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`;
-
-        const newExpense = {
+        this.recurringExpenseService.create({
             description: name,
             amount: amount,
             category: 'Subscriptions',
-            date: firstDayOfMonth,
-            isRecurring: true
-        };
-
-        this.expenseService.createExpense(newExpense).subscribe(() => {
-            this.loadExpenses();
+            dayOfMonth: 1, // Defaulting to 1st
+            emi: false,
+            active: true
+        } as RecurringExpense).subscribe(() => {
+            this.loadRecurringExpenses();
+            // Optional: Trigger processNow if user wants it immediately? 
+            // For now just add definition.
         });
     }
 
     removeSubscription(name: string) {
-        let subscriptions = this.getSubscriptions();
-        subscriptions = subscriptions.filter(s => s.name !== name);
-        localStorage.setItem('subscriptions', JSON.stringify(subscriptions));
-    }
-
-    removeFixedRecurring(name: string) {
-        // Delete all expenses with this description that are marked as recurring
-        this.expenseService.getAllExpenses().subscribe(expenses => {
-            const toDelete = expenses.filter(e =>
-                e.description === name && e.isRecurring === true
-            );
-
-            toDelete.forEach(expense => {
-                if (expense.id) {
-                    this.expenseService.deleteExpense(expense.id).subscribe(() => {
-                        this.loadExpenses();
-                    });
-                }
+        // Find ID by description (not ideal but works for unique descriptions)
+        const item = this.recurringExpensesList.find(e => e.description === name);
+        if (item && item.id) {
+            this.recurringExpenseService.delete(item.id).subscribe(() => {
+                this.loadRecurringExpenses();
             });
-        });
-
-        // Store in localStorage which fixed recurring items have been removed
-        const removedItems = JSON.parse(localStorage.getItem('removedFixedRecurring') || '[]');
-        if (!removedItems.includes(name)) {
-            removedItems.push(name);
-            localStorage.setItem('removedFixedRecurring', JSON.stringify(removedItems));
         }
     }
 
-    getTotalRecurring(): number {
-        const subscriptions = this.getSubscriptions();
-        const subsTotal = subscriptions.reduce((sum, sub) => sum + sub.amount, 0);
-
-        // Check which fixed recurring items have been removed
-        const removedItems = JSON.parse(localStorage.getItem('removedFixedRecurring') || '[]');
-        let roomRent = removedItems.includes('Room Rent') ? 0 : 1168;
-        let rothIRA = removedItems.includes('Roth IRA Investment') ? 0 : 583;
-
-        return roomRent + rothIRA + subsTotal; // Room Rent + Roth IRA + Subscriptions
+    removeFixedRecurring(name: string) {
+        // Reusing same delete logic
+        this.removeSubscription(name);
     }
 
-    getEMIPayments(): Array<{ description: string, amount: number, category: string }> {
-        const emis = localStorage.getItem('emiPayments');
-        return emis ? JSON.parse(emis) : [];
+    getTotalRecurring(): number {
+        return this.getSubscriptions().reduce((sum, sub) => sum + sub.amount, 0);
+    }
+
+    getEMIPayments(): RecurringExpense[] {
+        return this.recurringExpensesList.filter(e => e.isEmi && e.active);
     }
 
     addEMIPayment(description: string, amount: number, category: string) {
-        const emiPayments = this.getEMIPayments();
-        emiPayments.push({ description, amount, category });
-        localStorage.setItem('emiPayments', JSON.stringify(emiPayments));
-
-        // Add to current month
-        const currentMonth = new Date().getMonth();
-        const currentYear = new Date().getFullYear();
-        const firstDayOfMonth = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`;
-
-        const newExpense = {
+        this.recurringExpenseService.create({
             description: description,
             amount: amount,
             category: category,
-            date: firstDayOfMonth,
-            isRecurring: true
-        };
-
-        this.expenseService.createExpense(newExpense).subscribe(() => {
-            this.loadExpenses();
+            dayOfMonth: 1,
+            isEmi: true,
+            active: true
+        } as RecurringExpense).subscribe(() => {
+            this.loadRecurringExpenses();
         });
     }
 
     removeEMIPayment(description: string) {
-        let emiPayments = this.getEMIPayments();
-        emiPayments = emiPayments.filter(e => e.description !== description);
-        localStorage.setItem('emiPayments', JSON.stringify(emiPayments));
+        // Reuse delete logic
+        this.removeSubscription(description);
     }
 
     getTotalEMIFromList(): number {
-        const emiPayments = this.getEMIPayments();
-        return emiPayments.reduce((sum, emi) => sum + emi.amount, 0);
+        return this.getEMIPayments().reduce((sum, emi) => sum + emi.amount, 0);
     }
 
     loadExpenses() {
@@ -397,7 +247,8 @@ export class BudgetTrackerComponent implements OnInit {
         const targetYear = this.targetDate.getFullYear();
 
         // Initialize recurring expenses for the target month
-        this.initializeRecurringExpensesForMonth(targetYear, targetMonth);
+        // Removed as now handled by backend scheduler
+        // this.initializeRecurringExpensesForMonth(targetYear, targetMonth);
 
         // 1. Filter target month expenses
         this.expenses = this.allExpenses.filter(expense => {
@@ -727,7 +578,8 @@ export class BudgetTrackerComponent implements OnInit {
     }
 
     isFixedRecurringRemoved(name: string): boolean {
-        const removedItems = JSON.parse(localStorage.getItem('removedFixedRecurring') || '[]');
-        return removedItems.includes(name);
+        // With new logic, if it's not in the list, it's removed.
+        // We can check if it exists in current list
+        return !this.recurringExpensesList.some(e => e.description === name);
     }
 }

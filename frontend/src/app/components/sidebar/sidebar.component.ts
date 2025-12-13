@@ -88,6 +88,9 @@ export class SidebarComponent implements OnInit {
             case 'budget':
                 sectionId = 'budget';
                 break;
+            case 'recurring':
+                sectionId = 'recurring';
+                break;
         }
 
         if (sectionId) {

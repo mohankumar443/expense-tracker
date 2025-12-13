@@ -24,8 +24,9 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class MigrationService {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(MigrationService.class);
 
     private final AccountRepository accountRepository;
     private final SnapshotRepository snapshotRepository;
@@ -43,6 +44,15 @@ public class MigrationService {
     @PostConstruct
     public void migrateData() {
         log.info("Starting data migration from JSON files to MongoDB...");
+
+        // Quick guard: if Mongo is unavailable, skip migration to avoid startup delays
+        try {
+            accountRepository.count();
+        } catch (Exception e) {
+            log.warn("MongoDB not reachable, skipping migration. Running in file-snapshot mode only. Reason: {}",
+                    e.getMessage());
+            return;
+        }
 
         for (String fileName : SNAPSHOT_FILES) {
             try {

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { Account } from '../models/account.model';
 
 export interface DebtAccount {
@@ -11,6 +12,9 @@ export interface DebtAccount {
     currentBalance: number;
     apr: number;
     monthlyPayment?: number;
+    creditLimit?: number;
+    dueDate?: string | null;
+    sparkline?: number[];
     promoExpires?: string;
     notes?: string;
     createdDate?: string;
@@ -64,10 +68,87 @@ export class DebtAccountService {
     private snapshotUrl = 'http://localhost:8080/api/debt/snapshots';
     private snapshotManageUrl = 'http://localhost:8080/api/debt/snapshots/manage';
 
+    // Fallback data for offline/local-demo mode when API isn't reachable
+    private readonly fallbackAccounts: DebtAccount[] = [
+        {
+            id: 'fallback-boa',
+            name: 'Bank of America Cash Rewards',
+            type: 'CREDIT_CARD',
+            currentBalance: 3200,
+            creditLimit: 9000,
+            apr: 19.99,
+            monthlyPayment: 120,
+            promoExpires: null as any,
+            notes: 'Fallback data',
+            createdDate: '',
+            lastUpdated: '',
+            snapshotDate: '',
+            principalPerMonth: 0,
+            payoffDate: null,
+            monthsLeft: 18,
+            priority: 4
+        },
+        {
+            id: 'fallback-chase',
+            name: 'Chase Sapphire Preferred',
+            type: 'CREDIT_CARD',
+            currentBalance: 1800,
+            creditLimit: 12000,
+            apr: 23.5,
+            monthlyPayment: 95,
+            promoExpires: null as any,
+            notes: 'Fallback data',
+            createdDate: '',
+            lastUpdated: '',
+            snapshotDate: '',
+            principalPerMonth: 0,
+            payoffDate: null,
+            monthsLeft: 20,
+            priority: 5
+        },
+        {
+            id: 'fallback-personal',
+            name: 'SoFi Personal Loan',
+            type: 'PERSONAL_LOAN',
+            currentBalance: 7500,
+            apr: 8.99,
+            monthlyPayment: 230,
+            notes: 'Fallback data',
+            createdDate: '',
+            lastUpdated: '',
+            snapshotDate: '',
+            principalPerMonth: 0,
+            payoffDate: null,
+            monthsLeft: 28,
+            priority: 3
+        },
+        {
+            id: 'fallback-auto',
+            name: 'Honda Finance',
+            type: 'AUTO_LOAN',
+            currentBalance: 12400,
+            apr: 4.5,
+            monthlyPayment: 340,
+            notes: 'Fallback data',
+            createdDate: '',
+            lastUpdated: '',
+            snapshotDate: '',
+            principalPerMonth: 0,
+            payoffDate: null,
+            monthsLeft: 36,
+            priority: 2
+        }
+    ];
+
     constructor(private http: HttpClient) { }
 
     getAllDebts(): Observable<DebtAccount[]> {
-        return this.http.get<DebtAccount[]>(this.apiUrl);
+        return this.http.get<DebtAccount[]>(this.apiUrl).pipe(
+            catchError(err => {
+                console.warn('Debt API unavailable, using fallback accounts.', err);
+                return of(this.fallbackAccounts);
+            })
+        );
     }
 
     getDebtById(id: string): Observable<DebtAccount> {

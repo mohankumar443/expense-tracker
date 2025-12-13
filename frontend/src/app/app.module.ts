@@ -25,6 +25,7 @@ import { ExpenseService } from './services/expense.service';
 import { StrategyDashboardComponent } from './components/strategy-dashboard/strategy-dashboard.component';
 import { CountUpDirective } from './directives/count-up.directive';
 import { BudgetTrackerComponent } from './components/budget-tracker/budget-tracker.component';
+import { RecurringExpensesComponent } from './components/recurring-expenses/recurring-expenses.component';
 
 @NgModule({
     declarations: [
@@ -49,7 +50,8 @@ import { BudgetTrackerComponent } from './components/budget-tracker/budget-track
         BrowserAnimationsModule,
         HttpClientModule,
         FormsModule,
-        NgChartsModule
+        NgChartsModule,
+        RecurringExpensesComponent
     ],
     providers: [ExpenseService],
     bootstrap: [AppComponent]

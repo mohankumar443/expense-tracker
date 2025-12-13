@@ -17,7 +17,7 @@ public class SnapshotLoaderService {
 
     public List<DebtAccount> loadSnapshotFromFile(String fileName) throws Exception {
         List<DebtAccount> accounts = new ArrayList<>();
-        
+
         ObjectMapper mapper = new ObjectMapper();
         InputStream inputStream = new ClassPathResource(fileName).getInputStream();
         JsonNode root = mapper.readTree(inputStream);
@@ -30,17 +30,18 @@ public class SnapshotLoaderService {
             account.setAccountType(AccountType.CREDIT_CARD);
             account.setAccountType(AccountType.CREDIT_CARD);
             account.setCurrentBalance(card.get("balance").asDouble());
-            account.setApr(card.get("apr").asDouble());
+            // account.setApr(card.get("apr").asDouble()); // Removed from model
             account.setNotes(card.get("notes").asText());
-            
+
             if (card.has("monthlyPayment")) {
                 account.setMonthlyPayment(card.get("monthlyPayment").asDouble());
             }
-            
+
             if (card.has("promoExpires")) {
-                account.setPromoExpirationDate(LocalDate.parse(card.get("promoExpires").asText()));
+                // account.setPromoExpirationDate(LocalDate.parse(card.get("promoExpires").asText()));
+                // // Removed from model
             }
-            
+
             accounts.add(account);
         }
 
@@ -51,13 +52,13 @@ public class SnapshotLoaderService {
             account.setName(loan.get("name").asText());
             account.setAccountType(AccountType.PERSONAL_LOAN);
             account.setCurrentBalance(loan.get("balance").asDouble());
-            account.setApr(loan.get("apr").asDouble());
+            // account.setApr(loan.get("apr").asDouble()); // Removed from model
             account.setNotes(loan.get("notes").asText());
-            
+
             if (loan.has("monthlyPayment")) {
                 account.setMonthlyPayment(loan.get("monthlyPayment").asDouble());
             }
-            
+
             accounts.add(account);
         }
 
@@ -68,7 +69,7 @@ public class SnapshotLoaderService {
             account.setName(autoLoan.get("name").asText());
             account.setAccountType(AccountType.AUTO_LOAN);
             account.setCurrentBalance(autoLoan.get("balance").asDouble());
-            account.setApr(autoLoan.get("apr").asDouble());
+            // account.setApr(autoLoan.get("apr").asDouble()); // Removed from model
             account.setMonthlyPayment(autoLoan.get("monthlyPayment").asDouble());
             account.setNotes(autoLoan.get("notes").asText());
             accounts.add(account);
@@ -76,7 +77,7 @@ public class SnapshotLoaderService {
 
         return accounts;
     }
-    
+
     public String getSnapshotDate(String fileName) throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         InputStream inputStream = new ClassPathResource(fileName).getInputStream();

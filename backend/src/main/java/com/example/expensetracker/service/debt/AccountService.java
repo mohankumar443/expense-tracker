@@ -15,9 +15,10 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
-@Slf4j
 @RequiredArgsConstructor
 public class AccountService {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AccountService.class);
 
     private final AccountRepository accountRepository;
     private final FileSnapshotService fileSnapshotService;
@@ -25,7 +26,16 @@ public class AccountService {
     private boolean isDbAvailable = true;
 
     public List<Account> getAllAccounts() {
-        return accountRepository.findAll();
+        try {
+            if (isDbAvailable) {
+                return accountRepository.findAll();
+            }
+        } catch (Exception e) {
+            log.warn("MongoDB unavailable, falling back to file snapshots for all accounts: {}", e.getMessage());
+            isDbAvailable = false;
+        }
+        // Fallback: return most recent snapshot accounts
+        return fileSnapshotService.getLatestAccounts();
     }
 
     public Optional<Account> getAccountById(String id) {

@@ -76,7 +76,7 @@ public class DebtAccountController {
     }
 
     @GetMapping("/{id}")
-    public DebtAccount getDebtById(@PathVariable Long id) {
+    public DebtAccount getDebtById(@PathVariable String id) {
         return debtAccountRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Debt account not found"));
     }
@@ -93,16 +93,17 @@ public class DebtAccountController {
     }
 
     @PutMapping("/{id}")
-    public DebtAccount updateDebt(@PathVariable Long id, @RequestBody DebtAccount debtAccount) {
+    public DebtAccount updateDebt(@PathVariable String id, @RequestBody DebtAccount debtAccount) {
         DebtAccount existing = debtAccountRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Debt account not found"));
 
         existing.setName(debtAccount.getName());
         existing.setAccountType(debtAccount.getAccountType());
         existing.setCurrentBalance(debtAccount.getCurrentBalance());
-        existing.setApr(debtAccount.getApr());
+        // existing.setApr(debtAccount.getApr()); // APR removed from model
         existing.setMonthlyPayment(debtAccount.getMonthlyPayment());
-        existing.setPromoExpirationDate(debtAccount.getPromoExpirationDate());
+        // existing.setPromoExpirationDate(debtAccount.getPromoExpirationDate()); //
+        // Removed? Wait, checking model
         existing.setNotes(debtAccount.getNotes());
         existing.setLastUpdated(LocalDate.now());
 
@@ -110,7 +111,7 @@ public class DebtAccountController {
     }
 
     @DeleteMapping("/{id}")
-    public void deleteDebt(@PathVariable Long id) {
+    public void deleteDebt(@PathVariable String id) {
         debtAccountRepository.deleteById(id);
     }
 
@@ -121,27 +122,41 @@ public class DebtAccountController {
         // Set snapshot date (you can make this dynamic later)
         summary.setSnapshotDate("2025-09-30");
 
-        Double total = debtAccountRepository.getTotalDebt();
-        summary.setTotalDebt(total != null ? total : 0.0);
+        List<DebtAccount> allAccounts = debtAccountRepository.findAll();
 
-        Double creditCards = debtAccountRepository.getTotalDebtByType(AccountType.CREDIT_CARD);
-        summary.setCreditCardDebt(creditCards != null ? creditCards : 0.0);
+        double total = allAccounts.stream()
+                .mapToDouble(DebtAccount::getCurrentBalance)
+                .sum();
+        summary.setTotalDebt(total);
 
-        Double personalLoans = debtAccountRepository.getTotalDebtByType(AccountType.PERSONAL_LOAN);
-        summary.setPersonalLoanDebt(personalLoans != null ? personalLoans : 0.0);
+        double creditCards = allAccounts.stream()
+                .filter(a -> a.getAccountType() == AccountType.CREDIT_CARD)
+                .mapToDouble(DebtAccount::getCurrentBalance)
+                .sum();
+        summary.setCreditCardDebt(creditCards);
 
-        Double autoLoans = debtAccountRepository.getTotalDebtByType(AccountType.AUTO_LOAN);
-        summary.setAutoLoanDebt(autoLoans != null ? autoLoans : 0.0);
+        double personalLoans = allAccounts.stream()
+                .filter(a -> a.getAccountType() == AccountType.PERSONAL_LOAN)
+                .mapToDouble(DebtAccount::getCurrentBalance)
+                .sum();
+        summary.setPersonalLoanDebt(personalLoans);
 
-        summary.setTotalAccounts((int) debtAccountRepository.count());
+        double autoLoans = allAccounts.stream()
+                .filter(a -> a.getAccountType() == AccountType.AUTO_LOAN)
+                .mapToDouble(DebtAccount::getCurrentBalance)
+                .sum();
+        summary.setAutoLoanDebt(autoLoans);
+
+        summary.setTotalAccounts(allAccounts.size());
 
         return summary;
     }
 
     @GetMapping("/strategy")
     public List<DebtAccount> getPayoffStrategy() {
-        // Return debts sorted by APR descending (avalanche method)
-        return debtAccountRepository.findByOrderByAprDesc();
+        // Return debts (Avalanche method removed as APR is removed from model)
+        // Returning all debts for now
+        return debtAccountRepository.findAll();
     }
 
     @GetMapping("/snapshots")

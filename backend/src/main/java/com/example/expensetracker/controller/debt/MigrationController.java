@@ -11,11 +11,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/debt/migration")
-@CrossOrigin(origins = "*")
+@RequestMapping("/api/migration")
 @RequiredArgsConstructor
-@Slf4j
 public class MigrationController {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(MigrationController.class);
 
     private final AccountRepository accountRepository;
     private final SnapshotRepository snapshotRepository;
@@ -24,20 +24,20 @@ public class MigrationController {
     @PostMapping("/clear-and-reload")
     public Map<String, String> clearAndReload() {
         log.info("Clearing all snapshots and accounts...");
-        
+
         // Clear all data
         accountRepository.deleteAll();
         snapshotRepository.deleteAll();
-        
+
         log.info("Triggering migration...");
-        
+
         // Trigger migration
         migrationService.migrateData();
-        
+
         Map<String, String> response = new HashMap<>();
         response.put("status", "success");
         response.put("message", "Data cleared and reloaded successfully");
-        
+
         return response;
     }
 }

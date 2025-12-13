@@ -26,13 +26,13 @@ public class ExpenseController {
     }
 
     @PutMapping("/{id}")
-    public Expense updateExpense(@PathVariable Long id, @RequestBody Expense expense) {
+    public Expense updateExpense(@PathVariable String id, @RequestBody Expense expense) {
         expense.setId(id);
         return expenseRepository.save(expense);
     }
 
     @DeleteMapping("/{id}")
-    public void deleteExpense(@PathVariable Long id) {
+    public void deleteExpense(@PathVariable String id) {
         expenseRepository.deleteById(id);
     }
 }

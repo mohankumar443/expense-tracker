@@ -16,9 +16,10 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
-@Slf4j
 @RequiredArgsConstructor
 public class SnapshotService {
+
+        private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(SnapshotService.class);
 
         private final SnapshotRepository snapshotRepository;
         private final AccountRepository accountRepository;

@@ -15,9 +15,10 @@ import java.time.LocalDate;
 import java.util.*;
 
 @Service
-@Slf4j
 @RequiredArgsConstructor
 public class FileSnapshotService {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(FileSnapshotService.class);
 
     private final ObjectMapper objectMapper;
     private static final String SNAPSHOT_PATTERN = "classpath:debt-snapshot-*.json";
@@ -25,6 +26,16 @@ public class FileSnapshotService {
     // Cache to avoid reading files on every request
     private List<Snapshot> cachedSnapshots = null;
     private Map<LocalDate, List<Account>> cachedAccounts = new HashMap<>();
+
+    public List<Account> getLatestAccounts() {
+        if (cachedSnapshots == null) {
+            loadData();
+        }
+        if (cachedSnapshots.isEmpty())
+            return new ArrayList<>();
+        LocalDate latest = cachedSnapshots.get(0).getSnapshotDate();
+        return new ArrayList<>(cachedAccounts.getOrDefault(latest, new ArrayList<>()));
+    }
 
     public List<Snapshot> getAllSnapshots() {
         if (cachedSnapshots == null) {

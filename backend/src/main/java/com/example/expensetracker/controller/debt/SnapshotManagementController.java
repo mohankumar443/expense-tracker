@@ -29,28 +29,27 @@ public class SnapshotManagementController {
         try {
             // Create the snapshot
             Snapshot snapshot = snapshotService.createSnapshot(request.getSnapshotDate(), request.getCloneFromDate());
-            
+
             List<Account> accounts = null;
-            
+
             // If cloning, copy accounts from source date
             if (request.getCloneFromDate() != null) {
                 accounts = accountService.cloneAccountsForNewSnapshot(
-                    request.getCloneFromDate(), 
-                    request.getSnapshotDate()
-                );
-                
+                        request.getCloneFromDate(),
+                        request.getSnapshotDate());
+
                 // Save cloned accounts
                 accounts = accountService.batchCreateOrUpdate(accounts);
-                
+
                 // Update snapshot with calculated totals
                 snapshot = snapshotService.updateSnapshotFromAccounts(request.getSnapshotDate(), accounts);
             }
-            
+
             SnapshotCreationResponse response = new SnapshotCreationResponse();
             response.setSnapshot(snapshot);
             response.setAccounts(accounts);
             response.setMessage("Snapshot created successfully");
-            
+
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
@@ -65,13 +64,13 @@ public class SnapshotManagementController {
         try {
             // Ensure all accounts have the correct snapshot date
             accounts.forEach(account -> account.setSnapshotDate(date));
-            
+
             // Save all accounts
             accountService.batchCreateOrUpdate(accounts);
-            
+
             // Recalculate and update snapshot totals
             Snapshot updatedSnapshot = snapshotService.updateSnapshotFromAccounts(date, accounts);
-            
+
             return ResponseEntity.ok(updatedSnapshot);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
@@ -108,16 +107,54 @@ public class SnapshotManagementController {
     }
 
     // DTOs
-    @Data
     public static class CreateSnapshotRequest {
         private LocalDate snapshotDate;
         private LocalDate cloneFromDate; // Optional
+
+        public LocalDate getSnapshotDate() {
+            return snapshotDate;
+        }
+
+        public void setSnapshotDate(LocalDate snapshotDate) {
+            this.snapshotDate = snapshotDate;
+        }
+
+        public LocalDate getCloneFromDate() {
+            return cloneFromDate;
+        }
+
+        public void setCloneFromDate(LocalDate cloneFromDate) {
+            this.cloneFromDate = cloneFromDate;
+        }
     }
 
-    @Data
     public static class SnapshotCreationResponse {
         private Snapshot snapshot;
         private List<Account> accounts;
         private String message;
+
+        public Snapshot getSnapshot() {
+            return snapshot;
+        }
+
+        public void setSnapshot(Snapshot snapshot) {
+            this.snapshot = snapshot;
+        }
+
+        public List<Account> getAccounts() {
+            return accounts;
+        }
+
+        public void setAccounts(List<Account> accounts) {
+            this.accounts = accounts;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(String message) {
+            this.message = message;
+        }
     }
 }
