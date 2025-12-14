@@ -31,7 +31,7 @@ export class DebtAccountsListComponent implements OnInit {
     creditCards: DebtAccount[] = [];
     personalLoans: DebtAccount[] = [];
     autoLoans: DebtAccount[] = [];
-    viewMode: 'cards' | 'table' = 'cards';
+    viewMode: 'cards' | 'table' | 'coach' = 'cards';
     expandedCategories: Set<CategoryKey> = new Set(['credit']);
     categories: Array<{ key: CategoryKey; label: string; accent: string; icon: string; chip: string; sublabel: string; gradient: string }> = [
         { key: 'credit', label: 'Credit Cards', accent: 'blue', icon: 'credit_card', chip: 'blue-500', sublabel: 'Revolving lines', gradient: 'from-blue-500/10 via-blue-500/5 to-transparent' },
@@ -61,6 +61,67 @@ export class DebtAccountsListComponent implements OnInit {
     personalLoansSortDirection: 'asc' | 'desc' = 'asc';
     autoLoansSortColumn: string = 'priority';
     autoLoansSortDirection: 'asc' | 'desc' = 'asc';
+    coachInsights = [
+        {
+            text: 'Groceries are spread across Costco, Indian Grocery, and Walmart/Schnucks – extra runs add impulse spend.',
+            risk: 'yellow',
+            actions: ['Show Grocery Insight']
+        },
+        {
+            text: 'Mobile/Small app payments show frequent micro-swipes that leak $5–$20 at a time.',
+            risk: 'red',
+            actions: ['Enable Micro-Spend Cap']
+        },
+        {
+            text: 'Subscriptions/Mobile charges likely hide an unused app or over-provisioned plan.',
+            risk: 'yellow',
+            actions: ['View Subscription Breakdown']
+        },
+        {
+            text: 'Shopping/Online and dining show discretionary spikes; a rotating “soft freeze” helps without feeling strict.',
+            risk: 'yellow',
+            actions: ['Enable Micro-Spend Cap']
+        }
+    ];
+    coachStrategies = [
+        { title: 'Consolidate Groceries', category: 'Groceries', detail: 'One weekly Costco + one ethnic grocery run; skip extra store stops.', savings: '$80–$140/mo', targetDebt: 'Bank of America → Citi Card 2', confidence: '★★★★☆', confidenceReason: 'Multi-store grocery pattern is consistent; consolidation captures obvious overlap.', impact: { savings: 'high', effort: 'med', lifestyle: 'low' }, spark: [40, 55, 50, 65, 60] },
+        { title: 'Pause Micro-Spend', category: 'Mobile small swipes', detail: 'Cap small Mobile/App swipes; batch to one day/week.', savings: '$50–$90/mo', targetDebt: 'Bank of America → Citi Card 2', confidence: '★★★☆☆', confidenceReason: 'Frequent $5–$20 taps; batching reduces leakage but needs light discipline.', impact: { savings: 'med', effort: 'med', lifestyle: 'low' }, spark: [18, 22, 25, 20, 17] },
+        { title: 'Trim Subs/Bill', category: 'Subscriptions/Mobile', detail: 'Drop one unused subscription; check mobile promo/auto-renew.', savings: '$40–$80/mo', targetDebt: 'Bank of America → Citi Card 2', confidence: '★★★★☆', confidenceReason: 'Recurring charges are predictable; one removal yields guaranteed savings.', impact: { savings: 'med', effort: 'low', lifestyle: 'low' }, spark: [70, 68, 66, 64, 62] },
+        { title: 'Swipe 0% Cards', category: 'Card choice', detail: 'Route new spend to Citi Card 1/3 or Fidelity promos; avoid high APR cards.', savings: '$40–$70/mo (interest)', targetDebt: 'Bank of America → Citi Card 2', confidence: '★★★★☆', confidenceReason: 'Clear APR differences; moving spend lowers interest reliably.', impact: { savings: 'med', effort: 'low', lifestyle: 'low' }, spark: [0, 0, 0, 0, 0] },
+        { title: 'Rotate Freeze', category: 'Shopping/Eating Out/Fun', detail: 'Each month, soft-freeze one: Shopping, Eating Out, or Fun.', savings: '$70–$120/mo', targetDebt: 'Bank of America → Citi Card 2', confidence: '★★★☆☆', confidenceReason: 'Discretionary spikes exist; impact depends on adherence.', impact: { savings: 'high', effort: 'med', lifestyle: 'med' }, spark: [120, 140, 130, 110, 90] }
+    ];
+    coachBudgetCaps = [
+        { label: 'Groceries', value: '$750–$850' },
+        { label: 'Restaurants', value: '$250–$300' },
+        { label: 'Subscriptions', value: '$60–$80' },
+        { label: 'Shopping / Online', value: '$200' },
+        { label: 'Baby expenses', value: '$200–$250' },
+        { label: 'Travel', value: '$150' },
+        { label: 'Utilities / Mobile', value: '$220–$260' },
+        { label: 'Fun money', value: '$120–$150' }
+    ];
+    coachDebtPlan = [
+        { step: 1, name: 'Bank of America', note: '24% APR – clear first' },
+        { step: 2, name: 'Citi Card 2', note: '24% APR – next target' },
+        { step: 3, name: 'Bilt Credit Card', note: '18% APR, promo 2025-11-11' },
+        { step: 4, name: 'Then 0% promos expiring soon, then 13% loan', note: 'Snowball payments forward' }
+    ];
+    coachChallenges = [
+        { title: 'One-Trip Groceries (30 days)', savings: '$60–$100', detail: 'Plan one Costco + one ethnic trip; no extra runs.', actions: ['Add to Calendar', 'Apply to Budget'] },
+        { title: 'Micro-Spend Cap', savings: '$40–$70', detail: 'Limit app/coffee swipes to $X per week; batch on one day.', actions: ['Add to Calendar', 'Apply to Budget'] },
+        { title: 'Subscription Audit', savings: '$20–$40', detail: 'Drop one unused app/stream; confirm mobile promo.', actions: ['Add to Calendar', 'Apply to Budget'] }
+    ];
+    coachDonuts = [
+        { label: 'Bank of America', progress: 35 },
+        { label: 'Citi Card 2', progress: 20 },
+        { label: 'Bilt Credit Card', progress: 10 }
+    ];
+    coachExplainOpen = false;
+    activeActionPanel: string | null = null;
+
+    setActiveActionPanel(panel: string | null) {
+        this.activeActionPanel = this.activeActionPanel === panel ? null : panel;
+    }
 
     // Modal states
     showEditModal = false;
@@ -152,6 +213,10 @@ export class DebtAccountsListComponent implements OnInit {
 
     isTableView(): boolean {
         return this.viewMode === 'table';
+    }
+
+    isCoachView(): boolean {
+        return this.viewMode === 'coach';
     }
 
     isExpanded(category: CategoryKey): boolean {
