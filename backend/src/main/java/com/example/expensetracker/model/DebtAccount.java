@@ -1,5 +1,6 @@
 package com.example.expensetracker.model;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.LocalDate;
@@ -21,6 +22,7 @@ public class DebtAccount {
     private Double monthlyPayment;
 
     @com.fasterxml.jackson.annotation.JsonProperty("promoExpires")
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate promoExpirationDate;
 
     private String notes;

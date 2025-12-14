@@ -16,15 +16,16 @@
   "personalLoans": {
     "total": 44463,
     "accounts": [
-      {"name": "Citi Loan", "balance": 16000, "apr": 13.0, "monthlyPayment": 650, "notes": "13% APR"},
-      {"name": "SoFi Loan", "balance": 8963, "apr": 8.0, "monthlyPayment": 1100, "notes": "8% APR"},
-      {"name": "Fidelity Loan", "balance": 19500, "apr": 8.5, "monthlyPayment": 760, "notes": "8.5% APR"}
+      {"name": "Citi Loan", "balance": 16000, "apr": 13.0, "monthlyPayment": 650, "loanAmount": 20000, "notes": "13% APR"},
+      {"name": "SoFi Loan", "balance": 8963, "apr": 8.0, "monthlyPayment": 1100, "loanAmount": 23000, "notes": "8% APR"},
+      {"name": "Fidelity Loan", "balance": 19500, "apr": 8.5, "monthlyPayment": 760, "loanAmount": 19500, "notes": "8.5% APR"},
+      {"name": "Amex Loan", "balance": 0, "apr": 0, "monthlyPayment": 0, "loanAmount": 3500, "notes": "Defaulted amount"}
     ]
   },
   "autoLoan": {
     "total": 24000,
     "accounts": [
-      {"name": "DCU Auto Loan", "balance": 24000, "apr": 5.75, "monthlyPayment": 850, "notes": "5.75% APR"}
+      {"name": "DCU Auto Loan", "balance": 24000, "apr": 5.75, "monthlyPayment": 850, "loanAmount": 45000, "notes": "5.75% APR"}
     ]
   }
 }

@@ -195,6 +195,9 @@ public class AccountService {
         } else if (account.getCreditLimit() == null) {
             account.setCreditLimit(1000.0);
         }
+        if (accountDetails.getLoanAmount() != null) {
+            account.setLoanAmount(accountDetails.getLoanAmount());
+        }
         account.setApr(accountDetails.getApr());
         account.setMonthlyPayment(accountDetails.getMonthlyPayment());
         account.setPromoExpires(accountDetails.getPromoExpires());

@@ -174,21 +174,21 @@
                                         {{ account.type === 'CREDIT_CARD' ? 'Credit Limit' : 'Loan Amount' }}
                                     </p>
                                     <p class="text-sm font-bold text-gray-900 dark:text-white">
-                                        {{ account.creditLimit ? ('$' + (account.creditLimit | number:'1.0-0')) : '—' }}
+                                        {{ getAccountCeiling(account) ? ('$' + (getAccountCeiling(account)! | number:'1.0-0')) : '—' }}
                                     </p>
                                 </div>
                                 <div>
                                     <div class="flex justify-between items-center mb-1">
                                         <p class="text-gray-500 dark:text-gray-400 text-xs">Payoff Progress</p>
                                         <p class="text-xs font-bold text-blue-600 dark:text-blue-400">
-                                            {{ (account.currentBalance === 0 ? 100 : (account.creditLimit ? Math.max(0,
-                                            Math.min(100, (1 - account.currentBalance / account.creditLimit) * 100)) :
+                                            {{ (account.currentBalance === 0 ? 100 : (getAccountCeiling(account) ? Math.max(0,
+                                            Math.min(100, (1 - account.currentBalance / getAccountCeiling(account)!) * 100)) :
                                             0)) | number:'1.0-1' }}%
                                         </p>
                                     </div>
                                     <div class="w-full h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
                                         <div class="h-2 bg-blue-500 dark:bg-blue-400"
-                                            [style.width]="(account.currentBalance === 0 ? '100%' : (account.creditLimit ? Math.max(0, Math.min(100, (1 - account.currentBalance / account.creditLimit) * 100)) + '%' : '0%'))">
+                                            [style.width]="(account.currentBalance === 0 ? '100%' : (getAccountCeiling(account) ? Math.max(0, Math.min(100, (1 - account.currentBalance / getAccountCeiling(account)!) * 100)) + '%' : '0%'))">
                                         </div>
                                     </div>
                                 </div>
@@ -308,6 +308,8 @@
                                     }}</span>
                             </span>
                         </th>
+                        <th class="px-4 py-3 text-center">Promo Ends</th>
+                        <th class="px-4 py-3 text-left">Notes</th>
                         <th class="px-4 py-3 text-center cursor-pointer" (click)="sortTable('dueDate')">
                             <span class="inline-flex items-center gap-1">Due Date
                                 <span class="material-icons text-sm">{{ tableSort.column === 'dueDate' ?
@@ -336,6 +338,17 @@
                         <td class="px-4 py-3 text-right">
                             ${{ account.monthlyPayment || 0 | number:'1.0-0' }}
                         </td>
+                        <td class="px-4 py-3 text-center text-sm text-gray-700 dark:text-gray-200">
+                            <ng-container
+                                *ngIf="account.type === 'CREDIT_CARD' && account.promoExpires; else noPromo">
+                                {{ account.promoExpires | date:'MMM d, yyyy' }}
+                            </ng-container>
+                            <ng-template #noPromo>—</ng-template>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-300 max-w-xs truncate"
+                            [title]="account.notes || ''">
+                            {{ account.notes || '—' }}
+                        </td>
                         <td class="px-4 py-3 text-center">
                             {{ account.dueDate ? (account.dueDate | date:'MMM d') : (account.payoffDate ?
                             (account.payoffDate | date:'MMM d') : '—') }}
@@ -361,7 +374,7 @@
                         </td>
                     </tr>
                     <tr *ngIf="getTableAccounts().length === 0">
-                        <td colspan="7" class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                        <td colspan="9" class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
                             No accounts match the current filters. Adjust filters to see results.
                         </td>
                     </tr>
@@ -507,13 +520,32 @@
             </div>
             <!-- Credit Limit Field -->
             <!-- Credit Limit Field -->
-            <div>
-                <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-                    {{ editingAccount.type === 'CREDIT_CARD' ? 'Credit Limit' : (editingAccount.type === 'AUTO_LOAN' ?
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                            {{ editingAccount.type === 'CREDIT_CARD' ? 'Credit Limit' : (editingAccount.type === 'AUTO_LOAN' ?
                     'Original Loan Amount' : 'Loan Amount') }}
-                </label>
-                <input type="number" [(ngModel)]="editingAccount.creditLimit" name="creditLimit"
-                    class="w-full bg-gray-50 dark:bg-[#0f1729] border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                        </label>
+                        <input type="number"
+                            [ngModel]="editingAccount.type === 'CREDIT_CARD' ? editingAccount.creditLimit : editingAccount.loanAmount"
+                            (ngModelChange)="editingAccount.type === 'CREDIT_CARD' ? editingAccount.creditLimit = $event : editingAccount.loanAmount = $event"
+                            name="creditLimit"
+                            class="w-full bg-gray-50 dark:bg-[#0f1729] border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                    </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div *ngIf="editingAccount.type === 'CREDIT_CARD'">
+                    <label
+                        class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Promo
+                        Ends</label>
+                    <input type="date" [(ngModel)]="editingAccount.promoExpires" name="promoExpiresEdit"
+                        class="w-full bg-gray-50 dark:bg-[#0f1729] border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                </div>
+                <div>
+                    <label
+                        class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Notes</label>
+                    <textarea [(ngModel)]="editingAccount.notes" name="notesEdit" rows="3"
+                        placeholder="Add reminders, payoff plan, promo details..."
+                        class="w-full bg-gray-50 dark:bg-[#0f1729] border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"></textarea>
+                </div>
             </div>
 
             <div class="flex gap-3 pt-4">
@@ -589,8 +621,27 @@
                     {{ newAccount.type === 'CREDIT_CARD' ? 'Credit Limit' : (newAccount.type === 'AUTO_LOAN' ? 'Original
                     Loan Amount' : 'Loan Amount') }}
                 </label>
-                <input type="number" [(ngModel)]="newAccount.creditLimit" name="newLimit" placeholder="Optional"
+                <input type="number"
+                    [ngModel]="newAccount.type === 'CREDIT_CARD' ? newAccount.creditLimit : newAccount.loanAmount"
+                    (ngModelChange)="newAccount.type === 'CREDIT_CARD' ? newAccount.creditLimit = $event : newAccount.loanAmount = $event"
+                    name="newLimit" placeholder="Optional"
                     class="w-full bg-gray-50 dark:bg-[#0f1729] border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div *ngIf="newAccount.type === 'CREDIT_CARD'">
+                    <label
+                        class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Promo
+                        Ends</label>
+                    <input type="date" [(ngModel)]="newAccount.promoExpires" name="newPromoExpires"
+                        class="w-full bg-gray-50 dark:bg-[#0f1729] border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                </div>
+                <div>
+                    <label
+                        class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Notes</label>
+                    <textarea [(ngModel)]="newAccount.notes" name="newNotes" rows="3"
+                        placeholder="Add reminders, payoff plan, promo details..."
+                        class="w-full bg-gray-50 dark:bg-[#0f1729] border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"></textarea>
+                </div>
             </div>
 
             <div class="flex gap-3 pt-4">

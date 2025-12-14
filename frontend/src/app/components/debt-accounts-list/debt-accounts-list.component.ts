@@ -466,6 +466,11 @@ export class DebtAccountsListComponent implements OnInit {
         return `${Math.max(minHeight, (point / max) * 40)}px`;
     }
 
+    getAccountCeiling(account: DebtAccount): number | null {
+        if (account.type === 'CREDIT_CARD') return account.creditLimit || null;
+        return account.loanAmount || null;
+    }
+
     getMonthsToPayoff(account: DebtAccount): number | null {
         if (!account.monthlyPayment || account.monthlyPayment <= 0 || !account.currentBalance || account.currentBalance <= 0) return null;
         const monthlyRate = (account.apr || 0) / 100 / 12;
@@ -650,7 +655,11 @@ export class DebtAccountsListComponent implements OnInit {
         type: 'CREDIT_CARD',
         currentBalance: 0,
         apr: 0,
-        monthlyPayment: 0
+        monthlyPayment: 0,
+        creditLimit: 0,
+        loanAmount: 0,
+        promoExpires: '',
+        notes: ''
     };
 
     addNewAccount(type: 'CREDIT_CARD' | 'PERSONAL_LOAN' | 'AUTO_LOAN') {
@@ -661,7 +670,10 @@ export class DebtAccountsListComponent implements OnInit {
             currentBalance: 0,
             apr: 0,
             monthlyPayment: 0,
-            creditLimit: 0 // Added credit limit
+            creditLimit: type === 'CREDIT_CARD' ? 0 : undefined,
+            loanAmount: type === 'CREDIT_CARD' ? undefined : 0,
+            promoExpires: '',
+            notes: ''
         };
         this.showAddModal = true;
     }
@@ -673,9 +685,21 @@ export class DebtAccountsListComponent implements OnInit {
     }
 
     saveAccount(account: DebtAccount) {
+        const toIsoDate = (value?: string | null): string | undefined => {
+            if (!value) return undefined;
+            // Normalize MM/DD/YYYY or Date strings to ISO yyyy-MM-dd
+            const date = new Date(value);
+            return isNaN(date.getTime()) ? undefined : date.toISOString().slice(0, 10);
+        };
+
+        const normalized: DebtAccount = {
+            ...account,
+            promoExpires: toIsoDate(account.promoExpires),
+            snapshotDate: account.snapshotDate || this.currentSnapshotDate || new Date().toISOString().slice(0, 10)
+        };
         if (account.id) {
             // Update existing account
-            this.debtService.updateDebt(account.id, account).subscribe({
+            this.debtService.updateDebt(account.id, normalized).subscribe({
                 next: () => {
                     this.showEditModal = false;
                     this.editingAccount = null;
@@ -688,7 +712,15 @@ export class DebtAccountsListComponent implements OnInit {
             });
         } else {
             // Create new account
-            this.debtService.createDebt(account).subscribe({
+            normalized.snapshotDate = this.currentSnapshotDate || new Date().toISOString().slice(0, 10);
+            normalized.status = account.status || 'ACTIVE';
+            if (normalized.type !== 'CREDIT_CARD' && !normalized.loanAmount) {
+                normalized.loanAmount = normalized.currentBalance;
+            }
+            if (normalized.type === 'CREDIT_CARD' && normalized.creditLimit === undefined) {
+                normalized.creditLimit = 1000;
+            }
+            this.debtService.createDebt(normalized).subscribe({
                 next: () => {
                     this.showAddModal = false;
                     this.loadSnapshotAccounts(this.currentSnapshotDate);

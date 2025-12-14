@@ -1,7 +1,10 @@
 package com.example.expensetracker.model.debt;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -16,10 +19,16 @@ public class Account {
     private AccountType type;
     private Double currentBalance;
     private Double creditLimit; // For credit cards
+    private Double loanAmount; // For loans/auto to track original amount
     private Double apr;
     private Double monthlyPayment;
+    @JsonProperty("promoExpires")
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate promoExpires; // Optional promo expiration
     private AccountStatus status;
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate openedDate;
     private String notes;
 
@@ -29,6 +38,8 @@ public class Account {
     private Integer monthsLeft;
     private Integer priority;
 
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate snapshotDate;
 
     private LocalDateTime createdAt;
@@ -107,6 +118,14 @@ public class Account {
 
     public void setApr(Double apr) {
         this.apr = apr;
+    }
+
+    public Double getLoanAmount() {
+        return loanAmount;
+    }
+
+    public void setLoanAmount(Double loanAmount) {
+        this.loanAmount = loanAmount;
     }
 
     public Double getMonthlyPayment() {

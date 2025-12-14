@@ -78,30 +78,14 @@ public class MigrationService {
         String dateStr = root.get("snapshotDate").asText();
         LocalDate snapshotDate = LocalDate.parse(dateStr);
 
-        // Capture existing accounts to preserve user-updated fields (e.g., credit limits)
+        // If snapshot already exists, keep user-updated data and skip replacement
+        if (snapshotRepository.findBySnapshotDate(snapshotDate).isPresent()) {
+            log.info("Snapshot for date {} already exists. Skipping migration to preserve user edits.", snapshotDate);
+            return;
+        }
+
+        // Capture existing accounts to preserve user-updated fields (e.g., credit limits) for any lingering data
         Map<String, Double> existingLimits = new HashMap<>();
-        snapshotRepository.findBySnapshotDate(snapshotDate).ifPresent(existing -> {
-            log.info("Snapshot for date {} already exists. Replacing with latest file data.", snapshotDate);
-            try {
-                accountRepository.findBySnapshotDate(snapshotDate).forEach(acc -> {
-                    if (acc.getCreditLimit() != null) {
-                        existingLimits.put(acc.getAccountId() != null ? acc.getAccountId() : acc.getName(), acc.getCreditLimit());
-                    }
-                });
-            } catch (Exception e) {
-                log.warn("Could not read existing accounts for date {} to preserve limits: {}", snapshotDate, e.getMessage());
-            }
-            try {
-                accountRepository.deleteBySnapshotDate(snapshotDate);
-            } catch (Exception e) {
-                log.warn("Could not delete existing accounts for date: {}", snapshotDate);
-            }
-            try {
-                snapshotRepository.delete(existing);
-            } catch (Exception e) {
-                log.warn("Could not delete existing snapshot for date: {}", snapshotDate);
-            }
-        });
 
         // Create Snapshot Entity
         Snapshot snapshot = new Snapshot();
@@ -209,8 +193,17 @@ public class MigrationService {
                         limit = existingLimits.get(key);
                     }
                     account.setCreditLimit(limit);
+                } else {
+                    // Loans/auto: set loan amount from file or defaults
+                    double loanAmount = accNode.has("loanAmount")
+                            ? accNode.get("loanAmount").asDouble()
+                            : getDefaultLoanAmount(account.getName(), type);
+                    account.setLoanAmount(loanAmount);
                 }
                 account.setApr(accNode.get("apr").asDouble());
+                if (accNode.has("promoExpires") && !accNode.get("promoExpires").isNull()) {
+                    account.setPromoExpires(LocalDate.parse(accNode.get("promoExpires").asText()));
+                }
                 account.setSnapshotDate(snapshotDate);
 
                 if (accNode.has("monthlyPayment")) {
@@ -238,5 +231,18 @@ public class MigrationService {
             }
         }
         return accounts;
+    }
+
+    private double getDefaultLoanAmount(String name, AccountType type) {
+        String key = name.toLowerCase();
+        if (type == AccountType.AUTO_LOAN && key.contains("dcu")) return 45000.0;
+
+        if (key.contains("sofi loan 1")) return 23000.0;
+        if (key.contains("sofi loan 2")) return 25000.0;
+        if (key.contains("fidelity loan")) return 19500.0;
+        if (key.contains("citi loan")) return 20000.0;
+        if (key.contains("amex loan")) return 3500.0;
+
+        return 0.0;
     }
 }

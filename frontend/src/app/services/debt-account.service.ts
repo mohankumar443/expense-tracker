@@ -13,6 +13,7 @@ export interface DebtAccount {
     apr: number;
     monthlyPayment?: number;
     creditLimit?: number;
+    loanAmount?: number;
     dueDate?: string | null;
     sparkline?: number[];
     promoExpires?: string;
@@ -111,6 +112,7 @@ export class DebtAccountService {
             name: 'SoFi Personal Loan',
             type: 'PERSONAL_LOAN',
             currentBalance: 7500,
+            loanAmount: 23000,
             apr: 8.99,
             monthlyPayment: 230,
             notes: 'Fallback data',
@@ -127,6 +129,7 @@ export class DebtAccountService {
             name: 'Honda Finance',
             type: 'AUTO_LOAN',
             currentBalance: 12400,
+            loanAmount: 45000,
             apr: 4.5,
             monthlyPayment: 340,
             notes: 'Fallback data',
