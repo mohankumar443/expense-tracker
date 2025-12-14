@@ -20,7 +20,9 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -76,9 +78,19 @@ public class MigrationService {
         String dateStr = root.get("snapshotDate").asText();
         LocalDate snapshotDate = LocalDate.parse(dateStr);
 
-        // Replace snapshot if it already exists to keep DB in sync with file
+        // Capture existing accounts to preserve user-updated fields (e.g., credit limits)
+        Map<String, Double> existingLimits = new HashMap<>();
         snapshotRepository.findBySnapshotDate(snapshotDate).ifPresent(existing -> {
             log.info("Snapshot for date {} already exists. Replacing with latest file data.", snapshotDate);
+            try {
+                accountRepository.findBySnapshotDate(snapshotDate).forEach(acc -> {
+                    if (acc.getCreditLimit() != null) {
+                        existingLimits.put(acc.getAccountId() != null ? acc.getAccountId() : acc.getName(), acc.getCreditLimit());
+                    }
+                });
+            } catch (Exception e) {
+                log.warn("Could not read existing accounts for date {} to preserve limits: {}", snapshotDate, e.getMessage());
+            }
             try {
                 accountRepository.deleteBySnapshotDate(snapshotDate);
             } catch (Exception e) {
@@ -158,10 +170,10 @@ public class MigrationService {
         }
 
         List<Account> snapshotAccounts = new ArrayList<>();
-        snapshotAccounts.addAll(processCategoryAccounts(root, "creditCards", AccountType.CREDIT_CARD, snapshotDate));
+        snapshotAccounts.addAll(processCategoryAccounts(root, "creditCards", AccountType.CREDIT_CARD, snapshotDate, existingLimits));
         snapshotAccounts
-                .addAll(processCategoryAccounts(root, "personalLoans", AccountType.PERSONAL_LOAN, snapshotDate));
-        snapshotAccounts.addAll(processCategoryAccounts(root, "autoLoan", AccountType.AUTO_LOAN, snapshotDate));
+                .addAll(processCategoryAccounts(root, "personalLoans", AccountType.PERSONAL_LOAN, snapshotDate, existingLimits));
+        snapshotAccounts.addAll(processCategoryAccounts(root, "autoLoan", AccountType.AUTO_LOAN, snapshotDate, existingLimits));
 
         // Calculate and Enrich
         for (Account account : snapshotAccounts) {
@@ -176,7 +188,7 @@ public class MigrationService {
     }
 
     private List<Account> processCategoryAccounts(JsonNode root, String category, AccountType type,
-            LocalDate snapshotDate) {
+            LocalDate snapshotDate, Map<String, Double> existingLimits) {
         List<Account> accounts = new ArrayList<>();
         if (!root.has(category))
             return accounts;
@@ -189,8 +201,13 @@ public class MigrationService {
                 account.setType(type);
                 account.setCurrentBalance(accNode.get("balance").asDouble());
                 if (type == AccountType.CREDIT_CARD) {
-                    // Default credit limit when missing
-                    double limit = accNode.has("creditLimit") ? accNode.get("creditLimit").asDouble() : 1000.0;
+                    String key = account.getName().toLowerCase().replaceAll("\\s+", "-");
+                    double limit = 1000.0;
+                    if (accNode.has("creditLimit")) {
+                        limit = accNode.get("creditLimit").asDouble();
+                    } else if (existingLimits.containsKey(key)) {
+                        limit = existingLimits.get(key);
+                    }
                     account.setCreditLimit(limit);
                 }
                 account.setApr(accNode.get("apr").asDouble());

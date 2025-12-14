@@ -23,7 +23,7 @@
 
         <!-- List of Recurring Expenses -->
         <div class="lg:col-span-2 space-y-4">
-            <div *ngFor="let expense of recurringExpenses"
+            <div *ngFor="let expense of recurringExpenses; let i = index"
                 class="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-all group relative overflow-hidden">
 
                 <!-- Status/Active Marker -->
@@ -34,8 +34,8 @@
                 <div class="flex items-center justify-between pl-3">
                     <div class="flex items-center gap-4">
                         <div
-                            [class]="'w-10 h-10 rounded-full flex items-center justify-center text-white shadow-sm ' + (expense.emi ? 'bg-purple-500' : 'bg-blue-500')">
-                            <span class="material-icons text-lg">{{ expense.emi ? 'credit_card' : 'receipt' }}</span>
+                            [class]="'w-10 h-10 rounded-full flex items-center justify-center text-white shadow-sm ' + getCategoryColor(expense)">
+                            <span class="material-icons text-lg">{{ getDisplayIcon(i) }}</span>
                         </div>
                         <div>
                             <h4 class="font-bold text-gray-900 dark:text-white">{{ expense.description }}</h4>

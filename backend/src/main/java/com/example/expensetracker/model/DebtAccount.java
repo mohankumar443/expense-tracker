@@ -16,6 +16,7 @@ public class DebtAccount {
     private AccountType accountType;
 
     private Double currentBalance;
+    private Double creditLimit;
     private Double apr; // Annual Percentage Rate
     private Double monthlyPayment;
 

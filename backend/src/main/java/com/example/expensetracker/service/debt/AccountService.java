@@ -166,6 +166,10 @@ public class AccountService {
         if (!isDbAvailable) {
             throw new IllegalStateException("Cannot create account in offline mode");
         }
+        // Default credit limit when missing
+        if (account.getCreditLimit() == null) {
+            account.setCreditLimit(1000.0);
+        }
         // Calculate missing loan fields automatically
         calculateLoanFields(account);
 
@@ -185,7 +189,12 @@ public class AccountService {
         account.setName(accountDetails.getName());
         account.setType(accountDetails.getType());
         account.setCurrentBalance(accountDetails.getCurrentBalance());
-        account.setCreditLimit(accountDetails.getCreditLimit());
+        // Preserve existing creditLimit if not provided; otherwise apply default
+        if (accountDetails.getCreditLimit() != null) {
+            account.setCreditLimit(accountDetails.getCreditLimit());
+        } else if (account.getCreditLimit() == null) {
+            account.setCreditLimit(1000.0);
+        }
         account.setApr(accountDetails.getApr());
         account.setMonthlyPayment(accountDetails.getMonthlyPayment());
         account.setPromoExpires(accountDetails.getPromoExpires());
@@ -203,6 +212,30 @@ public class AccountService {
 
         account.setUpdatedAt(LocalDateTime.now());
         return accountRepository.save(account);
+    }
+
+    /**
+     * Ensure credit cards have a creditLimit; defaults to the provided value when missing.
+     */
+    public void ensureDefaultCreditLimits(double defaultLimit) {
+        if (!isDbAvailable) return;
+        try {
+            List<Account> accounts = accountRepository.findAll();
+            boolean changed = false;
+            for (Account acc : accounts) {
+                if (acc.getType() == AccountType.CREDIT_CARD && (acc.getCreditLimit() == null || acc.getCreditLimit() <= 0)) {
+                    acc.setCreditLimit(defaultLimit);
+                    changed = true;
+                }
+            }
+            if (changed) {
+                accountRepository.saveAll(accounts);
+                log.info("Applied default credit limit (${}) to credit cards missing limits.", defaultLimit);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to apply default credit limits: {}", e.getMessage());
+            isDbAvailable = false;
+        }
     }
 
     public void deleteAccount(String id) {

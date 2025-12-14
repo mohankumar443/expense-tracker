@@ -67,26 +67,27 @@ export class BudgetTrackerComponent implements OnInit {
         date: new Date().toISOString().split('T')[0]
     };
     categories = [
-        'Room Rent',
-        'Costco',
-        'Indian Grocery Stores',
-        'Eating Out',
-        'Walmart/Schnuks',
-        'Hair Cutting',
+        'Amazon',
         'Baby Supplies',
-        'Car Insurance',
-        'Mobile Payment',
         'Car EMI',
-        'Loan EMI',
-        'Gas',
-        'Shopping/Clothes/Online Shopping',
-        'Investments',
-        'Hospital Bill',
+        'Car Insurance',
         'Car Wash',
-        'Subscriptions',
+        'Costco',
         'Credit Card Payment',
+        'Eating Out',
+        'Gas',
+        'Hair Cutting',
+        'Hospital Bill',
         'India Loan Repayment',
-        'Other'
+        'Indian Grocery Stores',
+        'Investments',
+        'Loan EMI',
+        'Mobile Payment',
+        'Other',
+        'Room Rent',
+        'Shopping/Clothes/Online Shopping',
+        'Subscriptions',
+        'Walmart/Schnuks'
     ];
 
     // Category Colors Mapping

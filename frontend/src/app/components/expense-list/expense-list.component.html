@@ -25,6 +25,7 @@
                             class="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         </div>
                         <span class="material-icons" [ngSwitch]="expense.category">
+                            <ng-container *ngSwitchCase="'Amazon'">shopping_bag</ng-container>
                             <ng-container *ngSwitchCase="'Minimum Payment'">credit_card</ng-container>
                             <ng-container *ngSwitchCase="'Extra Payment'">add_card</ng-container>
                             <ng-container *ngSwitchCase="'Full Balance'">account_balance</ng-container>

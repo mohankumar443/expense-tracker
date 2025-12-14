@@ -27,6 +27,7 @@ export class DashboardComponent implements OnInit {
         'Utilities': 'bg-emerald-500',
         'Entertainment': 'bg-red-500',
         'Shopping': 'bg-orange-500',
+        'Amazon': 'bg-amber-500',
         'Health': 'bg-teal-500',
         'Other': 'bg-gray-500'
     };
