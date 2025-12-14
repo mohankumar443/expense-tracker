@@ -39,6 +39,8 @@ public class SnapshotLoaderService {
                 account.setCreditLimit(card.get("creditLimit").asDouble());
             } else if (card.has("limit")) {
                 account.setCreditLimit(card.get("limit").asDouble());
+            } else {
+                account.setCreditLimit(1000.0); // default credit limit
             }
 
             account.setNotes(card.get("notes").asText());

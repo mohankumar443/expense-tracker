@@ -4,13 +4,13 @@
   "creditCards": {
     "total": 32511,
     "accounts": [
-      {"name": "Bank of America", "balance": 11000, "apr": 24.0, "monthlyPayment": 150, "notes": "APR expired; now ~18-24%. Highest balance."},
-      {"name": "Citi Card 1", "balance": 911, "apr": 24.0, "monthlyPayment": 75, "notes": "APR expired."},
-      {"name": "Citi Card 2", "balance": 3500, "apr": 24.0, "monthlyPayment": 800, "notes": "APR expired. Paying aggressively."},
-      {"name": "Citi Card 3", "balance": 6500, "apr": 0.0, "monthlyPayment": 100, "notes": "0% APR until Sep 2026."},
-      {"name": "DCU Credit Card", "balance": 500, "apr": 10.0, "monthlyPayment": 75, "notes": "10% APR. Smallest debt."},
-      {"name": "Bilt Credit Card", "balance": 1100, "apr": 18.0, "monthlyPayment": 100, "notes": "18% APR. Higher APR."},
-      {"name": "Fidelity Credit Card", "balance": 9000, "apr": 0.0, "monthlyPayment": 90, "notes": "0% APR until Jul 2026."}
+      {"name": "Bank of America", "balance": 11000, "apr": 24.0, "monthlyPayment": 150, "creditLimit": 1000, "notes": "APR expired; now ~18-24%. Highest balance."},
+      {"name": "Citi Card 1", "balance": 911, "apr": 24.0, "monthlyPayment": 75, "creditLimit": 1000, "notes": "APR expired."},
+      {"name": "Citi Card 2", "balance": 3500, "apr": 24.0, "monthlyPayment": 800, "creditLimit": 1000, "notes": "APR expired. Paying aggressively."},
+      {"name": "Citi Card 3", "balance": 6500, "apr": 0.0, "monthlyPayment": 100, "creditLimit": 1000, "notes": "0% APR until Sep 2026."},
+      {"name": "DCU Credit Card", "balance": 500, "apr": 10.0, "monthlyPayment": 75, "creditLimit": 1000, "notes": "10% APR. Smallest debt."},
+      {"name": "Bilt Credit Card", "balance": 1100, "apr": 18.0, "monthlyPayment": 100, "creditLimit": 1000, "notes": "18% APR. Higher APR."},
+      {"name": "Fidelity Credit Card", "balance": 9000, "apr": 0.0, "monthlyPayment": 90, "creditLimit": 1000, "notes": "0% APR until Jul 2026."}
     ]
   },
   "personalLoans": {

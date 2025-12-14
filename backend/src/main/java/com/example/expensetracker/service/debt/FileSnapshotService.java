@@ -158,6 +158,9 @@ public class FileSnapshotService {
         account.setName((String) data.get("name"));
         account.setType(type);
         account.setCurrentBalance(getDouble(data, "balance"));
+        if (type == Account.AccountType.CREDIT_CARD) {
+            account.setCreditLimit(data.get("creditLimit") instanceof Number ? ((Number) data.get("creditLimit")).doubleValue() : 1000.0);
+        }
         account.setApr(getDouble(data, "apr"));
         account.setMonthlyPayment(getDouble(data, "monthlyPayment"));
         account.setNotes((String) data.get("notes"));

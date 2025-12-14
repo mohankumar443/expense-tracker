@@ -72,6 +72,7 @@ export class DebtAccountsListComponent implements OnInit {
     currentSnapshotDate: string = '';
     deleteConfirmationMessage: string = '';
     previousAccountsMap: Map<string, number> = new Map(); // Map<AccountName, PreviousBalance>
+    analyticsAccount: DebtAccount | null = null;
 
     // Dual Theme color palette - Clean Light & Dark Glass
     cardColors = [
@@ -465,6 +466,20 @@ export class DebtAccountsListComponent implements OnInit {
         return `${Math.max(minHeight, (point / max) * 40)}px`;
     }
 
+    getMonthsToPayoff(account: DebtAccount): number | null {
+        if (!account.monthlyPayment || account.monthlyPayment <= 0 || !account.currentBalance || account.currentBalance <= 0) return null;
+        const monthlyRate = (account.apr || 0) / 100 / 12;
+        if (monthlyRate === 0) {
+            return Math.ceil(account.currentBalance / account.monthlyPayment);
+        }
+        const payment = account.monthlyPayment;
+        if (payment <= account.currentBalance * monthlyRate) return null; // payment too low
+        const months = Math.ceil(
+            -Math.log(1 - (monthlyRate * account.currentBalance) / payment) / Math.log(1 + monthlyRate)
+        );
+        return months;
+    }
+
     getCategoryLabel(type: DebtAccount['type']): string {
         if (type === 'CREDIT_CARD') return 'Credit Card';
         if (type === 'PERSONAL_LOAN') return 'Personal Loan';
@@ -472,8 +487,23 @@ export class DebtAccountsListComponent implements OnInit {
     }
 
     openAccountAnalytics(account: DebtAccount) {
-        // Placeholder for navigation hook to analytics view
-        console.log('Open analytics for', account.name);
+        this.analyticsAccount = account;
+    }
+
+    closeAnalyticsModal() {
+        this.analyticsAccount = null;
+    }
+
+    goToStrategySection() {
+        this.closeAnalyticsModal();
+        // Scroll to strategy section
+        const el = document.getElementById('strategy');
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+            // Fallback to hash navigation
+            window.location.hash = 'strategy';
+        }
     }
 
     // Sorting methods

@@ -188,6 +188,11 @@ public class MigrationService {
                 account.setName(accNode.get("name").asText());
                 account.setType(type);
                 account.setCurrentBalance(accNode.get("balance").asDouble());
+                if (type == AccountType.CREDIT_CARD) {
+                    // Default credit limit when missing
+                    double limit = accNode.has("creditLimit") ? accNode.get("creditLimit").asDouble() : 1000.0;
+                    account.setCreditLimit(limit);
+                }
                 account.setApr(accNode.get("apr").asDouble());
                 account.setSnapshotDate(snapshotDate);
 
