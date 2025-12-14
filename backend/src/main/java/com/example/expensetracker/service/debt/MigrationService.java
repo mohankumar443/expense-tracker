@@ -76,11 +76,20 @@ public class MigrationService {
         String dateStr = root.get("snapshotDate").asText();
         LocalDate snapshotDate = LocalDate.parse(dateStr);
 
-        // Check if snapshot already exists to avoid duplicates
-        if (snapshotRepository.findBySnapshotDate(snapshotDate).isPresent()) {
-            log.info("Snapshot for date {} already exists. Skipping.", snapshotDate);
-            return;
-        }
+        // Replace snapshot if it already exists to keep DB in sync with file
+        snapshotRepository.findBySnapshotDate(snapshotDate).ifPresent(existing -> {
+            log.info("Snapshot for date {} already exists. Replacing with latest file data.", snapshotDate);
+            try {
+                accountRepository.deleteBySnapshotDate(snapshotDate);
+            } catch (Exception e) {
+                log.warn("Could not delete existing accounts for date: {}", snapshotDate);
+            }
+            try {
+                snapshotRepository.delete(existing);
+            } catch (Exception e) {
+                log.warn("Could not delete existing snapshot for date: {}", snapshotDate);
+            }
+        });
 
         // Create Snapshot Entity
         Snapshot snapshot = new Snapshot();

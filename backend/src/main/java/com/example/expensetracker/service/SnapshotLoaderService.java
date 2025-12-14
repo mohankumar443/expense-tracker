@@ -30,7 +30,17 @@ public class SnapshotLoaderService {
             account.setAccountType(AccountType.CREDIT_CARD);
             account.setAccountType(AccountType.CREDIT_CARD);
             account.setCurrentBalance(card.get("balance").asDouble());
-            // account.setApr(card.get("apr").asDouble()); // Removed from model
+
+            if (card.has("apr")) {
+                account.setApr(card.get("apr").asDouble());
+            }
+
+            if (card.has("creditLimit")) {
+                account.setCreditLimit(card.get("creditLimit").asDouble());
+            } else if (card.has("limit")) {
+                account.setCreditLimit(card.get("limit").asDouble());
+            }
+
             account.setNotes(card.get("notes").asText());
 
             if (card.has("monthlyPayment")) {
@@ -38,8 +48,7 @@ public class SnapshotLoaderService {
             }
 
             if (card.has("promoExpires")) {
-                // account.setPromoExpirationDate(LocalDate.parse(card.get("promoExpires").asText()));
-                // // Removed from model
+                account.setPromoExpirationDate(LocalDate.parse(card.get("promoExpires").asText()));
             }
 
             accounts.add(account);
@@ -52,7 +61,9 @@ public class SnapshotLoaderService {
             account.setName(loan.get("name").asText());
             account.setAccountType(AccountType.PERSONAL_LOAN);
             account.setCurrentBalance(loan.get("balance").asDouble());
-            // account.setApr(loan.get("apr").asDouble()); // Removed from model
+            if (loan.has("apr")) {
+                account.setApr(loan.get("apr").asDouble());
+            }
             account.setNotes(loan.get("notes").asText());
 
             if (loan.has("monthlyPayment")) {
@@ -69,7 +80,9 @@ public class SnapshotLoaderService {
             account.setName(autoLoan.get("name").asText());
             account.setAccountType(AccountType.AUTO_LOAN);
             account.setCurrentBalance(autoLoan.get("balance").asDouble());
-            // account.setApr(autoLoan.get("apr").asDouble()); // Removed from model
+            if (autoLoan.has("apr")) {
+                account.setApr(autoLoan.get("apr").asDouble());
+            }
             account.setMonthlyPayment(autoLoan.get("monthlyPayment").asDouble());
             account.setNotes(autoLoan.get("notes").asText());
             accounts.add(account);

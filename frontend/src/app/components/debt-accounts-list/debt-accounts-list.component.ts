@@ -32,7 +32,7 @@ export class DebtAccountsListComponent implements OnInit {
     personalLoans: DebtAccount[] = [];
     autoLoans: DebtAccount[] = [];
     viewMode: 'cards' | 'table' = 'cards';
-    expandedCategory: CategoryKey | null = 'credit';
+    expandedCategories: Set<CategoryKey> = new Set(['credit']);
     categories: Array<{ key: CategoryKey; label: string; accent: string; icon: string; chip: string; sublabel: string; gradient: string }> = [
         { key: 'credit', label: 'Credit Cards', accent: 'blue', icon: 'credit_card', chip: 'blue-500', sublabel: 'Revolving lines', gradient: 'from-blue-500/10 via-blue-500/5 to-transparent' },
         { key: 'personal', label: 'Personal Loans', accent: 'purple', icon: 'account_balance', chip: 'purple-500', sublabel: 'Installment loans', gradient: 'from-purple-500/10 via-purple-500/5 to-transparent' },
@@ -153,8 +153,16 @@ export class DebtAccountsListComponent implements OnInit {
         return this.viewMode === 'table';
     }
 
+    isExpanded(category: CategoryKey): boolean {
+        return this.expandedCategories.has(category);
+    }
+
     setExpanded(category: CategoryKey): void {
-        this.expandedCategory = this.expandedCategory === category ? null : category;
+        if (this.expandedCategories.has(category)) {
+            this.expandedCategories.delete(category);
+        } else {
+            this.expandedCategories.add(category);
+        }
     }
 
     loadAccounts() {
@@ -601,8 +609,30 @@ export class DebtAccountsListComponent implements OnInit {
         this.showEditModal = true;
     }
 
+    getAccountTypeFromCategory(key: CategoryKey): 'CREDIT_CARD' | 'PERSONAL_LOAN' | 'AUTO_LOAN' {
+        if (key === 'personal') return 'PERSONAL_LOAN';
+        if (key === 'auto') return 'AUTO_LOAN';
+        return 'CREDIT_CARD';
+    }
+
+    newAccount: DebtAccount = {
+        name: '',
+        type: 'CREDIT_CARD',
+        currentBalance: 0,
+        apr: 0,
+        monthlyPayment: 0
+    };
+
     addNewAccount(type: 'CREDIT_CARD' | 'PERSONAL_LOAN' | 'AUTO_LOAN') {
         this.addAccountType = type;
+        this.newAccount = {
+            name: '',
+            type: type,
+            currentBalance: 0,
+            apr: 0,
+            monthlyPayment: 0,
+            creditLimit: 0 // Added credit limit
+        };
         this.showAddModal = true;
     }
 

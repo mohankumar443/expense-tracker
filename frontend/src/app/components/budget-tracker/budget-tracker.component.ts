@@ -52,7 +52,8 @@ export class BudgetTrackerComponent implements OnInit {
     filteredExpenses: TransactionView[] = [];
     showFilters: boolean = false;
     isEditing: boolean = false;
-    editingExpenseId: number | undefined = undefined;
+    editingExpenseId: string | undefined = undefined;
+    showAddExpenseModal: boolean = false; // Added missing property
     showSubscriptionForm: boolean = false;
     newSubscription = { name: '', amount: 0 };
     showEMIForm: boolean = false;
@@ -204,7 +205,7 @@ export class BudgetTrackerComponent implements OnInit {
     }
 
     getEMIPayments(): RecurringExpense[] {
-        return this.recurringExpensesList.filter(e => e.isEmi && e.active);
+        return this.recurringExpensesList.filter(e => e.emi && e.active);
     }
 
     addEMIPayment(description: string, amount: number, category: string) {
@@ -213,7 +214,7 @@ export class BudgetTrackerComponent implements OnInit {
             amount: amount,
             category: category,
             dayOfMonth: 1,
-            isEmi: true,
+            emi: true,
             active: true
         } as RecurringExpense).subscribe(() => {
             this.loadRecurringExpenses();
@@ -275,6 +276,20 @@ export class BudgetTrackerComponent implements OnInit {
         this.applyFilters();
     }
 
+    // Sorting State
+    sortColumn: string = 'date';
+    sortDirection: 'asc' | 'desc' = 'desc';
+
+    toggleSort(column: string) {
+        if (this.sortColumn === column) {
+            this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            this.sortColumn = column;
+            this.sortDirection = 'desc'; // Default to desc for new columns
+        }
+        this.applyFilters();
+    }
+
     applyFilters() {
         // First, filter the expenses
         let filtered = this.expenses.filter(expense => {
@@ -295,38 +310,43 @@ export class BudgetTrackerComponent implements OnInit {
             if (this.filterMinAmount !== null && expense.amount < this.filterMinAmount) return false;
             if (this.filterMaxAmount !== null && expense.amount > this.filterMaxAmount) return false;
 
-            // 4. Date Range (Optional - currently we are already filtered by month, but this could be within the month)
-            // Keeping it simple for now as we are viewing monthly snapshots.
-
             return true;
         });
 
-        // Then, calculate running totals (from oldest to newest) and assign colors
-        // Since 'filtered' is sorted Newest -> Oldest, we need to reverse it to calc running total, then reverse back
-        // Or just iterate backwards
+        // Calculate running totals (ALWAYS based on Date ASC first)
         let runningTotal = 0;
-        const result: TransactionView[] = [];
+        const sortedForCalc = [...filtered].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-        // We want the running total to reflect the accumulation over time.
-        // So for the oldest transaction, runningTotal = its amount.
-        // For the next oldest, runningTotal = previous + its amount.
-
-        // Create a copy and sort by date ascending for calculation
-        const sortedAsc = [...filtered].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-        const calculated = sortedAsc.map(expense => {
+        const calculated = sortedForCalc.map(expense => {
             runningTotal += expense.amount;
-            // Get color from breakdown or generate one
-            const color = this.getCategoryColor(expense.category);
             return {
                 ...expense,
                 runningTotal: runningTotal,
-                categoryColor: color
+                categoryColor: this.getCategoryColor(expense.category)
             };
         });
 
-        // Now sort back to Descending for display
-        this.filteredExpenses = calculated.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        // Final Sort for Display
+        this.filteredExpenses = calculated.sort((a, b) => {
+            const direction = this.sortDirection === 'asc' ? 1 : -1;
+
+            let valueA: any = a[this.sortColumn as keyof TransactionView];
+            let valueB: any = b[this.sortColumn as keyof TransactionView];
+
+            // Handle Date comparison specifically
+            if (this.sortColumn === 'date') {
+                valueA = new Date(a.date).getTime();
+                valueB = new Date(b.date).getTime();
+            }
+
+            if (valueA < valueB) return -1 * direction;
+            if (valueA > valueB) return 1 * direction;
+
+            // Tie-breaker: ID
+            const idA = a.id ? a.id.toString() : '';
+            const idB = b.id ? b.id.toString() : '';
+            return idB.localeCompare(idA) * direction; // Stable secondary sort
+        });
     }
 
     getCategoryColor(category: string): string {
@@ -433,38 +453,56 @@ export class BudgetTrackerComponent implements OnInit {
         }
     }
 
-    addExpense() {
+
+
+    startEditing(expense: any) {
+        this.editingExpenseId = expense.id;
+        this.newExpense = { ...expense, date: expense.date.split('T')[0] }; // Format date for input
+        this.showAddExpenseModal = true;
+    }
+
+    cancelEditing() {
+        this.editingExpenseId = undefined;
+        this.newExpense = {
+            description: '',
+            amount: 0,
+            category: 'Food', // Default category
+            date: new Date().toISOString().split('T')[0]
+        };
+        this.showAddExpenseModal = false;
+    }
+
+    saveExpense() {
         if (this.newExpense.description && this.newExpense.amount > 0) {
-            if (this.isEditing && this.editingExpenseId) {
-                // Update existing expense
-                const updatedExpense = {
-                    ...this.newExpense,
-                    id: this.editingExpenseId
-                };
-                this.expenseService.updateExpense(this.editingExpenseId, updatedExpense).subscribe(expense => {
-                    const index = this.allExpenses.findIndex(e => e.id === this.editingExpenseId);
-                    if (index !== -1) {
-                        this.allExpenses[index] = expense;
-                    }
-                    this.filterExpensesAndBudget();
-                    this.cancelEdit();
+            const expenseToSave = {
+                ...this.newExpense,
+                // Ensure amount is number
+                amount: parseFloat(this.newExpense.amount.toString())
+            };
+
+            if (this.editingExpenseId) {
+                // Update
+                const updatedExpense = { ...expenseToSave, id: this.editingExpenseId };
+                this.expenseService.updateExpense(this.editingExpenseId, updatedExpense).subscribe(() => {
+                    this.loadExpenses();
+                    this.cancelEditing();
                 });
             } else {
-                // Create new expense
-                this.expenseService.createExpense(this.newExpense).subscribe(expense => {
-                    this.allExpenses.unshift(expense);
-                    this.filterExpensesAndBudget();
-                    this.resetForm();
+                // Create
+                this.expenseService.createExpense(expenseToSave).subscribe(() => {
+                    this.loadExpenses();
+                    this.cancelEditing(); // Reset form
                 });
             }
         }
     }
 
-    deleteExpense(id: number | undefined) {
+    deleteExpense(id: string | undefined) {
         if (id) {
             this.expenseService.deleteExpense(id).subscribe(() => {
                 this.allExpenses = this.allExpenses.filter(e => e.id !== id);
-                this.filterExpensesAndBudget();
+                this.applyFilters();
+                this.loadExpenses(); // Reload from server to be sure
             });
         }
     }
@@ -501,6 +539,8 @@ export class BudgetTrackerComponent implements OnInit {
         }
     }
 
+
+
     setView(view: 'dashboard' | 'transactions' | 'analytics') {
         this.activeView = view;
     }
@@ -517,25 +557,12 @@ export class BudgetTrackerComponent implements OnInit {
         return 'bg-rose-500';
     }
 
-    editExpense(expense: Expense) {
-        this.isEditing = true;
-        this.editingExpenseId = expense.id;
-        this.newExpense = {
-            description: expense.description,
-            amount: expense.amount,
-            category: expense.category,
-            date: expense.date
-        };
-    }
-
-    cancelEdit() {
-        this.isEditing = false;
-        this.editingExpenseId = undefined;
-        this.resetForm();
-    }
-
     toggleFilters() {
         this.showFilters = !this.showFilters;
+    }
+
+    addExpense() {
+        this.saveExpense();
     }
 
     addEMI() {
@@ -575,6 +602,10 @@ export class BudgetTrackerComponent implements OnInit {
 
     getTotalLoanEMI(): number {
         return this.getEMIAmount('Loan EMI');
+    }
+
+    getFilteredTotal(): number {
+        return this.filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
     }
 
     isFixedRecurringRemoved(name: string): boolean {

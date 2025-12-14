@@ -38,7 +38,7 @@ export class ExpenseListComponent implements OnInit {
         });
     }
 
-    deleteExpense(id: number | undefined) {
+    deleteExpense(id: string | undefined) {
         if (id) {
             this.expenseService.deleteExpense(id).subscribe(() => {
                 this.loadExpenses();

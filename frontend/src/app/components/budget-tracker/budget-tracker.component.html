@@ -134,57 +134,6 @@
             </div>
         </div>
 
-        <!-- Summary Row (Budget vs Spent) -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- Monthly Budget -->
-            <div
-                class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Monthly Budget</p>
-                    <div class="flex items-baseline space-x-2">
-                        <span class="text-2xl font-black text-gray-900 dark:text-white">{{ monthlyBudget | currency
-                            }}</span>
-                        <button (click)="updateBudget()" class="text-xs text-primary hover:underline">Edit</button>
-                    </div>
-                    <input type="number" [(ngModel)]="monthlyBudget" (change)="updateBudget()"
-                        class="mt-1 w-24 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border-none rounded text-xs focus:ring-1 focus:ring-primary">
-                </div>
-                <div class="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-full text-indigo-500">
-                    <span class="material-icons">account_balance_wallet</span>
-                </div>
-            </div>
-
-            <!-- Total Spent -->
-            <div
-                class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Total Spent</p>
-                    <span class="text-2xl font-black text-gray-900 dark:text-white">{{ totalSpent | currency }}</span>
-                    <p class="text-xs text-gray-500 mt-1">{{ getProgressPercentage() | number:'1.0-0' }}% of budget</p>
-                </div>
-                <div class="p-3 bg-rose-50 dark:bg-rose-900/30 rounded-full text-rose-500">
-                    <span class="material-icons">shopping_cart</span>
-                </div>
-            </div>
-
-            <!-- Remaining -->
-            <div
-                class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Remaining</p>
-                    <span
-                        [class]="'text-2xl font-black ' + (monthlyBudget - totalSpent >= 0 ? 'text-emerald-500' : 'text-red-500')">
-                        {{ monthlyBudget - totalSpent | currency }}
-                    </span>
-                    <p class="text-xs text-gray-500 mt-1" *ngIf="monthlyBudget - totalSpent >= 0">Safe to spend</p>
-                    <p class="text-xs text-red-400 mt-1" *ngIf="monthlyBudget - totalSpent < 0">Over budget!</p>
-                </div>
-                <div class="p-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-full text-emerald-500">
-                    <span class="material-icons">savings</span>
-                </div>
-            </div>
-        </div>
-
         <!-- Recurring Expenses & EMI Summary -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <!-- Recurring Monthly Expenses -->
@@ -314,6 +263,57 @@
             </div>
         </div>
 
+        <!-- Summary Row (Budget vs Spent) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Monthly Budget -->
+            <div
+                class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Monthly Budget</p>
+                    <div class="flex items-baseline space-x-2">
+                        <span class="text-2xl font-black text-gray-900 dark:text-white">{{ monthlyBudget | currency
+                            }}</span>
+                        <button (click)="updateBudget()" class="text-xs text-primary hover:underline">Edit</button>
+                    </div>
+                    <input type="number" [(ngModel)]="monthlyBudget" (change)="updateBudget()"
+                        class="mt-1 w-24 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white border-none rounded text-xs focus:ring-1 focus:ring-primary">
+                </div>
+                <div class="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-full text-indigo-500">
+                    <span class="material-icons">account_balance_wallet</span>
+                </div>
+            </div>
+
+            <!-- Total Spent -->
+            <div
+                class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Total Spent</p>
+                    <span class="text-2xl font-black text-gray-900 dark:text-white">{{ totalSpent | currency }}</span>
+                    <p class="text-xs text-gray-500 mt-1">{{ getProgressPercentage() | number:'1.0-0' }}% of budget</p>
+                </div>
+                <div class="p-3 bg-rose-50 dark:bg-rose-900/30 rounded-full text-rose-500">
+                    <span class="material-icons">shopping_cart</span>
+                </div>
+            </div>
+
+            <!-- Remaining -->
+            <div
+                class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Remaining</p>
+                    <span
+                        [class]="'text-2xl font-black ' + (monthlyBudget - totalSpent >= 0 ? 'text-emerald-500' : 'text-red-500')">
+                        {{ monthlyBudget - totalSpent | currency }}
+                    </span>
+                    <p class="text-xs text-gray-500 mt-1" *ngIf="monthlyBudget - totalSpent >= 0">Safe to spend</p>
+                    <p class="text-xs text-red-400 mt-1" *ngIf="monthlyBudget - totalSpent < 0">Over budget!</p>
+                </div>
+                <div class="p-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-full text-emerald-500">
+                    <span class="material-icons">savings</span>
+                </div>
+            </div>
+        </div>
+
         <!-- CHARTS ROW 1: Trend & Allocation -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Main Chart: Daily Spend Trend (2 cols) -->
@@ -410,7 +410,7 @@
             <h3 class="text-lg font-bold text-gray-900 dark:text-white">
                 {{ isEditing ? 'Edit Expense' : 'Add New Expense' }}
             </h3>
-            <button *ngIf="isEditing" (click)="cancelEdit()"
+            <button *ngIf="isEditing" (click)="cancelEditing()"
                 class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                 Cancel
             </button>
@@ -494,27 +494,63 @@
         class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
             <h3 class="text-lg font-bold text-gray-900 dark:text-white">Recent Transactions</h3>
-            <span class="text-sm text-gray-500">{{ filteredExpenses.length }} transactions</span>
+            <div class="flex items-center space-x-4">
+                <span
+                    class="text-sm font-bold text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-lg">
+                    Total: {{ getFilteredTotal() | currency }}
+                </span>
+                <span class="text-sm text-gray-500">{{ filteredExpenses.length }} transactions</span>
+            </div>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full">
                 <thead class="bg-gray-50 dark:bg-gray-900/50">
                     <tr>
-                        <th
-                            class="px-3 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                            Date</th>
+                        <th (click)="toggleSort('date')"
+                            class="px-3 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors select-none">
+                            <div class="flex items-center gap-1">
+                                Date
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4"
+                                    [class.text-blue-500]="sortColumn === 'date'"
+                                    [class.text-gray-400]="sortColumn !== 'date'" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        [attr.d]="sortColumn === 'date' ? (sortDirection === 'asc' ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7') : 'M8 9l4-4 4 4m0 6l-4 4-4-4'" />
+                                </svg>
+                            </div>
+                        </th>
                         <th
                             class="px-3 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                             Description</th>
                         <th
                             class="px-3 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
                             Category</th>
-                        <th
-                            class="px-3 py-4 text-right text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                            Amount</th>
-                        <th
-                            class="px-3 py-4 text-right text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                            Running Total</th>
+                        <th (click)="toggleSort('amount')"
+                            class="px-3 py-4 text-right text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors select-none">
+                            <div class="flex items-center justify-end gap-1">
+                                Amount
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4"
+                                    [class.text-blue-500]="sortColumn === 'amount'"
+                                    [class.text-gray-400]="sortColumn !== 'amount'" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        [attr.d]="sortColumn === 'amount' ? (sortDirection === 'asc' ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7') : 'M8 9l4-4 4 4m0 6l-4 4-4-4'" />
+                                </svg>
+                            </div>
+                        </th>
+                        <th (click)="toggleSort('runningTotal')"
+                            class="px-3 py-4 text-right text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors select-none">
+                            <div class="flex items-center justify-end gap-1">
+                                Running Total
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4"
+                                    [class.text-blue-500]="sortColumn === 'runningTotal'"
+                                    [class.text-gray-400]="sortColumn !== 'runningTotal'" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        [attr.d]="sortColumn === 'runningTotal' ? (sortDirection === 'asc' ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7') : 'M8 9l4-4 4 4m0 6l-4 4-4-4'" />
+                                </svg>
+                            </div>
+                        </th>
                         <th
                             class="px-3 py-4 text-center text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider whitespace-nowrap">
                             Actions</th>
@@ -544,10 +580,10 @@
                         </td>
                         <td class="px-3 py-3 text-center whitespace-nowrap">
                             <div class="flex items-center justify-center space-x-1">
-                                <button (click)="editExpense(expense)"
-                                    class="text-gray-400 hover:text-blue-500 transition-colors p-1 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                <button (click)="startEditing(expense)"
+                                    class="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                                     title="Edit">
-                                    <span class="material-icons text-lg">edit</span>
+                                    <span class="material-icons text-sm">edit</span>
                                 </button>
                                 <button (click)="deleteExpense(expense.id)"
                                     class="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"

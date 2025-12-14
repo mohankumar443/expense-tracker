@@ -100,10 +100,10 @@ public class DebtAccountController {
         existing.setName(debtAccount.getName());
         existing.setAccountType(debtAccount.getAccountType());
         existing.setCurrentBalance(debtAccount.getCurrentBalance());
-        // existing.setApr(debtAccount.getApr()); // APR removed from model
+        existing.setApr(debtAccount.getApr());
         existing.setMonthlyPayment(debtAccount.getMonthlyPayment());
-        // existing.setPromoExpirationDate(debtAccount.getPromoExpirationDate()); //
-        // Removed? Wait, checking model
+        existing.setCreditLimit(debtAccount.getCreditLimit());
+        existing.setPromoExpirationDate(debtAccount.getPromoExpirationDate());
         existing.setNotes(debtAccount.getNotes());
         existing.setLastUpdated(LocalDate.now());
 

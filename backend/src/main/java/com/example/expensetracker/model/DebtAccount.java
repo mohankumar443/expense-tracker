@@ -63,6 +63,14 @@ public class DebtAccount {
         this.currentBalance = currentBalance;
     }
 
+    public Double getCreditLimit() {
+        return creditLimit;
+    }
+
+    public void setCreditLimit(Double creditLimit) {
+        this.creditLimit = creditLimit;
+    }
+
     public Double getApr() {
         return apr;
     }

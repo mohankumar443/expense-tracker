@@ -1,31 +1,30 @@
 {
   "snapshotDate": "2025-10-31",
-  "totalDebt": 126500,
+  "totalDebt": 100974,
   "creditCards": {
-    "total": 29000,
+    "total": 32511,
     "accounts": [
-      {"name": "Bank of America", "balance": 10000, "apr": 24.0, "monthlyPayment": 1000, "notes": "24% APR - Huge payment!"},
-      {"name": "Citi Card 1", "balance": 1000, "apr": 0.0, "monthlyPayment": 100, "notes": "0% APR"},
-      {"name": "Citi Card 2", "balance": 1300, "apr": 24.0, "monthlyPayment": 100, "notes": "High APR ~24%"},
-      {"name": "Citi Card 3", "balance": 6300, "apr": 0.0, "monthlyPayment": 100, "notes": "0% until Sep 2026"},
-      {"name": "DCU Credit Card", "balance": 1100, "apr": 0.0, "monthlyPayment": 0, "notes": "0% APR"},
-      {"name": "Bilt Credit Card", "balance": 700, "apr": 18.0, "monthlyPayment": 200, "notes": "18% APR"},
-      {"name": "Fidelity Credit Card", "balance": 8600, "apr": 0.0, "monthlyPayment": 200, "notes": "0% until Jul 2026"}
+      {"name": "Bank of America", "balance": 11000, "apr": 24.0, "monthlyPayment": 150, "notes": "APR expired; now ~18-24%. Highest balance."},
+      {"name": "Citi Card 1", "balance": 911, "apr": 24.0, "monthlyPayment": 75, "notes": "APR expired."},
+      {"name": "Citi Card 2", "balance": 3500, "apr": 24.0, "monthlyPayment": 800, "notes": "APR expired. Paying aggressively."},
+      {"name": "Citi Card 3", "balance": 6500, "apr": 0.0, "monthlyPayment": 100, "notes": "0% APR until Sep 2026."},
+      {"name": "DCU Credit Card", "balance": 500, "apr": 10.0, "monthlyPayment": 75, "notes": "10% APR. Smallest debt."},
+      {"name": "Bilt Credit Card", "balance": 1100, "apr": 18.0, "monthlyPayment": 100, "notes": "18% APR. Higher APR."},
+      {"name": "Fidelity Credit Card", "balance": 9000, "apr": 0.0, "monthlyPayment": 90, "notes": "0% APR until Jul 2026."}
     ]
   },
   "personalLoans": {
-    "total": 72500,
+    "total": 44463,
     "accounts": [
-      {"name": "Citi Loan", "balance": 14600, "apr": 13.0, "monthlyPayment": 650, "notes": "13% APR"},
-      {"name": "SoFi Loan 1", "balance": 14000, "apr": 8.0, "monthlyPayment": 1100, "notes": "8% APR"},
-      {"name": "SoFi Loan 2", "balance": 24600, "apr": 10.0, "monthlyPayment": 810, "notes": "10% APR"},
-      {"name": "Fidelity Loan", "balance": 19300, "apr": 8.5, "monthlyPayment": 760, "notes": "8.5% APR"}
+      {"name": "Citi Loan", "balance": 16000, "apr": 13.0, "monthlyPayment": 650, "notes": "13% APR"},
+      {"name": "SoFi Loan", "balance": 8963, "apr": 8.0, "monthlyPayment": 1100, "notes": "8% APR"},
+      {"name": "Fidelity Loan", "balance": 19500, "apr": 8.5, "monthlyPayment": 760, "notes": "8.5% APR"}
     ]
   },
   "autoLoan": {
-    "total": 25000,
+    "total": 24000,
     "accounts": [
-      {"name": "DCU Car Loan", "balance": 25000, "apr": 5.75, "monthlyPayment": 850, "notes": "5.75% APR"}
+      {"name": "DCU Auto Loan", "balance": 24000, "apr": 5.75, "monthlyPayment": 850, "notes": "5.75% APR"}
     ]
   }
 }
