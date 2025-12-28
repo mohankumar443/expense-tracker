@@ -365,7 +365,7 @@ export class RetirementTrackerComponent implements OnInit {
     }
 
     // Calculate monthly contribution target for each account based on target portfolio value
-    // Uses PMT formula to account for 7% annual compound growth
+    // Uses 2025 IRS Limits + Waterfall Strategy (Roth -> HSA -> 401k -> Brokerage)
     getContributionTarget(accountType: string): number {
         const monthsToRetirement = (this.targetRetirementAge - this.currentAge) * 12;
         if (monthsToRetirement <= 0) return 0;
@@ -384,18 +384,40 @@ export class RetirementTrackerComponent implements OnInit {
         if (remainingNeeded <= 0) return 0; // Already on track with just growth
 
         // PMT Formula: P = (FV * r) / ((1 + r)^n - 1)
-        // Here FV is the remaining amount needed
-        const totalMonthlyContributionNeeded = (remainingNeeded * monthlyRate) / (Math.pow(1 + monthlyRate, monthsToRetirement) - 1);
+        const totalMonthlyNeeded = (remainingNeeded * monthlyRate) / (Math.pow(1 + monthlyRate, monthsToRetirement) - 1);
 
-        // Allocation percentages
-        const allocations: { [key: string]: number } = {
-            '401k': 0.50,      // 50% to 401k
-            'Roth IRA': 0.20,  // 20% to Roth IRA
-            'HSA': 0.15,       // 15% to HSA
-            'Brokerage': 0.15  // 15% to Brokerage
-        };
+        // --- IRS LIMITS (2025) ---
+        // 401k: $23,500
+        // Roth IRA: $7,000
+        // HSA: $4,150 (Individual)
+        const LIMIT_401K = 23500 / 12;
+        const LIMIT_ROTH = 7000 / 12;
+        const LIMIT_HSA = 4150 / 12;
 
-        return Math.round((totalMonthlyContributionNeeded * (allocations[accountType] || 0)) * 100) / 100;
+        // --- Waterfall Distribution Strategy ---
+        // Priority: Roth (Tax Free) -> HSA (Triple Tax) -> 401k (Pre-Tax) -> Brokerage (Overflow)
+
+        let remainingToAllocate = totalMonthlyNeeded;
+
+        // 1. Fill Roth IRA
+        const rothAlloc = Math.min(remainingToAllocate, LIMIT_ROTH);
+        if (accountType === 'Roth IRA') return rothAlloc;
+        remainingToAllocate -= rothAlloc;
+
+        // 2. Fill HSA
+        const hsaAlloc = Math.min(remainingToAllocate, LIMIT_HSA);
+        if (accountType === 'HSA') return hsaAlloc;
+        remainingToAllocate -= hsaAlloc;
+
+        // 3. Fill 401k
+        const k401Alloc = Math.min(remainingToAllocate, LIMIT_401K);
+        if (accountType === '401k') return k401Alloc;
+        remainingToAllocate -= k401Alloc;
+
+        // 4. Fill Brokerage (Unlimited overflow)
+        if (accountType === 'Brokerage') return Math.max(0, remainingToAllocate);
+
+        return 0;
     }
 
     getContributionStatus(contribution: number, target: number): string {
