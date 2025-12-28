@@ -91,6 +91,9 @@ export class SidebarComponent implements OnInit {
             case 'recurring':
                 sectionId = 'recurring';
                 break;
+            case 'retirement':
+                sectionId = 'retirement';
+                break;
         }
 
         if (sectionId) {

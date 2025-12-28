@@ -13,6 +13,8 @@ import { DebtAccountService, DebtAccount } from '../../services/debt-account.ser
 })
 export class RecurringExpensesComponent implements OnInit {
   recurringExpenses: RecurringExpense[] = [];
+  nonEmiExpenses: RecurringExpense[] = [];
+  emiExpenses: RecurringExpense[] = [];
   debtAccounts: DebtAccount[] = [];
 
   newExpense: RecurringExpense = {
@@ -40,6 +42,8 @@ export class RecurringExpensesComponent implements OnInit {
   loadExpenses() {
     this.recurringService.getAll().subscribe(data => {
       this.recurringExpenses = data;
+      this.nonEmiExpenses = data.filter(e => !e.emi);
+      this.emiExpenses = data.filter(e => e.emi);
     });
   }
 

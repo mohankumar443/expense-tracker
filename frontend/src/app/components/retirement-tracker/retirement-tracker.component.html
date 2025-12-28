@@ -1,0 +1,331 @@
+<div class="retirement-tracker-container">
+    <!-- Header -->
+    <div class="header-section">
+        <h1 class="text-4xl font-black text-white mb-2">🎯 FIRE Retirement Tracker</h1>
+        <p class="text-gray-300">Track your path to Financial Independence, Retire Early at age 50</p>
+    </div>
+
+    <!-- ACCOUNT BALANCES & ATTRIBUTION SECTION -->
+    <div class="mb-8">
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+            <span class="mr-2">🧩</span> Retirement Assets (Financial Life OS)
+        </h3>
+
+        <!-- Scorecards Container -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <!-- Iterate over Retirement Scorecards -->
+            <div *ngFor="let score of retirementScorecards"
+                class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700 relative overflow-hidden group hover:border-indigo-500/50 transition-all">
+
+                <!-- Account Header -->
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <div class="text-xs font-bold uppercase tracking-wider text-indigo-500 mb-0.5">
+                            {{score.accountType}}</div>
+                        <div class="text-2xl font-black text-gray-900 dark:text-white tracking-tight">{{score.balance}}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attribution Bar -->
+                <div class="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full flex overflow-hidden mb-3">
+                    <div class="bg-emerald-500" [style.width.%]="score.contributionPercent || 50"></div>
+                    <!-- Contribution portion -->
+                    <div class="bg-blue-500" [style.width.%]="score.growthPercent || 50"></div> <!-- Growth portion -->
+                </div>
+
+                <!-- Attribution Detail -->
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                        <div class="text-gray-500 dark:text-gray-400">YTD Growth</div>
+                        <div class="font-bold text-emerald-500">{{score.ytdGrowthDollars}}</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-gray-500 dark:text-gray-400">Status</div>
+                        <div class="font-bold"
+                            [ngClass]="{'text-green-500': score.status === 'Leading', 'text-yellow-500': score.status === 'On Plan', 'text-red-500': score.status === 'Behind'}">
+                            {{score.status}}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fallback if no scorecards yet (Show Input Cards) -->
+            <ng-container *ngIf="retirementScorecards.length === 0">
+                <div *ngFor="let acc of accounts; let i = index" [hidden]="acc.goalType !== 'RETIREMENT'"
+                    class="account-input-card bg-white dark:bg-[#1a2332] rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-lg">
+                    <div class="balance-label mb-2 font-bold text-gray-700 dark:text-gray-300">{{acc.accountType}}</div>
+                    <input type="number" [(ngModel)]="accounts[i].balance" (ngModelChange)="onManualBalanceChange(i)"
+                        (blur)="calculate()" placeholder="$0.00"
+                        class="w-full bg-gray-50 dark:bg-gray-800 border-none rounded-lg py-2 px-3 text-lg font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500" />
+                </div>
+            </ng-container>
+        </div>
+    </div>
+    <!-- TOTALS & TARGET SECTION -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <!-- Total Invested -->
+        <div class="balance-card total-card">
+            <div class="balance-label">Total Invested</div>
+            <div class="balance-amount total">{{formatCurrency(getTotalBalance())}}</div>
+        </div>
+
+        <!-- Target at Age 50 -->
+        <div class="balance-card target-card">
+            <div class="balance-label">Target at Age 50 <span class="edit-badge">✏️ Editable</span></div>
+            <div class="balance-amount target">{{formatCurrency(targetPortfolioValue)}}</div>
+            <input type="number" [(ngModel)]="targetPortfolioValue" (blur)="calculate()" placeholder="Enter target"
+                class="balance-input" />
+        </div>
+    </div>
+
+    <!-- B) CONTRIBUTIONS (This Month) -->
+    <div class="section-card">
+        <h2 class="section-title">📈 Monthly Contributions</h2>
+
+        <div class="contribution-grid">
+            <!-- 401(k) Contribution -->
+            <div class="contribution-card">
+                <div class="contribution-label">
+                    401(k)
+                    <span class="target-badge">Target: {{formatCurrency(getContributionTarget('401k'))}}</span>
+                </div>
+                <input type="number" [(ngModel)]="accounts[0].contribution" (ngModelChange)="updateBalance(0)"
+                    placeholder="$0" class="contribution-input" />
+                <div *ngIf="accounts[0].contribution > 0"
+                    [class]="'contribution-status ' + getContributionStatusColor(getContributionStatus(accounts[0].contribution, getContributionTarget('401k')))">
+                    {{getContributionStatusIcon(getContributionStatus(accounts[0].contribution,
+                    getContributionTarget('401k')))}}
+                    <span *ngIf="accounts[0].contribution >= getContributionTarget('401k')">Target Reached!</span>
+                    <span
+                        *ngIf="accounts[0].contribution < getContributionTarget('401k')">{{formatCurrency(getContributionTarget('401k')
+                        - accounts[0].contribution)}} to target</span>
+                </div>
+            </div>
+
+            <!-- Roth Contribution -->
+            <div class="contribution-card">
+                <div class="contribution-label">
+                    Roth IRA
+                    <span class="target-badge">Target: {{formatCurrency(getContributionTarget('Roth IRA'))}}</span>
+                </div>
+                <input type="number" [(ngModel)]="accounts[1].contribution" (ngModelChange)="updateBalance(1)"
+                    placeholder="$0" class="contribution-input" />
+                <div *ngIf="accounts[1].contribution > 0"
+                    [class]="'contribution-status ' + getContributionStatusColor(getContributionStatus(accounts[1].contribution, getContributionTarget('Roth IRA')))">
+                    {{getContributionStatusIcon(getContributionStatus(accounts[1].contribution,
+                    getContributionTarget('Roth IRA')))}}
+                    <span *ngIf="accounts[1].contribution >= getContributionTarget('Roth IRA')">Target Reached!</span>
+                    <span
+                        *ngIf="accounts[1].contribution < getContributionTarget('Roth IRA')">{{formatCurrency(getContributionTarget('Roth
+                        IRA') - accounts[1].contribution)}} to target</span>
+                </div>
+            </div>
+
+            <!-- HSA Contribution -->
+            <div class="contribution-card">
+                <div class="contribution-label">
+                    HSA
+                    <span class="target-badge">Target: {{formatCurrency(getContributionTarget('HSA'))}}</span>
+                </div>
+                <input type="number" [(ngModel)]="accounts[2].contribution" (ngModelChange)="updateBalance(2)"
+                    placeholder="$0" class="contribution-input" />
+                <div *ngIf="accounts[2].contribution > 0"
+                    [class]="'contribution-status ' + getContributionStatusColor(getContributionStatus(accounts[2].contribution, getContributionTarget('HSA')))">
+                    {{getContributionStatusIcon(getContributionStatus(accounts[2].contribution,
+                    getContributionTarget('HSA')))}}
+                    <span *ngIf="accounts[2].contribution >= getContributionTarget('HSA')">Target Reached!</span>
+                    <span
+                        *ngIf="accounts[2].contribution < getContributionTarget('HSA')">{{formatCurrency(getContributionTarget('HSA')
+                        - accounts[2].contribution)}} to target</span>
+                </div>
+            </div>
+
+            <!-- Brokerage Contribution -->
+            <div class="contribution-card">
+                <div class="contribution-label">
+                    Brokerage
+                    <span class="target-badge">Target: {{formatCurrency(getContributionTarget('Brokerage'))}}</span>
+                </div>
+                <input type="number" [(ngModel)]="accounts[3].contribution" (ngModelChange)="updateBalance(3)"
+                    placeholder="$0" class="contribution-input" />
+                <div *ngIf="accounts[3].contribution > 0"
+                    [class]="'contribution-status ' + getContributionStatusColor(getContributionStatus(accounts[3].contribution, getContributionTarget('Brokerage')))">
+                    {{getContributionStatusIcon(getContributionStatus(accounts[3].contribution,
+                    getContributionTarget('Brokerage')))}}
+                    <span *ngIf="accounts[3].contribution >= getContributionTarget('Brokerage')">Target Reached!</span>
+                    <span
+                        *ngIf="accounts[3].contribution < getContributionTarget('Brokerage')">{{formatCurrency(getContributionTarget('Brokerage')
+                        - accounts[3].contribution)}} to target</span>
+                </div>
+            </div>
+
+            <!-- Total Contribution -->
+            <div class="contribution-card total-contribution-card">
+                <div class="contribution-label">Total This Month</div>
+                <div class="contribution-total">{{formatCurrency(getTotalContributions())}}</div>
+            </div>
+        </div>
+
+        <!-- Additional Inputs -->
+        <div class="additional-inputs">
+            <div class="input-group">
+                <label class="input-label">Month / Year</label>
+                <input type="month" [(ngModel)]="monthYear" class="month-input" />
+            </div>
+            <div class="input-group">
+                <label class="input-label">One-Time Additions (Bonus, Tax Refund, etc.)</label>
+                <input type="number" [(ngModel)]="oneTimeAdditions" placeholder="$0" class="month-input" />
+            </div>
+        </div>
+
+        <!-- Calculate Button -->
+        <div class="button-container">
+            <button (click)="calculate()" [disabled]="loading" class="calculate-btn">
+                <span *ngIf="!loading">🚀 Calculate Retirement Plan</span>
+                <span *ngIf="loading">⏳ Calculating...</span>
+            </button>
+            <button (click)="resetForm()" class="reset-btn">🔄 Reset</button>
+        </div>
+
+        <!-- Error Message -->
+        <div *ngIf="error" class="error-message">
+            ⚠️ {{error}}
+        </div>
+    </div>
+
+    <!-- RESULTS SECTION (Only show after calculation) -->
+    <div *ngIf="response" class="results-container">
+
+        <!-- C) ACCOUNT SCOREBOARD TABLE -->
+        <div class="section-card">
+            <h2 class="section-title">📊 Account Scoreboard</h2>
+
+            <div class="table-container">
+                <table class="scoreboard-table">
+                    <thead>
+                        <tr>
+                            <th>Account</th>
+                            <th>Balance</th>
+                            <th>YTD Contrib</th>
+                            <th>YTD Growth $</th>
+                            <th>YTD Growth %</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let scorecard of response.accountScorecard">
+                            <td class="account-name">{{scorecard.accountType}}</td>
+                            <td class="balance-cell">{{formatCurrency(scorecard.balance)}}</td>
+                            <td class="contrib-cell">{{formatCurrency(scorecard.ytdContributions)}}</td>
+                            <td class="growth-cell">{{formatCurrency(scorecard.ytdGrowthDollars)}}</td>
+                            <td class="growth-percent-cell">{{formatPercent(scorecard.ytdGrowthPercent)}}</td>
+                            <td>
+                                <span [class]="'status-badge ' + getStatusBadgeColor(scorecard.status)">
+                                    {{getStatusIcon(scorecard.status)}} {{scorecard.status}}
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- D) GROWTH DRIVERS -->
+        <div class="section-card" *ngIf="response.growthAttribution">
+            <h2 class="section-title">🎯 Growth Drivers</h2>
+
+            <div class="drivers-grid">
+                <div class="driver-card">
+                    <div class="driver-icon">⭐</div>
+                    <div class="driver-label">Top Growth Driver</div>
+                    <div class="driver-value">{{response.growthAttribution.topGrowthDriver}}</div>
+                </div>
+
+                <div class="driver-card">
+                    <div class="driver-icon">📉</div>
+                    <div class="driver-label">Weakest Contributor</div>
+                    <div class="driver-value">{{response.growthAttribution.weakestContributor}}</div>
+                </div>
+
+                <div class="driver-card">
+                    <div class="driver-icon">📊</div>
+                    <div class="driver-label">Market vs Contributions</div>
+                    <div class="driver-value">
+                        {{response.growthAttribution.marketGrowthPercent}}% Market /
+                        {{response.growthAttribution.contributionPercent}}% Contributions
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- E) TARGET PATH STATUS -->
+        <div class="section-card">
+            <h2 class="section-title">🎯 Target Path Status</h2>
+
+            <div class="status-grid">
+                <div class="status-card">
+                    <div class="status-label">Target Balance</div>
+                    <div class="status-value">{{formatCurrency(response.currentTargetBalance)}}</div>
+                </div>
+
+                <div class="status-card">
+                    <div class="status-label">Actual Balance</div>
+                    <div class="status-value">{{formatCurrency(response.actualBalance)}}</div>
+                </div>
+
+                <div class="status-card">
+                    <div class="status-label">Difference</div>
+                    <div class="status-value" [class.positive]="(response.differenceAmount || 0) >= 0"
+                        [class.negative]="(response.differenceAmount || 0) < 0">
+                        {{formatCurrency(response.differenceAmount)}} ({{formatPercent(response.differencePercent)}})
+                    </div>
+                </div>
+
+                <div class="status-card status-badge-card">
+                    <div class="status-label">Status</div>
+                    <div [class]="'status-badge-large ' + getStatusBadgeColor(response.status || '')">
+                        {{getStatusIcon(response.status || '')}} {{response.status}}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Remaining Months -->
+            <div class="remaining-months">
+                <span class="months-label">Remaining Months to Age 50:</span>
+                <span class="months-value">{{response.remainingMonths}} months</span>
+            </div>
+        </div>
+
+        <!-- F) GUIDANCE -->
+        <div class="section-card guidance-card">
+            <h2 class="section-title">💡 Guidance</h2>
+
+            <div class="guidance-content">
+                <p class="commentary">{{response.commentary}}</p>
+
+                <div *ngIf="response.requiredMonthlyContribution" class="required-contrib">
+                    <span class="required-label">Required Monthly Contribution:</span>
+                    <span class="required-value">{{formatCurrency(response.requiredMonthlyContribution)}}/month</span>
+                </div>
+
+                <div *ngIf="response.bufferMonths" class="buffer-months">
+                    <span class="buffer-label">Buffer Created:</span>
+                    <span class="buffer-value">{{response.bufferMonths.toFixed(1)}} months</span>
+                </div>
+
+                <div *ngIf="response.bonusAdditions" class="bonus-additions">
+                    <span class="bonus-label">🎉 Bonus Additions This Month:</span>
+                    <span class="bonus-value">{{formatCurrency(response.bonusAdditions)}}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Projection Chart -->
+        <div class="section-card">
+            <h2 class="section-title">📈 Projection Chart</h2>
+            <div class="chart-container">
+                <canvas baseChart [data]="lineChartData" [options]="lineChartOptions" [type]="'line'"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
