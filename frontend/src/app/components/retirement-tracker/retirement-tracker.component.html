@@ -186,6 +186,34 @@
             </div>
         </div>
 
+        <!-- Health Score Insights -->
+        <div class="mb-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4"
+            *ngIf="healthScoreDetails">
+            <div class="flex items-start">
+                <div class="flex-shrink-0 bg-red-100 dark:bg-red-900/20 rounded-lg p-3 mr-4">
+                    <span class="text-2xl">❤️</span>
+                </div>
+                <div class="flex-grow">
+                    <div class="flex justify-between items-start">
+                        <h4 class="text-lg font-bold text-gray-900 dark:text-white mb-1">Health Score Insights</h4>
+                        <span
+                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            {{healthScoreDetails.score}}/100
+                        </span>
+                    </div>
+                    <p class="text-blue-600 dark:text-blue-400 font-medium text-sm mb-3">
+                        ⚡ {{ healthScoreDetails.action }}
+                    </p>
+                    <ul class="space-y-1">
+                        <li *ngFor="let reason of healthScoreDetails.reasons"
+                            class="text-xs text-gray-500 flex items-center">
+                            <span class="mr-2">•</span> {{ reason }}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
         <!-- NEW: Financial Freedom & Withdrawal Section -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <!-- Retirement Paycheck (Withdrawal Strategy) -->
@@ -209,32 +237,42 @@
 
             <!-- Tax Diversification (Tax Triangle) -->
             <div class="bg-purple-900/10 border border-purple-500/20 rounded-xl p-4">
-                <h4 class="font-bold text-purple-700 dark:text-purple-300 mb-2">🏛️ Tax Diversification</h4>
+                <div class="flex justify-between items-center mb-2">
+                    <h4 class="font-bold text-purple-700 dark:text-purple-300">🏛️ Tax Diversification</h4>
+                    <div class="group relative">
+                        <span
+                            class="cursor-help text-xs bg-purple-100 text-purple-700 rounded-full px-2 py-0.5">?</span>
+                        <div
+                            class="absolute right-0 w-48 bg-gray-900 text-white text-xs rounded p-2 hidden group-hover:block z-50">
+                            Shows who owns your money: You vs IRS. Aim for more Green (Tax-Free)!
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Progress Bar -->
                 <div class="w-full h-4 bg-gray-200 dark:bg-gray-700 rounded-full flex overflow-hidden mb-2">
-                    <div class="bg-green-500" [style.width.%]="getTaxDiversification().taxFree"
-                        title="Tax Free (Roth/HSA)"></div>
-                    <div class="bg-gray-400" [style.width.%]="getTaxDiversification().taxDeferred"
-                        title="Pre-Tax (401k)"></div>
-                    <div class="bg-blue-500" [style.width.%]="getTaxDiversification().taxable"
-                        title="Taxable (Brokerage)"></div>
+                    <div class="bg-green-500 transition-all duration-500"
+                        [style.width.%]="getTaxDiversification().taxFree"></div>
+                    <div class="bg-gray-400 transition-all duration-500"
+                        [style.width.%]="getTaxDiversification().taxDeferred"></div>
+                    <div class="bg-blue-500 transition-all duration-500"
+                        [style.width.%]="getTaxDiversification().taxable"></div>
                 </div>
 
                 <div class="grid grid-cols-3 gap-1 text-xs text-center">
                     <div>
                         <div class="font-bold text-green-600">{{getTaxDiversification().taxFree | number:'1.0-0'}}%
                         </div>
-                        <div class="text-gray-500">Tax-Free</div>
+                        <div class="text-[10px] text-gray-500 leading-tight">Tax-Free<br>(Keep 100%)</div>
                     </div>
                     <div>
                         <div class="font-bold text-gray-600 dark:text-gray-400">{{getTaxDiversification().taxDeferred |
                             number:'1.0-0'}}%</div>
-                        <div class="text-gray-500">Pre-Tax</div>
+                        <div class="text-[10px] text-gray-500 leading-tight">Pre-Tax<br>(OweIRS)</div>
                     </div>
                     <div>
                         <div class="font-bold text-blue-500">{{getTaxDiversification().taxable | number:'1.0-0'}}%</div>
-                        <div class="text-gray-500">Taxable</div>
+                        <div class="text-[10px] text-gray-500 leading-tight">Taxable<br>(Gains Taxed)</div>
                     </div>
                 </div>
             </div>

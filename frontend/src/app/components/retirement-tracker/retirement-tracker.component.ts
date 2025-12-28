@@ -16,6 +16,8 @@ export class RetirementTrackerComponent implements OnInit {
     targetPortfolioValue = 1270000;
     annualReturn = 7;
 
+    healthScoreDetails: any = { score: 50, reasons: [], action: '' };
+
     // Form inputs
     monthYear: string = '';
     oneTimeAdditions: number = 0;
@@ -168,6 +170,7 @@ export class RetirementTrackerComponent implements OnInit {
         this.retirementService.evaluatePlan(request).subscribe({
             next: (data) => {
                 this.response = data;
+                this.updateFinancialHealthScore();
                 this.generateChartData();
                 this.loading = false;
             },
@@ -279,26 +282,9 @@ export class RetirementTrackerComponent implements OnInit {
     }
 
     getFinancialHealthScore(): number {
-        if (!this.response) return 50; // Default average
-
-        // Base score 75
-        let score = 75;
-
-        // Adherence to Plan (+/-)
-        const diffPercent = this.response.differencePercent || 0;
-        if (diffPercent > 0) score += Math.min(20, diffPercent * 2); // Boost for being ahead
-        else score -= Math.min(20, Math.abs(diffPercent) * 2); // Penalty for being behind
-
-        // Contribution Consistency
-        // If current monthly contribution > required, boost
-        const currentContrib = this.getTotalContributions();
-        // If we don't have required (e.g. Ahead), assume good
-        const required = this.response.requiredMonthlyContribution || 0;
-
-        if (currentContrib >= required) score += 5;
-
-        return Math.round(Math.max(0, Math.min(100, score)));
+        return this.healthScoreDetails.score;
     }
+
 
     getTaxDiversification(): { taxFree: number, taxDeferred: number, taxable: number } {
         const roth = this.accounts.find(a => a.accountType === 'Roth IRA')?.balance || 0;
@@ -445,6 +431,62 @@ export class RetirementTrackerComponent implements OnInit {
             case 'behind': return '🔴';
             default: return '📊';
         }
+    }
+
+    updateFinancialHealthScore(): void {
+        if (!this.response) return;
+
+        let score = 75; // Baseline
+        const reasons: string[] = ['Baseline Score: 75/100'];
+        let action = '';
+
+        // 1. Plan Adherence (Are you on track?)
+        const diffPercent = this.response.differencePercent || 0;
+        if (diffPercent >= 0) {
+            const boost = Math.min(20, diffPercent * 2);
+            score += boost;
+            reasons.push(`✅ On Track / Ahead of Plan (+${Math.round(boost)})`);
+        } else {
+            const penalty = Math.min(20, Math.abs(diffPercent) * 2);
+            score -= penalty;
+            reasons.push(`❌ Behind Target Savings (-${Math.round(penalty)})`);
+            action = "Increase your portfolio balance or reduce target age.";
+        }
+
+        // 2. Monthly Contribution (Are you saving enough?)
+        const currentContrib = this.getTotalContributions();
+        const required = this.response.requiredMonthlyContribution || 0;
+        const totalIRSMax = (23500 + 7000 + 4150) / 12; // ~2887
+
+        if (currentContrib >= required) {
+            score += 5;
+            reasons.push(`✅ Meeting Monthly Requirements (+5)`);
+        } else {
+            reasons.push(`⚠️ Below Monthly Target (+0)`);
+            if (!action) action = `Increase monthly contributions by ${this.formatCurrency(required - currentContrib)} to stay on track.`;
+        }
+
+        // 3. Tax Efficiency Bonus
+        const taxDiv = this.getTaxDiversification();
+        if (taxDiv.taxFree > 10) {
+            score += 5;
+            reasons.push(`✅ Good Tax Diversification (>10% Tax-Free) (+5)`);
+        }
+
+        // 4. "Path to 100" Action Check
+        if (score < 100 && !action) {
+            if (currentContrib < totalIRSMax) {
+                action = "Maximize your tax-advantaged accounts (Roth/HSA/401k) to reach 100.";
+            } else {
+                action = "You are doing great! Maintain consistency.";
+            }
+        }
+
+        this.healthScoreDetails = {
+            score: Math.round(Math.max(0, Math.min(100, score))),
+            reasons: reasons,
+            action: action || "Keep up the good work!"
+        };
     }
 
     resetForm(): void {
