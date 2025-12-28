@@ -266,6 +266,55 @@ export class RetirementTrackerComponent implements OnInit {
         return "🚀 <strong>Superb!</strong> You are maxing key buckets. Any extra funds should go to your <strong>401k</strong> or <strong>Brokerage</strong>.";
     }
 
+    // --- NEW: Withdrawal & Scoring Logic ---
+
+    getSafeWithdrawalAmount(): number {
+        // 4% Rule: Annual Withdrawal = 4% of Portfolio
+        // Monthly = Annual / 12
+        // We use the TARGET value to show the goal state
+        return (this.targetPortfolioValue * 0.04) / 12;
+    }
+
+    getFinancialHealthScore(): number {
+        if (!this.response) return 50; // Default average
+
+        // Base score 75
+        let score = 75;
+
+        // Adherence to Plan (+/-)
+        const diffPercent = this.response.differencePercent || 0;
+        if (diffPercent > 0) score += Math.min(20, diffPercent * 2); // Boost for being ahead
+        else score -= Math.min(20, Math.abs(diffPercent) * 2); // Penalty for being behind
+
+        // Contribution Consistency
+        // If current monthly contribution > required, boost
+        const currentContrib = this.getTotalContributions();
+        // If we don't have required (e.g. Ahead), assume good
+        const required = this.response.requiredMonthlyContribution || 0;
+
+        if (currentContrib >= required) score += 5;
+
+        return Math.round(Math.max(0, Math.min(100, score)));
+    }
+
+    getTaxDiversification(): { taxFree: number, taxDeferred: number, taxable: number } {
+        const roth = this.accounts.find(a => a.accountType === 'Roth IRA')?.balance || 0;
+        const hsa = this.accounts.find(a => a.accountType === 'HSA')?.balance || 0;
+        // 401k is typically Pre-Tax (Tax-Deferred)
+        const traditional = this.accounts.find(a => a.accountType === '401k')?.balance || 0;
+        // Brokerage is Taxable (Capital Gains)
+        const taxable = this.accounts.find(a => a.accountType === 'Brokerage')?.balance || 0;
+
+        const total = roth + hsa + traditional + taxable;
+        if (total === 0) return { taxFree: 0, taxDeferred: 0, taxable: 0 };
+
+        return {
+            taxFree: ((roth + hsa) / total) * 100, // Roth + HSA are tax-efficient
+            taxDeferred: (traditional / total) * 100,
+            taxable: (taxable / total) * 100
+        };
+    }
+
     getStatusColor(status: string): string {
         switch (status) {
             case 'Ahead': return 'text-green-600 dark:text-green-400';
