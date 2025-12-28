@@ -182,39 +182,88 @@ export class RetirementTrackerComponent implements OnInit {
         const monthsToRetirement = this.response.remainingMonths || 0;
         const labels: string[] = [];
         const targetData: number[] = [];
-        const actualData: number[] = [];
+        const projectedData: number[] = []; // Changed from 'actualData' to 'projectedData' for clarity
 
-        // Generate projection for next 12 months
-        for (let i = 0; i <= Math.min(12, monthsToRetirement); i++) {
+        const currentBalance = this.response.actualBalance || 0;
+        const targetValue = this.targetPortfolioValue;
+        const monthlyContribution = this.getTotalContributions(); // Use actual user input
+
+        // 7% Annual Return -> Monthly Rate
+        const monthlyRate = 0.07 / 12;
+
+        // Plot points: Every 12 months (1 Year) to avoid clutter, or every month if short duration
+        const step = monthsToRetirement > 24 ? 12 : 1;
+
+        for (let i = 0; i <= monthsToRetirement; i += step) {
             const date = new Date();
             date.setMonth(date.getMonth() + i);
             labels.push(date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }));
 
-            // Simple linear projection (can be enhanced)
-            const monthlyGrowth = (this.response.currentTargetBalance || 0) / monthsToRetirement;
-            targetData.push((this.response.currentTargetBalance || 0) + (monthlyGrowth * i));
-            actualData.push((this.response.actualBalance || 0) + (monthlyGrowth * i));
+            // 1. Projected Path (Compound Interest)
+            // FV = PV * (1+r)^n + PMT * [ ((1+r)^n - 1) / r ]
+            const growthFactor = Math.pow(1 + monthlyRate, i);
+            let futureValue = currentBalance * growthFactor;
+            if (monthlyRate > 0) {
+                futureValue += monthlyContribution * ((growthFactor - 1) / monthlyRate);
+            }
+            projectedData.push(Math.round(futureValue));
+
+            // 2. Target Path (Geometric Interpolation)
+            // Shows the ideal "Glide Path" from status quo to target
+            // Formula: Start * (Goal/Start)^(t/T)
+            if (currentBalance > 0 && targetValue > 0) {
+                const progressResult = currentBalance * Math.pow((targetValue / currentBalance), (i / monthsToRetirement));
+                targetData.push(Math.round(progressResult));
+            } else {
+                // Fallback linear if start is 0
+                targetData.push((targetValue / monthsToRetirement) * i);
+            }
         }
 
         this.lineChartData = {
             labels,
             datasets: [
                 {
-                    label: 'Target Path',
-                    data: targetData,
-                    borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    tension: 0.4
+                    label: 'Flight Path (Forecast)',
+                    data: projectedData,
+                    borderColor: '#10b981', // Emerald Green
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true
                 },
                 {
-                    label: 'Actual Path',
-                    data: actualData,
-                    borderColor: '#10b981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    tension: 0.4
+                    label: 'Target Trajectory',
+                    data: targetData,
+                    borderColor: '#6366f1', // Indigo
+                    backgroundColor: 'rgba(99, 102, 241, 0.05)',
+                    borderDash: [5, 5],
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: false
                 }
             ]
         };
+    }
+
+    getStrategyRecommendation(): string {
+        // Simple logic to guide the user's next dollar
+        // Limits (2025 estimates): Roth ~7000, HSA ~4150
+
+        const roth = this.accounts.find(a => a.accountType === 'Roth IRA');
+        const hsa = this.accounts.find(a => a.accountType === 'HSA');
+
+        // Monthly run-rate approximation
+        const rothMonthly = roth?.contribution || 0;
+        const hsaMonthly = hsa?.contribution || 0;
+
+        if (rothMonthly < 583) { // ~7000 / 12
+            return "💡 <strong>Tip:</strong> Prioritize maxing out your <strong>Roth IRA</strong> first (Limit: ~$583/mo). Tax-free growth is powerful!";
+        }
+        if (hsaMonthly < 345) { // ~4150 / 12
+            return "💡 <strong>Tip:</strong> Your Roth is strong! Next, max out your <strong>HSA</strong> (~$345/mo) for triple-tax benefits.";
+        }
+        return "🚀 <strong>Superb!</strong> You are maxing key buckets. Any extra funds should go to your <strong>401k</strong> or <strong>Brokerage</strong>.";
     }
 
     getStatusColor(status: string): string {

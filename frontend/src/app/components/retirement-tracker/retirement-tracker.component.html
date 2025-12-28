@@ -166,6 +166,16 @@
             </div>
         </div>
 
+        <!-- Strategy Advice -->
+        <div
+            class="mt-6 mb-8 bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-xl p-4 flex items-start">
+            <div class="text-2xl mr-3">🧠</div>
+            <div>
+                <h4 class="font-bold text-blue-900 dark:text-blue-100 mb-1">CFO Strategy Insight</h4>
+                <p class="text-sm text-blue-800 dark:text-blue-200" [innerHTML]="getStrategyRecommendation()"></p>
+            </div>
+        </div>
+
         <!-- Additional Inputs -->
         <div class="additional-inputs">
             <div class="input-group">
