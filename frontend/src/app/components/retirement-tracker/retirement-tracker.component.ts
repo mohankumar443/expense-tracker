@@ -84,6 +84,9 @@ export class RetirementTrackerComponent implements OnInit {
                     if (snapshot.targetPortfolioValue) {
                         this.targetPortfolioValue = snapshot.targetPortfolioValue;
                     }
+
+                    // Trigger calculation to update Score, Chart, and Strategy immediately
+                    this.calculate();
                 }
             },
             error: (err) => {
