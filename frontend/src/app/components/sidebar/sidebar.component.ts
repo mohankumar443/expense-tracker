@@ -11,7 +11,19 @@ import { SnapshotStateService } from '../../services/snapshot-state.service';
 })
 export class SidebarComponent implements OnInit {
     isCollapsed = false;
-    activeTab = 'overview';
+    activeSection = 'overview';
+    showMore = false;
+    private navItemType = null as unknown as { id: string; label: string; icon: string; hint?: string };
+    primaryNavItems: Array<{ id: string; label: string; icon: string; hint?: string }> = [
+        { id: 'overview', label: 'Overview', icon: 'dashboard', hint: 'Debt + Retirement' }
+    ];
+    secondaryNavItems: Array<{ id: string; label: string; icon: string; hint?: string }> = [
+        { id: 'strategy', label: 'Strategy Center', icon: 'bolt' },
+        { id: 'progress', label: 'Progress', icon: 'show_chart' },
+        { id: 'accounts', label: 'Debt Accounts', icon: 'account_balance_wallet' },
+        { id: 'budget', label: 'Budget & Expenses', icon: 'payments' },
+        { id: 'recurring', label: 'Recurring & EMIs', icon: 'repeat' }
+    ];
 
     @Output() sidebarToggled = new EventEmitter<boolean>();
 
@@ -39,10 +51,7 @@ export class SidebarComponent implements OnInit {
             // Sort years descending (newest first)
             this.years = Object.keys(data).map(Number).sort((a, b) => b - a);
 
-            // Expand the most recent year by default
-            if (this.years.length > 0) {
-                this.expandedYears[this.years[0]] = true;
-            }
+            // All years are collapsed by default now
         });
     }
 
@@ -65,40 +74,24 @@ export class SidebarComponent implements OnInit {
 
     selectSnapshot(snapshot: Snapshot) {
         this.snapshotStateService.setCurrentSnapshot(snapshot.snapshotDate);
-        this.setActiveTab('overview');
+        this.setActiveSection('overview');
     }
 
-    setActiveTab(tab: string) {
-        this.activeTab = tab;
-        let sectionId = '';
+    get shouldShowMoreExpanded() {
+        return this.showMore;
+    }
 
-        switch (tab) {
-            case 'overview':
-                sectionId = 'overview';
-                break;
-            case 'strategy':
-                sectionId = 'strategy';
-                break;
-            case 'progress':
-                sectionId = 'progress';
-                break;
-            case 'accounts':
-                sectionId = 'accounts';
-                break;
-            case 'budget':
-                sectionId = 'budget';
-                break;
-            case 'recurring':
-                sectionId = 'recurring';
-                break;
-            case 'retirement':
-                sectionId = 'retirement';
-                break;
-        }
+    toggleMore() {
+        this.showMore = !this.showMore;
+    }
 
-        if (sectionId) {
-            this.scrollToSection(sectionId);
-        }
+    get totalSecondaryCount() {
+        return this.secondaryNavItems.length;
+    }
+
+    setActiveSection(sectionId: string) {
+        this.activeSection = sectionId;
+        this.scrollToSection(sectionId);
     }
 
     scrollToSection(sectionId: string) {

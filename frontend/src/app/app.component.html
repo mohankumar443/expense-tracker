@@ -1,15 +1,40 @@
 <div class="min-h-screen bg-[#0f1729] transition-colors duration-300">
     <!-- Header -->
-    <header class="bg-[#1a2332] shadow-lg sticky top-0 z-50 border-b border-gray-700/50 transition-colors duration-300">
+    <header
+        [class]="'bg-[#1a2332] shadow-lg sticky top-0 z-40 border-b border-gray-700/50 transition-all duration-500 ' + (isSidebarCollapsed ? 'ml-20' : 'ml-72')">
         <div class="container mx-auto px-6 py-4">
             <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-3 text-white">
                     <span class="material-icons text-4xl text-primary">account_balance_wallet</span>
                     <div>
-                        <h1 class="text-3xl font-black text-white leading-tight">
-                            Financial Life OS
+                        <h1 class="text-3xl font-black leading-tight">
+                            {{ activeProfile.name ? activeProfile.name + "'s " : "" }}Financial Modus
                         </h1>
-                        <p class="text-sm text-gray-300">Debt • Spending • Investments — {{ projectionLabel }}</p>
+                        <div class="flex flex-wrap items-center gap-2.5 mt-1.5">
+                            <div class="flex items-center gap-1.5">
+                                <span
+                                    class="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 text-[10px] font-black uppercase tracking-[0.1em] border border-indigo-500/20 shadow-sm">Analyze</span>
+                                <span
+                                    class="px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-400 text-[10px] font-black uppercase tracking-[0.1em] border border-rose-500/20 shadow-sm">Optimize</span>
+                                <span
+                                    class="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 text-[10px] font-black uppercase tracking-[0.1em] border border-emerald-500/20 shadow-sm">Build</span>
+                                <span
+                                    class="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 text-[10px] font-black uppercase tracking-[0.1em] border border-amber-500/20 shadow-sm">Freedom</span>
+                            </div>
+                            <div class="hidden sm:block h-3.5 w-[1.5px] bg-white/10 rounded-full mx-1"></div>
+                            <div
+                                class="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-primary/10 to-purple-500/10 backdrop-blur-md border border-white/5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] group hover:border-primary/30 transition-all duration-300">
+                                <div class="relative flex items-center justify-center">
+                                    <div class="absolute inset-0 bg-primary/20 blur-sm rounded-full animate-pulse">
+                                    </div>
+                                    <span
+                                        class="material-icons text-primary text-[14px] relative z-10">auto_graph</span>
+                                </div>
+                                <span class="text-[11px] text-gray-200/90 font-bold tracking-tight">
+                                    {{ projectionLabel }}
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="relative">
@@ -20,7 +45,8 @@
                             <span class="material-icons text-white text-lg">person</span>
                         </div>
                         <div class="text-left">
-                            <p class="text-xs text-gray-500 dark:text-gray-400 font-semibold">Profile</p>
+                            <p class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                                Analyze • Optimize • Build • Freedom</p>
                             <p class="text-sm font-bold text-gray-800 dark:text-gray-100 truncate">{{ activeProfile.name
                                 || 'Set up' }}</p>
                         </div>
@@ -109,8 +135,7 @@
                 <div class="bg-[#111827] rounded-2xl border border-slate-700/40 px-4 py-4 shadow-lg"
                     [class.skeleton]="kpiLoading">
                     <p class="text-xs uppercase tracking-wider text-slate-400">Savings Rate</p>
-                    <p class="text-2xl font-black"
-                        [class.text-emerald-400]="(kpiSavingsRate ?? 0) >= 0"
+                    <p class="text-2xl font-black" [class.text-emerald-400]="(kpiSavingsRate ?? 0) >= 0"
                         [class.text-rose-400]="(kpiSavingsRate ?? 0) < 0">
                         {{ kpiSavingsRate !== null ? (kpiSavingsRate | number:'1.0-0') + '%' : '—' }}
                     </p>
@@ -162,7 +187,8 @@
             <!-- Retirement Planning Section -->
             <div id="retirement" class="scroll-mt-24 mt-8">
                 <div class="mb-8">
-                    <app-retirement-tracker [profileAge]="activeProfile.age" [profileRetirementAge]="activeProfile.retirementAge"></app-retirement-tracker>
+                    <app-retirement-tracker [profileAge]="activeProfile.age"
+                        [profileRetirementAge]="activeProfile.retirementAge"></app-retirement-tracker>
                 </div>
             </div>
         </div>

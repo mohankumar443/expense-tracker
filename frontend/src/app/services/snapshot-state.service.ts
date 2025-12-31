@@ -5,10 +5,16 @@ import { BehaviorSubject } from 'rxjs';
     providedIn: 'root'
 })
 export class SnapshotStateService {
-    private currentSnapshotSubject = new BehaviorSubject<string>('');
+    private readonly STORAGE_KEY = 'selected_snapshot_date';
+    private currentSnapshotSubject = new BehaviorSubject<string>(localStorage.getItem(this.STORAGE_KEY) || '');
     currentSnapshot$ = this.currentSnapshotSubject.asObservable();
 
     setCurrentSnapshot(fileName: string) {
+        if (fileName) {
+            localStorage.setItem(this.STORAGE_KEY, fileName);
+        } else {
+            localStorage.removeItem(this.STORAGE_KEY);
+        }
         this.currentSnapshotSubject.next(fileName);
     }
 

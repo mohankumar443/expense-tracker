@@ -31,6 +31,7 @@ export class DebtOverviewComponent implements OnInit {
     highestInterestAccount: DebtAccount | null = null;
     availableSnapshots: any[] = [];
     selectedSnapshot: string = '';
+    snapshotsReady = false;
     allAccounts: DebtAccount[] = [];
     lastUpdatedAt: Date | null = null;
 
@@ -76,22 +77,26 @@ export class DebtOverviewComponent implements OnInit {
                 // Ignore initial empty emission.
                 return;
             }
-            this.selectedSnapshot = fileName;
-            this.loadData(fileName);
+            const resolvedDate = this.resolveSnapshotDate(fileName);
+            this.selectedSnapshot = resolvedDate;
+            this.loadData(resolvedDate);
         });
     }
 
     loadSnapshots() {
         this.debtService.getAvailableSnapshots().subscribe(snapshots => {
             // Map backend Snapshot objects to UI format
-            this.availableSnapshots = snapshots.map(s => ({
-                fileName: s.snapshotDate, // Use date as the identifier
-                // Append T12:00:00 to ensure it's treated as the correct day regardless of timezone
-                displayName: new Date(s.snapshotDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-                snapshotDate: s.snapshotDate,
-                createdAt: s.createdAt ? new Date(s.createdAt) : null,
-                updatedAt: s.updatedAt ? new Date(s.updatedAt) : null
-            }));
+            this.availableSnapshots = snapshots.map(s => {
+                const normalizedDate = this.normalizeSnapshotDate(s.snapshotDate) || s.snapshotDate;
+                return {
+                    fileName: normalizedDate, // Use date as the identifier
+                    // Append T12:00:00 to ensure it's treated as the correct day regardless of timezone
+                    displayName: new Date(normalizedDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+                    snapshotDate: normalizedDate,
+                    createdAt: s.createdAt ? new Date(s.createdAt) : null,
+                    updatedAt: s.updatedAt ? new Date(s.updatedAt) : null
+                };
+            });
 
             // Sort chronologically: oldest to newest (Jan, Feb, Mar... by year)
             this.availableSnapshots.sort((a, b) => {
@@ -100,23 +105,17 @@ export class DebtOverviewComponent implements OnInit {
                 return dateA - dateB; // Ascending order (oldest first)
             });
 
-            // Default to the LATEST snapshot (last item after sorting)
-            const latest = this.availableSnapshots[this.availableSnapshots.length - 1];
-            if (latest) {
-                this.selectedSnapshot = latest.snapshotDate;
-                this.snapshotStateService.setCurrentSnapshot(latest.snapshotDate);
-                this.setLastUpdated(latest.snapshotDate);
-                // Load data for the initial snapshot
-                this.loadData(latest.snapshotDate);
-            }
+            this.ensureSelectedSnapshot();
+            this.snapshotsReady = true;
         });
     }
 
     onSnapshotChange() {
-        if (this.selectedSnapshot) {
-            this.snapshotStateService.setCurrentSnapshot(this.selectedSnapshot);
-            this.setLastUpdated(this.selectedSnapshot);
-        }
+        const resolved = this.resolveSnapshotDate(this.selectedSnapshot);
+        if (!resolved) return;
+        this.selectedSnapshot = resolved;
+        this.snapshotStateService.setCurrentSnapshot(resolved);
+        this.setLastUpdated(resolved);
     }
 
     ngOnDestroy() {
@@ -129,13 +128,25 @@ export class DebtOverviewComponent implements OnInit {
         if (!date) return;
         this.loading = true;
         this.error = '';
-        this.setLastUpdated(date);
-        this.refreshSnapshots(date);
+        const resolvedDate = this.resolveSnapshotDate(date);
+        this.setLastUpdated(resolvedDate);
+        this.refreshSnapshots(resolvedDate);
 
         // Load Summary
-        this.debtService.getSnapshotSummary(date).subscribe({
+        this.debtService.getSnapshotSummary(resolvedDate).subscribe({
             next: (data) => {
                 this.summary = data;
+                if (data?.snapshotDate) {
+                    const summaryDate = this.resolveSnapshotDate(data.snapshotDate);
+                    // Single source of truth: backend tells us what date we are viewing
+                    if (this.selectedSnapshot !== summaryDate) {
+                        this.selectedSnapshot = summaryDate;
+                    }
+                    this.ensureSnapshotOption(summaryDate);
+                    if (summaryDate !== this.snapshotStateService.getCurrentSnapshot()) {
+                        this.snapshotStateService.setCurrentSnapshot(summaryDate);
+                    }
+                }
                 this.calculateNetWorth();
             },
             error: (err) => {
@@ -146,7 +157,7 @@ export class DebtOverviewComponent implements OnInit {
         });
 
         // Load Previous Month Summary
-        const currentIndex = this.availableSnapshots.findIndex(s => s.snapshotDate === date);
+        const currentIndex = this.availableSnapshots.findIndex(s => s.snapshotDate === resolvedDate);
         if (currentIndex > 0) {
             const previousDate = this.availableSnapshots[currentIndex - 1].snapshotDate;
             this.debtService.getSnapshotSummary(previousDate).subscribe({
@@ -167,7 +178,7 @@ export class DebtOverviewComponent implements OnInit {
         }
 
         // Load Accounts & Run Analytics
-        this.debtService.getSnapshotAccounts(date).subscribe({
+        this.debtService.getSnapshotAccounts(resolvedDate).subscribe({
             next: (accounts) => {
                 this.allAccounts = accounts;
                 this.runAnalytics();
@@ -189,21 +200,107 @@ export class DebtOverviewComponent implements OnInit {
     private refreshSnapshots(snapshotDate: string) {
         this.debtService.getAvailableSnapshots().subscribe({
             next: (snapshots) => {
-                this.availableSnapshots = snapshots.map(s => ({
-                    fileName: s.snapshotDate,
-                    displayName: new Date(s.snapshotDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-                    snapshotDate: s.snapshotDate,
-                    createdAt: s.createdAt ? new Date(s.createdAt) : null,
-                    updatedAt: s.updatedAt ? new Date(s.updatedAt) : null
-                }));
+                this.availableSnapshots = snapshots.map(s => {
+                    const normalizedDate = this.normalizeSnapshotDate(s.snapshotDate) || s.snapshotDate;
+                    return {
+                        fileName: normalizedDate,
+                        displayName: new Date(normalizedDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+                        snapshotDate: normalizedDate,
+                        createdAt: s.createdAt ? new Date(s.createdAt) : null,
+                        updatedAt: s.updatedAt ? new Date(s.updatedAt) : null
+                    };
+                });
                 this.availableSnapshots.sort((a, b) => {
                     const dateA = new Date(a.snapshotDate).getTime();
                     const dateB = new Date(b.snapshotDate).getTime();
                     return dateA - dateB;
                 });
-                this.setLastUpdated(snapshotDate);
+                const normalizedDate = this.normalizeSnapshotDate(snapshotDate) || snapshotDate;
+                this.ensureSnapshotOption(normalizedDate);
+                this.ensureSelectedSnapshot(normalizedDate);
+                this.setLastUpdated(normalizedDate);
+                this.snapshotsReady = true;
             }
         });
+    }
+
+    private ensureSnapshotOption(snapshotDate: string) {
+        if (!snapshotDate) return;
+        const normalizedDate = this.normalizeSnapshotDate(snapshotDate) || snapshotDate;
+        const exists = this.availableSnapshots.some(s => s.snapshotDate === normalizedDate);
+        if (!exists) {
+            this.availableSnapshots.push({
+                fileName: normalizedDate,
+                displayName: new Date(normalizedDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+                snapshotDate: normalizedDate,
+                createdAt: null,
+                updatedAt: null
+            });
+            this.availableSnapshots.sort((a, b) => {
+                const dateA = new Date(a.snapshotDate).getTime();
+                const dateB = new Date(b.snapshotDate).getTime();
+                return dateA - dateB;
+            });
+        }
+    }
+
+    private normalizeSnapshotDate(value: any): string | null {
+        if (!value) return null;
+        if (value instanceof Date) {
+            return value.toISOString().slice(0, 10);
+        }
+        if (typeof value === 'string') {
+            if (value.length >= 10) {
+                return value.slice(0, 10);
+            }
+            return value;
+        }
+        return null;
+    }
+
+    private resolveSnapshotDate(value: any): string {
+        const normalized = this.normalizeSnapshotDate(value) || value;
+        if (!normalized || this.availableSnapshots.length === 0) {
+            return normalized;
+        }
+        const exact = this.availableSnapshots.find(s => s.snapshotDate === normalized);
+        if (exact) {
+            return exact.snapshotDate;
+        }
+        const monthKey = normalized.slice(0, 7);
+        const sameMonth = this.availableSnapshots.find(s => s.snapshotDate.startsWith(monthKey));
+        return sameMonth ? sameMonth.snapshotDate : normalized;
+    }
+
+    private ensureSelectedSnapshot(preferredDate?: string) {
+        const normalizedPreferred = this.normalizeSnapshotDate(preferredDate)
+            || this.normalizeSnapshotDate(this.summary?.snapshotDate)
+            || this.normalizeSnapshotDate(this.snapshotStateService.getCurrentSnapshot())
+            || this.normalizeSnapshotDate(this.selectedSnapshot)
+            || null;
+        const normalizedLatest = this.availableSnapshots.length > 0
+            ? this.availableSnapshots[this.availableSnapshots.length - 1].snapshotDate
+            : null;
+        let nextSelection = normalizedPreferred && this.availableSnapshots.some(s => s.snapshotDate === normalizedPreferred)
+            ? normalizedPreferred
+            : null;
+        if (!nextSelection && normalizedPreferred) {
+            const monthKey = normalizedPreferred.slice(0, 7);
+            const monthMatch = this.availableSnapshots.find(s => s.snapshotDate.startsWith(monthKey));
+            nextSelection = monthMatch ? monthMatch.snapshotDate : null;
+        }
+        if (!nextSelection) {
+            nextSelection = normalizedLatest;
+        }
+        if (!nextSelection) return;
+        if (this.selectedSnapshot !== nextSelection) {
+            this.selectedSnapshot = nextSelection;
+        }
+        if (this.snapshotStateService.getCurrentSnapshot() !== nextSelection) {
+            this.snapshotStateService.setCurrentSnapshot(nextSelection);
+        } else if (!preferredDate) {
+            this.loadData(nextSelection);
+        }
     }
 
     // Placeholder for loadHighestInterest, assuming it's part of runAnalytics or removed
@@ -383,11 +480,16 @@ export class DebtOverviewComponent implements OnInit {
         console.log('Snapshot created/deleted, reloading...', newSnapshotDate);
         // Reload snapshots
         this.debtService.getAvailableSnapshots().subscribe(snapshots => {
-            this.availableSnapshots = snapshots.map(s => ({
-                fileName: s.snapshotDate,
-                displayName: new Date(s.snapshotDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-                snapshotDate: s.snapshotDate
-            }));
+            this.availableSnapshots = snapshots.map(s => {
+                const normalizedDate = this.normalizeSnapshotDate(s.snapshotDate) || s.snapshotDate;
+                return {
+                    fileName: normalizedDate,
+                    displayName: new Date(normalizedDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+                    snapshotDate: normalizedDate,
+                    updatedAt: s.updatedAt,
+                    createdAt: s.createdAt
+                };
+            });
 
             this.availableSnapshots.sort((a, b) => {
                 const dateA = new Date(a.snapshotDate).getTime();
@@ -397,7 +499,8 @@ export class DebtOverviewComponent implements OnInit {
 
             if (newSnapshotDate) {
                 // If a specific new snapshot was created, switch to it
-                const newSnapshot = this.availableSnapshots.find(s => s.snapshotDate === newSnapshotDate);
+                const normalizedNew = this.normalizeSnapshotDate(newSnapshotDate) || newSnapshotDate;
+                const newSnapshot = this.availableSnapshots.find(s => s.snapshotDate === normalizedNew);
                 if (newSnapshot) {
                     this.selectedSnapshot = newSnapshot.snapshotDate;
                     this.snapshotStateService.setCurrentSnapshot(newSnapshot.snapshotDate);
@@ -438,5 +541,9 @@ export class DebtOverviewComponent implements OnInit {
             // Force change detection
             this.cdr.detectChanges();
         });
+    }
+
+    trackBySnapshot(index: number, item: any): string {
+        return item.snapshotDate;
     }
 }
