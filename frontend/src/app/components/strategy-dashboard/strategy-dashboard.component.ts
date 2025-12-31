@@ -12,6 +12,7 @@ export class StrategyDashboardComponent implements OnInit {
 
     accounts: DebtAccount[] = [];
     loading = true;
+    currentSnapshotDate: string | null = null;
 
     // Metrics
     dangerScore: { score: number, category: string, details: any } = { score: 0, category: 'Excellent', details: {} };
@@ -34,6 +35,7 @@ export class StrategyDashboardComponent implements OnInit {
             } else {
                 // Fallback to latest if no snapshot selected (or handle appropriately)
                 this.debtService.getAllDebts().subscribe(accounts => {
+                    this.currentSnapshotDate = null;
                     this.processData(accounts);
                 });
             }
@@ -42,6 +44,7 @@ export class StrategyDashboardComponent implements OnInit {
 
     loadData(date: string) {
         this.loading = true;
+        this.currentSnapshotDate = date;
         this.debtService.getSnapshotAccounts(date).subscribe(accounts => {
             this.processData(accounts);
             this.loading = false;
@@ -65,6 +68,10 @@ export class StrategyDashboardComponent implements OnInit {
         });
 
         this.topMoneyLeaks = sortedByInterest.slice(0, 3);
+        this.highInterestRiskAccounts = accounts
+            .filter(a => a.currentBalance > 0)
+            .sort((a, b) => (b.apr || 0) - (a.apr || 0))
+            .slice(0, 3);
 
         this.interestBurningChartData = {
             labels: sortedByInterest.map(a => a.name),
@@ -141,6 +148,7 @@ export class StrategyDashboardComponent implements OnInit {
 
     // Money Leaks
     topMoneyLeaks: DebtAccount[] = [];
+    highInterestRiskAccounts: DebtAccount[] = [];
 
     // Milestones
     milestones: { current: number, next: number, progress: number } = { current: 0, next: 0, progress: 0 };

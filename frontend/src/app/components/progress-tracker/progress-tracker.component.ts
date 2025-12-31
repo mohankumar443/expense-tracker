@@ -190,7 +190,7 @@ export class ProgressTrackerComponent implements OnInit {
             if (currentSnapshot) {
                 this.loadComparison(currentSnapshot);
                 this.loadInterestHeatmap();
-                this.loadCategoryTrends();
+                this.loadCategoryTrends(currentSnapshot);
                 this.loadHistoricalCharts();
             }
         });
@@ -355,7 +355,7 @@ export class ProgressTrackerComponent implements OnInit {
         });
     }
 
-    loadCategoryTrends() {
+    loadCategoryTrends(currentSnapshotDate: string) {
         // Load all snapshots and calculate category trends
         this.debtService.getAvailableSnapshots().subscribe(snapshots => {
             if (!snapshots || snapshots.length < 2) return;
@@ -366,33 +366,25 @@ export class ProgressTrackerComponent implements OnInit {
             );
 
             const firstSnapshot = sorted[0];
-            const lastSnapshot = sorted[sorted.length - 1];
+            const currentSnapshot = sorted.find(s => s.snapshotDate === currentSnapshotDate) || sorted[sorted.length - 1];
 
-            // Load accounts for first and last snapshot
             Promise.all([
-                new Promise<any[]>((resolve) => {
-                    this.debtService.getSnapshotAccounts(firstSnapshot.snapshotDate).subscribe(resolve);
+                new Promise<DebtSummary>((resolve) => {
+                    this.debtService.getSnapshotSummary(firstSnapshot.snapshotDate).subscribe(resolve);
                 }),
-                new Promise<any[]>((resolve) => {
-                    this.debtService.getSnapshotAccounts(lastSnapshot.snapshotDate).subscribe(resolve);
+                new Promise<DebtSummary>((resolve) => {
+                    this.debtService.getSnapshotSummary(currentSnapshot.snapshotDate).subscribe(resolve);
                 })
-            ]).then(([initialAccounts, currentAccounts]) => {
-                // Calculate totals by category
+            ]).then(([initialSummary, currentSummary]) => {
                 const categories = [
-                    { name: 'Credit Cards', type: 'CREDIT_CARD', color: '#3b82f6' },
-                    { name: 'Personal Loans', type: 'PERSONAL_LOAN', color: '#a855f7' },
-                    { name: 'Auto Loans', type: 'AUTO_LOAN', color: '#10b981' }
-                ];
+                    { name: 'Credit Cards', key: 'creditCardDebt', color: '#3b82f6' },
+                    { name: 'Personal Loans', key: 'personalLoanDebt', color: '#a855f7' },
+                    { name: 'Auto Loans', key: 'autoLoanDebt', color: '#10b981' }
+                ] as const;
 
                 this.categoryTrendData = categories.map(category => {
-                    const initialBalance = initialAccounts
-                        .filter(acc => acc.type === category.type)
-                        .reduce((sum, acc) => sum + (acc.currentBalance || 0), 0);
-
-                    const currentBalance = currentAccounts
-                        .filter(acc => acc.type === category.type)
-                        .reduce((sum, acc) => sum + (acc.currentBalance || 0), 0);
-
+                    const initialBalance = initialSummary[category.key] || 0;
+                    const currentBalance = currentSummary[category.key] || 0;
                     const change = currentBalance - initialBalance;
                     const percentChange = initialBalance > 0 ? (change / initialBalance) * 100 : 0;
 
@@ -539,7 +531,7 @@ export class ProgressTrackerComponent implements OnInit {
 
         // 2. Update Risk Heatmap (High APR)
         this.highAprAccounts = accounts
-            .filter(acc => acc.apr > 15)
+            .filter(acc => acc.apr > 15 && acc.currentBalance > 0)
             .sort((a, b) => b.apr - a.apr)
             .slice(0, 4); // Top 4 highest APR
 

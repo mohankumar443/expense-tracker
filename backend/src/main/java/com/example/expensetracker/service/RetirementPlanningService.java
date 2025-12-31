@@ -77,7 +77,10 @@ public class RetirementPlanningService {
         // Account-level analysis if accounts are provided
         if (request.getAccounts() != null && !request.getAccounts().isEmpty()) {
             processAccountLevelAnalysis(request, response);
-            saveSnapshot(request);
+            boolean persist = request.getPersistSnapshot() == null ? true : request.getPersistSnapshot();
+            if (persist) {
+                saveSnapshot(request);
+            }
         }
 
         response.setCommentary(buildCommentary(status, requiredMonthlyContribution, remainingMonths, bonusAdditions,
@@ -91,6 +94,7 @@ public class RetirementPlanningService {
 
         // Get YTD snapshots
         List<RetirementSnapshot> ytdSnapshots = snapshotRepository.findByYear(yearStart, snapshotDate.plusDays(1));
+        ytdSnapshots.sort(Comparator.comparing(RetirementSnapshot::getSnapshotDate));
 
         // Get previous snapshot for growth calculation
         Optional<RetirementSnapshot> previousSnapshotOpt = snapshotRepository.findTopByOrderBySnapshotDateDesc();
@@ -105,14 +109,14 @@ public class RetirementPlanningService {
             // Find previous balance for this account
             double previousBalance = findPreviousBalance(previousSnapshotOpt, accountDTO.getAccountType());
 
-            // Calculate market growth: Current Balance - Previous Balance - Contribution
+            // Calculate market growth for the latest month
             double marketGrowth = accountDTO.getBalance() - previousBalance - accountDTO.getContribution();
-            double growthPercent = previousBalance > 0 ? (marketGrowth / previousBalance) * 100.0 : 0.0;
 
             // Calculate YTD metrics
             double ytdContributions = calculateYTDContributions(ytdSnapshots, accountDTO.getAccountType());
-            double ytdGrowth = calculateYTDGrowth(ytdSnapshots, accountDTO.getAccountType(), previousBalance);
-            double ytdGrowthPercent = previousBalance > 0 ? (ytdGrowth / previousBalance) * 100.0 : 0.0;
+            double ytdStartBalance = findYearStartBalance(ytdSnapshots, accountDTO.getAccountType(), previousBalance);
+            double ytdGrowth = accountDTO.getBalance() - ytdStartBalance - (ytdContributions + accountDTO.getContribution());
+            double ytdGrowthPercent = ytdStartBalance > 0 ? (ytdGrowth / ytdStartBalance) * 100.0 : 0.0;
 
             totalYTDContributions += ytdContributions;
             totalYTDGrowth += ytdGrowth;
@@ -125,9 +129,14 @@ public class RetirementPlanningService {
             scorecard.setGoalType(accountDTO.getGoalType() != null ? accountDTO.getGoalType() : "RETIREMENT");
             scorecard.setBalance(roundCurrency(accountDTO.getBalance()));
             scorecard.setYtdContributions(roundCurrency(ytdContributions + accountDTO.getContribution()));
-            scorecard.setYtdGrowthDollars(roundCurrency(ytdGrowth + marketGrowth));
+            scorecard.setYtdGrowthDollars(roundCurrency(ytdGrowth));
             scorecard.setYtdGrowthPercent(roundPercent(ytdGrowthPercent));
-            scorecard.setStatus("On Plan"); // Will be updated below
+            if ((accountDTO.getBalance() == null || accountDTO.getBalance() <= 0)
+                    && (ytdContributions + accountDTO.getContribution()) <= 0) {
+                scorecard.setStatus("Behind");
+            } else {
+                scorecard.setStatus("On Plan"); // Will be updated below
+            }
 
             scorecards.add(scorecard);
         }
@@ -137,7 +146,9 @@ public class RetirementPlanningService {
 
         // Classify account status
         for (AccountScorecard scorecard : scorecards) {
-            scorecard.setStatus(classifyAccountStatus(scorecard.getYtdGrowthPercent(), portfolioAvgGrowth));
+            if (!"Behind".equals(scorecard.getStatus())) {
+                scorecard.setStatus(classifyAccountStatus(scorecard.getYtdGrowthPercent(), portfolioAvgGrowth));
+            }
         }
 
         // Growth attribution
@@ -194,6 +205,29 @@ public class RetirementPlanningService {
                 .orElse(0.0);
 
         return currentBalance - startingBalance - totalContributions;
+    }
+
+    private double findYearStartBalance(List<RetirementSnapshot> ytdSnapshots, String accountType,
+            double fallbackBalance) {
+        if (ytdSnapshots.isEmpty()) {
+            return fallbackBalance;
+        }
+
+        for (RetirementSnapshot snapshot : ytdSnapshots) {
+            if (snapshot.getAccounts() == null) {
+                continue;
+            }
+            Optional<AccountBalance> match = snapshot.getAccounts().stream()
+                    .filter(acc -> acc.getAccountType().equals(accountType))
+                    .findFirst();
+            if (match.isPresent()) {
+                Double balance = match.get().getBalance();
+                if (balance != null) {
+                    return balance;
+                }
+            }
+        }
+        return fallbackBalance;
     }
 
     private String classifyAccountStatus(double accountGrowthPercent, double portfolioAvgGrowth) {
@@ -271,6 +305,11 @@ public class RetirementPlanningService {
                 .mapToDouble(AccountBalanceDTO::getContribution)
                 .sum());
         snapshot.setTargetPortfolioValue(request.getTargetPortfolioValue()); // Save target value
+        snapshot.setAfterTaxMode(request.getAfterTaxMode());
+        snapshot.setFlatTaxRate(request.getFlatTaxRate());
+        snapshot.setTaxFreeRate(request.getTaxFreeRate());
+        snapshot.setTaxDeferredRate(request.getTaxDeferredRate());
+        snapshot.setTaxableRate(request.getTaxableRate());
     }
 
     private LocalDate parseSnapshotDate(String monthYear) {

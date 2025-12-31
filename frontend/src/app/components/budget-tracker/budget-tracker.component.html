@@ -33,6 +33,9 @@
             <button class="text-gray-400 hover:text-primary transition-colors"><span
                     class="material-icons">chevron_right</span></button>
         </div>
+        <div class="text-xs text-gray-500 dark:text-gray-400 md:text-right">
+            Last updated: {{ targetDate | date:'MMM d, yyyy' }}
+        </div>
     </div>
 
     <!-- DASHBOARD VIEW -->
@@ -42,7 +45,8 @@
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <!-- Budget Scorecard (4 cols) -->
             <div
-                class="lg:col-span-4 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
+                class="lg:col-span-4 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden"
+                [class.skeleton]="!budgetScore">
                 <div class="absolute top-0 right-0 p-4 opacity-10">
                     <span class="material-icons text-9xl">speed</span>
                 </div>
@@ -85,7 +89,8 @@
             <div class="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- Prediction Card -->
                 <div
-                    class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col justify-between">
+                    class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col justify-between"
+                    [class.skeleton]="!prediction">
                     <div>
                         <div class="flex items-center space-x-2 mb-2">
                             <span class="material-icons text-blue-500">analytics</span>
@@ -113,7 +118,8 @@
 
                 <!-- AI Insights List -->
                 <div
-                    class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-y-auto max-h-60">
+                    class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-y-auto max-h-60"
+                    [class.skeleton]="!insights.length && !budgetScore">
                     <h4 class="font-bold text-gray-900 dark:text-white mb-4 flex items-center">
                         <span class="material-icons text-purple-500 mr-2">auto_awesome</span>
                         Smart Insights

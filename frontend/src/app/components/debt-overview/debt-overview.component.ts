@@ -26,11 +26,13 @@ export class DebtOverviewComponent implements OnInit {
     };
 
     previousSummary: DebtSummary | null = null;
+    previousAccounts: DebtAccount[] = [];
 
     highestInterestAccount: DebtAccount | null = null;
     availableSnapshots: any[] = [];
     selectedSnapshot: string = '';
     allAccounts: DebtAccount[] = [];
+    lastUpdatedAt: Date | null = null;
 
     // UI State
     loading = false;
@@ -86,7 +88,9 @@ export class DebtOverviewComponent implements OnInit {
                 fileName: s.snapshotDate, // Use date as the identifier
                 // Append T12:00:00 to ensure it's treated as the correct day regardless of timezone
                 displayName: new Date(s.snapshotDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-                snapshotDate: s.snapshotDate
+                snapshotDate: s.snapshotDate,
+                createdAt: s.createdAt ? new Date(s.createdAt) : null,
+                updatedAt: s.updatedAt ? new Date(s.updatedAt) : null
             }));
 
             // Sort chronologically: oldest to newest (Jan, Feb, Mar... by year)
@@ -101,6 +105,7 @@ export class DebtOverviewComponent implements OnInit {
             if (latest) {
                 this.selectedSnapshot = latest.snapshotDate;
                 this.snapshotStateService.setCurrentSnapshot(latest.snapshotDate);
+                this.setLastUpdated(latest.snapshotDate);
                 // Load data for the initial snapshot
                 this.loadData(latest.snapshotDate);
             }
@@ -110,6 +115,7 @@ export class DebtOverviewComponent implements OnInit {
     onSnapshotChange() {
         if (this.selectedSnapshot) {
             this.snapshotStateService.setCurrentSnapshot(this.selectedSnapshot);
+            this.setLastUpdated(this.selectedSnapshot);
         }
     }
 
@@ -123,6 +129,8 @@ export class DebtOverviewComponent implements OnInit {
         if (!date) return;
         this.loading = true;
         this.error = '';
+        this.setLastUpdated(date);
+        this.refreshSnapshots(date);
 
         // Load Summary
         this.debtService.getSnapshotSummary(date).subscribe({
@@ -147,8 +155,15 @@ export class DebtOverviewComponent implements OnInit {
                 },
                 error: (err) => console.error('Error loading previous summary', err)
             });
+            this.debtService.getSnapshotAccounts(previousDate).subscribe({
+                next: (accounts) => {
+                    this.previousAccounts = accounts;
+                },
+                error: (err) => console.error('Error loading previous accounts', err)
+            });
         } else {
             this.previousSummary = null;
+            this.previousAccounts = [];
         }
 
         // Load Accounts & Run Analytics
@@ -162,6 +177,31 @@ export class DebtOverviewComponent implements OnInit {
                 console.error('Error loading accounts', err);
                 this.error = 'Failed to load accounts';
                 this.loading = false;
+            }
+        });
+    }
+
+    private setLastUpdated(snapshotDate: string) {
+        const matched = this.availableSnapshots.find(s => s.snapshotDate === snapshotDate);
+        this.lastUpdatedAt = matched?.updatedAt || matched?.createdAt || null;
+    }
+
+    private refreshSnapshots(snapshotDate: string) {
+        this.debtService.getAvailableSnapshots().subscribe({
+            next: (snapshots) => {
+                this.availableSnapshots = snapshots.map(s => ({
+                    fileName: s.snapshotDate,
+                    displayName: new Date(s.snapshotDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+                    snapshotDate: s.snapshotDate,
+                    createdAt: s.createdAt ? new Date(s.createdAt) : null,
+                    updatedAt: s.updatedAt ? new Date(s.updatedAt) : null
+                }));
+                this.availableSnapshots.sort((a, b) => {
+                    const dateA = new Date(a.snapshotDate).getTime();
+                    const dateB = new Date(b.snapshotDate).getTime();
+                    return dateA - dateB;
+                });
+                this.setLastUpdated(snapshotDate);
             }
         });
     }
@@ -237,6 +277,29 @@ export class DebtOverviewComponent implements OnInit {
             return 0;
         }
         return this.allAccounts.reduce((total, account) => total + (account.monthlyPayment || 0), 0);
+    }
+
+    getPreviousTotalMinPayment(): number {
+        if (!this.previousAccounts || this.previousAccounts.length === 0) {
+            return 0;
+        }
+        return this.previousAccounts.reduce((total, account) => total + (account.monthlyPayment || 0), 0);
+    }
+
+    getPreviousTotalMonthlyInterest(): number {
+        if (!this.previousAccounts || this.previousAccounts.length === 0) {
+            return 0;
+        }
+        const breakdown = this.analyticsService.calculateInterestBreakdown(this.previousAccounts);
+        return breakdown.total || 0;
+    }
+
+    getMinPaymentDelta(): number {
+        return this.getTotalMinPayment() - this.getPreviousTotalMinPayment();
+    }
+
+    getInterestDelta(): number {
+        return this.getTotalMonthlyInterest() - this.getPreviousTotalMonthlyInterest();
     }
 
     getPerformanceScore(): number {

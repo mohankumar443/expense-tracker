@@ -19,6 +19,11 @@ public class RetirementSnapshot {
     private Double totalBalance;
     private Double targetPortfolioValue; // Added field
     private Double totalContributions;
+    private String afterTaxMode;
+    private Double flatTaxRate;
+    private Double taxFreeRate;
+    private Double taxDeferredRate;
+    private Double taxableRate;
     private LocalDateTime createdAt;
 
     public RetirementSnapshot() {
@@ -87,6 +92,46 @@ public class RetirementSnapshot {
 
     public void setTargetPortfolioValue(Double targetPortfolioValue) {
         this.targetPortfolioValue = targetPortfolioValue;
+    }
+
+    public String getAfterTaxMode() {
+        return afterTaxMode;
+    }
+
+    public void setAfterTaxMode(String afterTaxMode) {
+        this.afterTaxMode = afterTaxMode;
+    }
+
+    public Double getFlatTaxRate() {
+        return flatTaxRate;
+    }
+
+    public void setFlatTaxRate(Double flatTaxRate) {
+        this.flatTaxRate = flatTaxRate;
+    }
+
+    public Double getTaxFreeRate() {
+        return taxFreeRate;
+    }
+
+    public void setTaxFreeRate(Double taxFreeRate) {
+        this.taxFreeRate = taxFreeRate;
+    }
+
+    public Double getTaxDeferredRate() {
+        return taxDeferredRate;
+    }
+
+    public void setTaxDeferredRate(Double taxDeferredRate) {
+        this.taxDeferredRate = taxDeferredRate;
+    }
+
+    public Double getTaxableRate() {
+        return taxableRate;
+    }
+
+    public void setTaxableRate(Double taxableRate) {
+        this.taxableRate = taxableRate;
     }
 
     public LocalDateTime getCreatedAt() {

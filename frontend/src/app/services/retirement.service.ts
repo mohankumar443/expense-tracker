@@ -37,6 +37,12 @@ export interface RetirementPlanRequest {
     targetPortfolioValue?: number;
     actualMonthlyContribution?: number;
     oneTimeAdditions?: number;
+    afterTaxMode?: 'flat' | 'bucketed' | 'custom';
+    flatTaxRate?: number;
+    taxFreeRate?: number;
+    taxDeferredRate?: number;
+    taxableRate?: number;
+    persistSnapshot?: boolean;
     accounts?: AccountBalanceDTO[];
 }
 

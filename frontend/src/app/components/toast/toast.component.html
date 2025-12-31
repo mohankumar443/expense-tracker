@@ -1,0 +1,22 @@
+<div class="fixed bottom-6 right-6 z-[60] space-y-2">
+    <div *ngFor="let message of messages"
+        class="px-4 py-3 rounded-xl shadow-lg border text-sm font-semibold flex items-center gap-2 bg-white dark:bg-gray-900"
+        [ngClass]="{
+            'border-emerald-500/40 text-emerald-600 dark:text-emerald-300': message.type === 'success',
+            'border-rose-500/40 text-rose-600 dark:text-rose-300': message.type === 'error',
+            'border-blue-500/40 text-blue-600 dark:text-blue-300': message.type === 'info'
+        }">
+        <span class="material-icons text-base"
+            [ngClass]="{
+                'text-emerald-500': message.type === 'success',
+                'text-rose-500': message.type === 'error',
+                'text-blue-500': message.type === 'info'
+            }">
+            {{ message.type === 'success' ? 'check_circle' : (message.type === 'error' ? 'error' : 'info') }}
+        </span>
+        <span>{{ message.text }}</span>
+        <button type="button" class="ml-2 text-gray-400 hover:text-gray-600" (click)="dismiss(message.id)">
+            <span class="material-icons text-sm">close</span>
+        </button>
+    </div>
+</div>

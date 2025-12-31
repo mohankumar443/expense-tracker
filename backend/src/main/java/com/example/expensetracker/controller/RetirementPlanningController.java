@@ -38,6 +38,29 @@ public class RetirementPlanningController {
 
     @GetMapping("/snapshots/latest")
     public Optional<RetirementSnapshot> getLatestSnapshot() {
-        return snapshotRepository.findTopByOrderBySnapshotDateDesc();
+        List<RetirementSnapshot> snapshots = snapshotRepository.findAllByOrderBySnapshotDateDesc();
+        for (RetirementSnapshot snapshot : snapshots) {
+            if (hasNonZeroSnapshot(snapshot)) {
+                return Optional.of(snapshot);
+            }
+        }
+        return Optional.empty();
+    }
+
+    private boolean hasNonZeroSnapshot(RetirementSnapshot snapshot) {
+        if (snapshot == null) {
+            return false;
+        }
+        if (snapshot.getTotalBalance() != null && snapshot.getTotalBalance() > 0) {
+            return true;
+        }
+        if (snapshot.getTotalContributions() != null && snapshot.getTotalContributions() > 0) {
+            return true;
+        }
+        if (snapshot.getAccounts() == null) {
+            return false;
+        }
+        return snapshot.getAccounts().stream()
+                .anyMatch(acc -> acc.getBalance() != null && acc.getBalance() > 0);
     }
 }

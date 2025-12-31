@@ -27,6 +27,7 @@ import { CountUpDirective } from './directives/count-up.directive';
 import { BudgetTrackerComponent } from './components/budget-tracker/budget-tracker.component';
 import { RecurringExpensesComponent } from './components/recurring-expenses/recurring-expenses.component';
 import { RetirementTrackerComponent } from './components/retirement-tracker/retirement-tracker.component';
+import { ToastComponent } from './components/toast/toast.component';
 
 @NgModule({
     declarations: [
@@ -45,7 +46,8 @@ import { RetirementTrackerComponent } from './components/retirement-tracker/reti
         StrategyDashboardComponent,
         CountUpDirective,
         BudgetTrackerComponent,
-        RetirementTrackerComponent
+        RetirementTrackerComponent,
+        ToastComponent
     ],
     imports: [
         BrowserModule,

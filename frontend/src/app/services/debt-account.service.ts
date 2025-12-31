@@ -59,6 +59,7 @@ export interface Snapshot {
     performanceScore: number;
     metadata: any;
     createdAt: string;
+    updatedAt?: string;
 }
 
 @Injectable({

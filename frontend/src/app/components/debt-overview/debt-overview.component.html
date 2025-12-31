@@ -12,6 +12,7 @@
                         Snapshot</p>
                     <h2 class="text-3xl font-bold text-gray-900 dark:text-white">{{ summary.snapshotDate | date:'MMMM
                         yyyy' }}</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Last updated: {{ (lastUpdatedAt || summary.snapshotDate) | date:'MMM d, yyyy' }}</p>
                 </div>
 
                 <!-- Month Selector Dropdown -->
@@ -84,7 +85,7 @@
         <div *ngIf="!loading && !error && summary" class="space-y-6 animate-fade-in-up">
 
             <!-- Top Stats Row -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" @staggerFadeIn>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" @staggerFadeIn>
 
                 <!-- Total Debt -->
                 <div class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-slate-200 dark:border-slate-500/30 shadow-soft relative overflow-hidden hover-lift"
@@ -167,11 +168,11 @@
             </div>
 
             <!-- Second Row -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" @staggerFadeIn>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" @staggerFadeIn>
 
                 <!-- Total Min Payment -->
                 <div class="bg-white dark:bg-[#1a2332] rounded-2xl p-5 border border-orange-200 dark:border-orange-500/30 shadow-md relative overflow-hidden hover-lift text-center"
-                    @slideInUp>
+                    @slideInUp [class.skeleton]="loading">
                     <div class="absolute top-4 right-4 opacity-50 dark:opacity-40">
                         <span class="material-icons text-6xl text-orange-600 dark:text-orange-400">payments</span>
                     </div>
@@ -181,11 +182,17 @@
                     <h3 class="text-4xl font-black text-gray-900 dark:text-white mb-1 relative z-10"
                         [appCountUp]="getTotalMinPayment()" [prefix]="'$'" [decimals]="0">0</h3>
                     <p class="text-sm text-orange-600/70 dark:text-orange-200/70 relative z-10">required monthly</p>
+                    <p class="text-xs text-orange-600/70 dark:text-orange-200/70 relative z-10"
+                        *ngIf="previousAccounts.length">
+                        <span *ngIf="getMinPaymentDelta() >= 0">↑</span>
+                        <span *ngIf="getMinPaymentDelta() < 0">↓</span>
+                        {{ Math.abs(getMinPaymentDelta()) | number:'1.0-0' }} vs last month
+                    </p>
                 </div>
 
                 <!-- Principal -->
                 <div class="bg-white dark:bg-[#1a2332] rounded-2xl p-5 border border-teal-200 dark:border-teal-500/30 shadow-md relative overflow-hidden hover-lift text-center"
-                    @slideInUp>
+                    @slideInUp [class.skeleton]="loading">
                     <div class="absolute top-4 right-4 opacity-50 dark:opacity-40">
                         <span class="material-icons text-6xl text-teal-600 dark:text-teal-400">trending_down</span>
                     </div>
@@ -197,6 +204,27 @@
                         [appCountUp]="(getTotalMinPayment() - getTotalMonthlyInterest())" [prefix]="'$'" [decimals]="0">
                         0</h3>
                     <p class="text-sm text-teal-600/70 dark:text-teal-200/70 relative z-10">reducing debt</p>
+                </div>
+
+                <!-- Interest -->
+                <div class="bg-white dark:bg-[#1a2332] rounded-2xl p-5 border border-cyan-200 dark:border-cyan-500/30 shadow-md relative overflow-hidden hover-lift text-center"
+                    @slideInUp [class.skeleton]="loading">
+                    <div class="absolute top-4 right-4 opacity-50 dark:opacity-40">
+                        <span class="material-icons text-6xl text-cyan-600 dark:text-cyan-400">percent</span>
+                    </div>
+                    <div class="flex items-center justify-center gap-2 mb-2 relative z-10">
+                        <p class="text-xs font-bold text-cyan-600 dark:text-cyan-200 uppercase tracking-wider">Interest
+                        </p>
+                    </div>
+                    <h3 class="text-4xl font-black text-gray-900 dark:text-white mb-1 relative z-10"
+                        [appCountUp]="getTotalMonthlyInterest()" [prefix]="'$'" [decimals]="0">0</h3>
+                    <p class="text-sm text-cyan-600/70 dark:text-cyan-200/70 relative z-10">monthly cost</p>
+                    <p class="text-xs text-cyan-600/70 dark:text-cyan-200/70 relative z-10"
+                        *ngIf="previousAccounts.length">
+                        <span *ngIf="getInterestDelta() >= 0">↑</span>
+                        <span *ngIf="getInterestDelta() < 0">↓</span>
+                        {{ Math.abs(getInterestDelta()) | number:'1.0-0' }} vs last month
+                    </p>
                 </div>
 
                 <!-- High APR Threat List -->

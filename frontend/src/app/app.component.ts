@@ -1,6 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { ProfileService, Profile } from './services/profile.service';
 import { ThemeService, ThemeMode } from './services/theme.service';
+import { DebtAccountService, DebtSummary } from './services/debt-account.service';
+import { RetirementService } from './services/retirement.service';
+import { ExpenseService } from './services/expense.service';
+import { SnapshotStateService } from './services/snapshot-state.service';
+import { Expense } from './models/expense.model';
 
 @Component({
     selector: 'app-root',
@@ -19,9 +24,23 @@ export class AppComponent implements OnInit {
         retirementAge: null
     };
     showProfileMenu = false;
+    showQuickAddMenu = false;
+    kpiLoading = true;
+    kpiSnapshotDate: string | null = null;
+    kpiTotalDebt = 0;
+    kpiRetirementAssets = 0;
+    kpiNetWorth = 0;
+    kpiSavingsRate: number | null = null;
+    kpiMonthlyBudget = 0;
+    kpiMonthlySpend = 0;
+    private kpiExpenses: Expense[] = [];
+    private kpiDebtLoaded = false;
+    private kpiRetirementLoaded = false;
+    private kpiExpensesLoaded = false;
 
     ngOnInit() {
         this.loadProfiles();
+        this.setupKpis();
     }
 
     modes: { value: ThemeMode, label: string, icon: string }[] = [
@@ -34,7 +53,14 @@ export class AppComponent implements OnInit {
     private ACTIVE_PROFILE_KEY = 'activeProfileId';
     private PROFILE_CACHE_KEY = 'cachedProfile';
 
-    constructor(private profileService: ProfileService, private themeService: ThemeService) { }
+    constructor(
+        private profileService: ProfileService,
+        private themeService: ThemeService,
+        private debtService: DebtAccountService,
+        private retirementService: RetirementService,
+        private expenseService: ExpenseService,
+        private snapshotStateService: SnapshotStateService
+    ) { }
 
     onSidebarToggled(isCollapsed: boolean) {
         this.isSidebarCollapsed = isCollapsed;
@@ -93,6 +119,7 @@ export class AppComponent implements OnInit {
                     this.persistActiveProfileId(this.activeProfile.id || '');
                     this.cacheProfile(this.activeProfile);
                     this.loadProfiles();
+                    this.showProfileMenu = false;
                 }
             });
         } else {
@@ -102,6 +129,7 @@ export class AppComponent implements OnInit {
                     this.persistActiveProfileId(this.activeProfile.id || '');
                     this.cacheProfile(this.activeProfile);
                     this.loadProfiles();
+                    this.showProfileMenu = false;
                 }
             });
         }
@@ -144,6 +172,18 @@ export class AppComponent implements OnInit {
         this.themeService.setMode(mode);
     }
 
+    toggleQuickAddMenu() {
+        this.showQuickAddMenu = !this.showQuickAddMenu;
+    }
+
+    quickAddScroll(target: 'accounts' | 'budget' | 'retirement') {
+        this.showQuickAddMenu = false;
+        const el = document.getElementById(target);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
     private persistActiveProfileId(id: string) {
         localStorage.setItem(this.ACTIVE_PROFILE_KEY, id);
     }
@@ -160,5 +200,113 @@ export class AppComponent implements OnInit {
         } else {
             this.addNewProfile();
         }
+    }
+
+    private setupKpis() {
+        this.snapshotStateService.currentSnapshot$.subscribe(date => {
+            if (date) {
+                this.kpiSnapshotDate = date;
+                this.loadDebtSummary(date);
+                this.recomputeSavingsRate();
+            } else {
+                this.loadLatestSnapshotDate();
+            }
+        });
+
+        this.retirementService.getLatestSnapshot().subscribe({
+            next: (snapshot) => {
+                this.kpiRetirementAssets = snapshot?.totalBalance || 0;
+                this.kpiRetirementLoaded = true;
+                this.recomputeNetWorth();
+                this.updateKpiLoading();
+            },
+            error: () => {
+                this.kpiRetirementAssets = 0;
+                this.kpiRetirementLoaded = true;
+                this.recomputeNetWorth();
+                this.updateKpiLoading();
+            }
+        });
+
+        this.expenseService.getAllExpenses().subscribe({
+            next: (expenses) => {
+                this.kpiExpenses = expenses || [];
+                this.kpiExpensesLoaded = true;
+                this.recomputeSavingsRate();
+                this.updateKpiLoading();
+            },
+            error: () => {
+                this.kpiExpenses = [];
+                this.kpiExpensesLoaded = true;
+                this.recomputeSavingsRate();
+                this.updateKpiLoading();
+            }
+        });
+    }
+
+    private loadLatestSnapshotDate() {
+        this.debtService.getAvailableSnapshots().subscribe({
+            next: (snapshots) => {
+                const latest = snapshots
+                    .map(s => s.snapshotDate)
+                    .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
+                    .pop();
+                if (latest) {
+                    this.snapshotStateService.setCurrentSnapshot(latest);
+                } else {
+                    this.kpiDebtLoaded = true;
+                    this.updateKpiLoading();
+                }
+            },
+            error: () => {
+                this.kpiDebtLoaded = true;
+                this.updateKpiLoading();
+            }
+        });
+    }
+
+    private loadDebtSummary(date: string) {
+        this.debtService.getSnapshotSummary(date).subscribe({
+            next: (summary: DebtSummary) => {
+                this.kpiTotalDebt = summary.totalDebt || 0;
+                this.kpiDebtLoaded = true;
+                this.recomputeNetWorth();
+                this.updateKpiLoading();
+            },
+            error: () => {
+                this.kpiTotalDebt = 0;
+                this.kpiDebtLoaded = true;
+                this.recomputeNetWorth();
+                this.updateKpiLoading();
+            }
+        });
+    }
+
+    private recomputeNetWorth() {
+        this.kpiNetWorth = (this.kpiRetirementAssets || 0) - (this.kpiTotalDebt || 0);
+    }
+
+    private recomputeSavingsRate() {
+        if (!this.kpiExpensesLoaded || !this.kpiSnapshotDate) return;
+        const snapshotDate = new Date(this.kpiSnapshotDate + 'T12:00:00');
+        if (isNaN(snapshotDate.getTime())) return;
+        const year = snapshotDate.getFullYear();
+        const month = snapshotDate.getMonth() + 1;
+        const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+        const budgetKey = `monthlyBudget_${year}-${month}`;
+        const storedBudget = localStorage.getItem(budgetKey);
+        this.kpiMonthlyBudget = storedBudget ? parseFloat(storedBudget) : 5000;
+        this.kpiMonthlySpend = this.kpiExpenses
+            .filter(expense => expense.date.startsWith(monthKey))
+            .reduce((sum, expense) => sum + (expense.amount || 0), 0);
+        if (this.kpiMonthlyBudget > 0) {
+            this.kpiSavingsRate = ((this.kpiMonthlyBudget - this.kpiMonthlySpend) / this.kpiMonthlyBudget) * 100;
+        } else {
+            this.kpiSavingsRate = null;
+        }
+    }
+
+    private updateKpiLoading() {
+        this.kpiLoading = !(this.kpiDebtLoaded && this.kpiRetirementLoaded && this.kpiExpensesLoaded);
     }
 }

@@ -10,7 +10,8 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <!-- Debt Increased/Decreased Card -->
         <div
-            class="bg-[#0f172a] rounded-2xl p-6 border border-gray-800 relative overflow-hidden group hover:border-gray-700 transition-all">
+            class="bg-[#0f172a] rounded-2xl p-6 border border-gray-800 relative overflow-hidden group hover:border-gray-700 transition-all"
+            [class.skeleton]="!currentMonthSummary">
             <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                 <span class="material-icons text-6xl text-orange-500">trending_up</span>
             </div>
@@ -31,7 +32,8 @@
 
         <!-- Monthly Interest Card -->
         <div
-            class="bg-[#0f172a] rounded-2xl p-6 border border-gray-800 relative overflow-hidden group hover:border-gray-700 transition-all">
+            class="bg-[#0f172a] rounded-2xl p-6 border border-gray-800 relative overflow-hidden group hover:border-gray-700 transition-all"
+            [class.skeleton]="!currentMonthSummary">
             <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                 <span class="material-icons text-6xl text-amber-500">payments</span>
             </div>
@@ -47,7 +49,8 @@
 
         <!-- Debt Free Date Card -->
         <div
-            class="bg-[#0f172a] rounded-2xl p-6 border border-gray-800 relative overflow-hidden group hover:border-gray-700 transition-all">
+            class="bg-[#0f172a] rounded-2xl p-6 border border-gray-800 relative overflow-hidden group hover:border-gray-700 transition-all"
+            [class.skeleton]="!currentMonthSummary">
             <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                 <span class="material-icons text-6xl text-purple-500">event</span>
             </div>
@@ -63,7 +66,8 @@
 
         <!-- Total Debt Card -->
         <div
-            class="bg-[#0f172a] rounded-2xl p-6 border border-gray-800 relative overflow-hidden group hover:border-gray-700 transition-all">
+            class="bg-[#0f172a] rounded-2xl p-6 border border-gray-800 relative overflow-hidden group hover:border-gray-700 transition-all"
+            [class.skeleton]="!currentMonthSummary">
             <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                 <span class="material-icons text-6xl text-blue-500">account_balance</span>
             </div>

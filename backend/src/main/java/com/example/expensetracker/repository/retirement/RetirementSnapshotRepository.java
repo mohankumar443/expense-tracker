@@ -16,6 +16,8 @@ public interface RetirementSnapshotRepository extends MongoRepository<Retirement
 
     Optional<RetirementSnapshot> findTopByOrderBySnapshotDateDesc();
 
+    List<RetirementSnapshot> findAllByOrderBySnapshotDateDesc();
+
     @Query("{ 'snapshotDate': { $gte: ?0, $lt: ?1 } }")
     List<RetirementSnapshot> findByYear(LocalDate yearStart, LocalDate yearEnd);
 

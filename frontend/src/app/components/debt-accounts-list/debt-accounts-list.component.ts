@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { DebtAccountService, DebtAccount } from '../../services/debt-account.service';
 import { SnapshotStateService } from '../../services/snapshot-state.service';
+import { ToastService } from '../../services/toast.service';
 
 type CategoryKey = 'credit' | 'personal' | 'auto';
 
@@ -191,7 +192,8 @@ export class DebtAccountsListComponent implements OnInit {
 
     constructor(
         private debtService: DebtAccountService,
-        private snapshotState: SnapshotStateService
+        private snapshotState: SnapshotStateService,
+        private toastService: ToastService
     ) { }
 
     ngOnInit() {
@@ -550,6 +552,12 @@ export class DebtAccountsListComponent implements OnInit {
         return months;
     }
 
+    formatPayoffDate(months: number): string {
+        const date = new Date();
+        date.setMonth(date.getMonth() + months);
+        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    }
+
     getCategoryLabel(type: DebtAccount['type']): string {
         if (type === 'CREDIT_CARD') return 'Credit Card';
         if (type === 'PERSONAL_LOAN') return 'Personal Loan';
@@ -769,10 +777,12 @@ export class DebtAccountsListComponent implements OnInit {
                     this.showEditModal = false;
                     this.editingAccount = null;
                     this.loadSnapshotAccounts(this.currentSnapshotDate);
+                    this.refreshSnapshotView();
+                    this.toastService.show('Account updated.', 'success');
                 },
                 error: (error) => {
                     console.error('Error updating account:', error);
-                    alert('Failed to update account. Please try again.');
+                    this.toastService.show('Failed to update account.', 'error');
                 }
             });
         } else {
@@ -789,10 +799,12 @@ export class DebtAccountsListComponent implements OnInit {
                 next: () => {
                     this.showAddModal = false;
                     this.loadSnapshotAccounts(this.currentSnapshotDate);
+                    this.refreshSnapshotView();
+                    this.toastService.show('Account added.', 'success');
                 },
                 error: (error) => {
                     console.error('Error creating account:', error);
-                    alert('Failed to create account. Please try again.');
+                    this.toastService.show('Failed to create account.', 'error');
                 }
             });
         }
@@ -805,10 +817,12 @@ export class DebtAccountsListComponent implements OnInit {
                     this.showDeleteConfirmation = false;
                     this.accountToDelete = null;
                     this.loadSnapshotAccounts(this.currentSnapshotDate);
+                    this.refreshSnapshotView();
+                    this.toastService.show('Account deleted.', 'success');
                 },
                 error: (error) => {
                     console.error('Error deleting account:', error);
-                    alert('Failed to delete account. Please try again.');
+                    this.toastService.show('Failed to delete account.', 'error');
                     this.showDeleteConfirmation = false;
                     this.accountToDelete = null;
                 }
@@ -819,6 +833,12 @@ export class DebtAccountsListComponent implements OnInit {
     cancelDelete() {
         this.showDeleteConfirmation = false;
         this.accountToDelete = null;
+    }
+
+    private refreshSnapshotView() {
+        if (this.currentSnapshotDate) {
+            this.snapshotState.setCurrentSnapshot(this.currentSnapshotDate);
+        }
     }
 
     cancelEdit() {

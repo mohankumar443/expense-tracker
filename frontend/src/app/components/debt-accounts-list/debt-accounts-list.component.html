@@ -644,9 +644,9 @@
                     </li>
                     <li class="flex items-start gap-2" *ngIf="getMonthsToPayoff(analyticsAccount) as months">
                         <span class="material-icons text-blue-400 text-sm mt-0.5">schedule</span>
-                        <span>Estimated payoff in ~{{ months }} months at current payment.</span>
+                        <span>Estimated payoff in ~{{ months }} months ({{ formatPayoffDate(months) }}) at current payment.</span>
                     </li>
-                    <li class="flex items-start gap-2" *ngIf="analyticsAccount.apr > 15">
+                    <li class="flex items-start gap-2" *ngIf="analyticsAccount.apr > 15 && analyticsAccount.currentBalance > 0">
                         <span class="material-icons text-rose-400 text-sm mt-0.5">priority_high</span>
                         <span>High APR — prioritize extra payments here to cut interest.</span>
                     </li>

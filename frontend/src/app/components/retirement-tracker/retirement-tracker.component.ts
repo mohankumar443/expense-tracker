@@ -1,5 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnChanges, Input, SimpleChanges } from '@angular/core';
 import { RetirementService, RetirementPlanRequest, RetirementPlanResponse, AccountBalanceDTO } from '../../services/retirement.service';
+import { ToastService } from '../../services/toast.service';
 import { ChartConfiguration } from 'chart.js';
 
 @Component({
@@ -7,7 +8,11 @@ import { ChartConfiguration } from 'chart.js';
     templateUrl: './retirement-tracker.component.html',
     styleUrls: ['./retirement-tracker.component.css']
 })
-export class RetirementTrackerComponent implements OnInit {
+export class RetirementTrackerComponent implements OnInit, OnChanges {
+    @Input() profileAge: number | null = null;
+    @Input() profileRetirementAge: number | null = null;
+    private hasLoadedSnapshot = false;
+    lastSnapshotDate: string | null = null;
     // Fixed profile parameters
     currentAge = 33;
     targetRetirementAge = 50;
@@ -21,6 +26,14 @@ export class RetirementTrackerComponent implements OnInit {
     // Form inputs
     monthYear: string = '';
     oneTimeAdditions: number = 0;
+    afterTaxMode: 'flat' | 'bucketed' | 'custom' = 'bucketed';
+    flatTaxRate = 20;
+    customTaxRates = {
+        taxFree: 0,
+        taxDeferred: 22,
+        taxable: 15
+    };
+    projectionScenario: 'base' | 'actual' = 'actual';
 
     // Account balances and contributions
     accounts: any[] = [
@@ -56,7 +69,10 @@ export class RetirementTrackerComponent implements OnInit {
         }
     };
 
-    constructor(private retirementService: RetirementService) { }
+    constructor(
+        private retirementService: RetirementService,
+        private toastService: ToastService
+    ) { }
 
     ngOnInit(): void {
         // Set current month/year
@@ -65,6 +81,19 @@ export class RetirementTrackerComponent implements OnInit {
 
         // Load previous month's data to auto-calculate balances
         this.loadPreviousMonthData();
+    }
+
+    ngOnChanges(changes: SimpleChanges): void {
+        const nextAge = this.profileAge ?? this.currentAge;
+        const nextRetireAge = this.profileRetirementAge ?? this.targetRetirementAge;
+        this.currentAge = nextAge;
+        this.targetRetirementAge = nextRetireAge;
+        if (changes['profileAge'] || changes['profileRetirementAge']) {
+            const hasData = this.getTotalBalance() > 0 || this.getTotalContributions() > 0 || !!this.response;
+            if (this.hasLoadedSnapshot && hasData) {
+                this.calculate(false);
+            }
+        }
     }
 
     loadPreviousMonthData(): void {
@@ -87,12 +116,47 @@ export class RetirementTrackerComponent implements OnInit {
                         this.targetPortfolioValue = snapshot.targetPortfolioValue;
                     }
 
+                    if (snapshot.totalContributions !== undefined) {
+                        this.accounts.forEach(account => {
+                            const prevAccount = snapshot.accounts?.find((acc: any) => acc.accountType === account.accountType);
+                            if (prevAccount && prevAccount.contribution !== undefined) {
+                                account.contribution = prevAccount.contribution || 0;
+                            }
+                        });
+                    }
+
+                    if (snapshot.oneTimeAdditions !== undefined && snapshot.oneTimeAdditions !== null) {
+                        this.oneTimeAdditions = snapshot.oneTimeAdditions;
+                    }
+
+                    if (snapshot.afterTaxMode) {
+                        this.afterTaxMode = snapshot.afterTaxMode;
+                    }
+                    if (snapshot.flatTaxRate !== undefined && snapshot.flatTaxRate !== null) {
+                        this.flatTaxRate = snapshot.flatTaxRate;
+                    }
+                    if (snapshot.taxFreeRate !== undefined && snapshot.taxDeferredRate !== undefined && snapshot.taxableRate !== undefined) {
+                        this.customTaxRates = {
+                            taxFree: snapshot.taxFreeRate,
+                            taxDeferred: snapshot.taxDeferredRate,
+                            taxable: snapshot.taxableRate
+                        };
+                    }
+
+                    if (snapshot.snapshotDate) {
+                        this.lastSnapshotDate = snapshot.snapshotDate;
+                    }
+
                     // Trigger calculation to update Score, Chart, and Strategy immediately
-                    this.calculate();
+                    this.hasLoadedSnapshot = true;
+                    this.calculate(false);
+                } else {
+                    this.hasLoadedSnapshot = true;
                 }
             },
             error: (err) => {
                 console.log('No previous snapshot found, starting fresh');
+                this.hasLoadedSnapshot = true;
             }
         });
     }
@@ -148,7 +212,27 @@ export class RetirementTrackerComponent implements OnInit {
         return this.accounts.reduce((sum, acc) => sum + (acc.contribution || 0), 0);
     }
 
-    calculate(): void {
+    getLastUpdatedDisplay(): string {
+        if (this.lastSnapshotDate) {
+            const parsed = new Date(this.lastSnapshotDate);
+            if (!isNaN(parsed.getTime())) {
+                return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            }
+        }
+        if (this.monthYear) {
+            const parsed = new Date(`${this.monthYear}-01`);
+            if (!isNaN(parsed.getTime())) {
+                return parsed.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+            }
+        }
+        return '—';
+    }
+
+    getScorecard(accountType: string) {
+        return this.response?.accountScorecard?.find((s: any) => s.accountType === accountType);
+    }
+
+    calculate(persistSnapshot: boolean = true): void {
         this.loading = true;
         this.error = null;
 
@@ -159,6 +243,12 @@ export class RetirementTrackerComponent implements OnInit {
             targetPortfolioValue: this.targetPortfolioValue, // Send user defined target
             actualMonthlyContribution: this.getTotalContributions(),
             oneTimeAdditions: this.oneTimeAdditions || undefined,
+            afterTaxMode: this.afterTaxMode,
+            flatTaxRate: this.flatTaxRate,
+            taxFreeRate: this.customTaxRates.taxFree,
+            taxDeferredRate: this.customTaxRates.taxDeferred,
+            taxableRate: this.customTaxRates.taxable,
+            persistSnapshot: persistSnapshot,
             accounts: this.accounts.map(acc => ({
                 accountType: acc.accountType,
                 goalType: acc.goalType,
@@ -173,11 +263,15 @@ export class RetirementTrackerComponent implements OnInit {
                 this.updateFinancialHealthScore();
                 this.generateChartData();
                 this.loading = false;
+                if (persistSnapshot) {
+                    this.toastService.show('Balances saved.', 'success');
+                }
             },
             error: (err) => {
                 console.error('Error calculating retirement plan:', err);
                 this.error = 'Failed to calculate retirement plan. Please try again.';
                 this.loading = false;
+                this.toastService.show('Failed to save balances.', 'error');
             }
         });
     }
@@ -192,7 +286,9 @@ export class RetirementTrackerComponent implements OnInit {
 
         const currentBalance = this.response.actualBalance || 0;
         const targetValue = this.targetPortfolioValue;
-        const monthlyContribution = this.getTotalContributions(); // Use actual user input
+        const monthlyContribution = this.projectionScenario === 'base'
+            ? this.baseMonthlyContribution
+            : this.getTotalContributions();
 
         // 7% Annual Return -> Monthly Rate
         const monthlyRate = 0.07 / 12;
@@ -281,12 +377,51 @@ export class RetirementTrackerComponent implements OnInit {
         return (this.targetPortfolioValue * 0.04) / 12;
     }
 
+    getAfterTaxWithdrawalMonthly(): number {
+        const grossMonthly = this.getSafeWithdrawalAmount();
+        const taxRate = this.getEffectiveTaxRate();
+        return grossMonthly * (1 - taxRate);
+    }
+
+    getAfterTaxWithdrawalAnnual(): number {
+        return this.getAfterTaxWithdrawalMonthly() * 12;
+    }
+
+    private getEffectiveTaxRate(): number {
+        if (this.afterTaxMode === 'flat') {
+            return Math.min(1, Math.max(0, this.flatTaxRate / 100));
+        }
+
+        const projected = this.getTaxDiversificationProjected();
+        const total = projected.taxFree.balance + projected.taxDeferred.balance + projected.taxable.balance;
+        if (total <= 0) return 0;
+
+        const rates = this.afterTaxMode === 'custom'
+            ? this.customTaxRates
+            : { taxFree: 0, taxDeferred: 22, taxable: 15 };
+
+        const taxFreeShare = projected.taxFree.balance / total;
+        const taxDeferredShare = projected.taxDeferred.balance / total;
+        const taxableShare = projected.taxable.balance / total;
+
+        const effectiveRate =
+            (taxFreeShare * (rates.taxFree / 100)) +
+            (taxDeferredShare * (rates.taxDeferred / 100)) +
+            (taxableShare * (rates.taxable / 100));
+
+        return Math.min(1, Math.max(0, effectiveRate));
+    }
+
     getFinancialHealthScore(): number {
         return this.healthScoreDetails.score;
     }
 
 
-    getTaxDiversification(): { taxFree: number, taxDeferred: number, taxable: number } {
+    getTaxDiversification(): {
+        taxFree: { balance: number, percent: number },
+        taxDeferred: { balance: number, percent: number },
+        taxable: { balance: number, percent: number }
+    } {
         const roth = this.accounts.find(a => a.accountType === 'Roth IRA')?.balance || 0;
         const hsa = this.accounts.find(a => a.accountType === 'HSA')?.balance || 0;
         // 401k is typically Pre-Tax (Tax-Deferred)
@@ -295,13 +430,70 @@ export class RetirementTrackerComponent implements OnInit {
         const taxable = this.accounts.find(a => a.accountType === 'Brokerage')?.balance || 0;
 
         const total = roth + hsa + traditional + taxable;
-        if (total === 0) return { taxFree: 0, taxDeferred: 0, taxable: 0 };
+
+        // Helper to safe calc percent
+        const calc = (val: number) => total === 0 ? 0 : (val / total) * 100;
 
         return {
-            taxFree: ((roth + hsa) / total) * 100, // Roth + HSA are tax-efficient
-            taxDeferred: (traditional / total) * 100,
-            taxable: (taxable / total) * 100
+            taxFree: { balance: roth + hsa, percent: calc(roth + hsa) },
+            taxDeferred: { balance: traditional, percent: calc(traditional) },
+            taxable: { balance: taxable, percent: calc(taxable) }
         };
+    }
+
+    getTaxDiversificationProjected(): {
+        taxFree: { balance: number, percent: number },
+        taxDeferred: { balance: number, percent: number },
+        taxable: { balance: number, percent: number }
+    } {
+        const project = (balance: number, contribution: number) => this.projectBalance(balance, contribution);
+
+        const roth = this.accounts.find(a => a.accountType === 'Roth IRA');
+        const hsa = this.accounts.find(a => a.accountType === 'HSA');
+        const traditional = this.accounts.find(a => a.accountType === '401k');
+        const taxableAccount = this.accounts.find(a => a.accountType === 'Brokerage');
+
+        const taxFreeProjected = project(roth?.balance || 0, roth?.contribution || 0)
+            + project(hsa?.balance || 0, hsa?.contribution || 0);
+        const taxDeferredProjected = project(traditional?.balance || 0, traditional?.contribution || 0);
+        const taxableProjected = project(taxableAccount?.balance || 0, taxableAccount?.contribution || 0);
+
+        const total = taxFreeProjected + taxDeferredProjected + taxableProjected;
+        const calc = (val: number) => total === 0 ? 0 : (val / total) * 100;
+
+        return {
+            taxFree: { balance: taxFreeProjected, percent: calc(taxFreeProjected) },
+            taxDeferred: { balance: taxDeferredProjected, percent: calc(taxDeferredProjected) },
+            taxable: { balance: taxableProjected, percent: calc(taxableProjected) }
+        };
+    }
+
+    getProjectedAccountBalance(accountType: string): number {
+        const account = this.accounts.find(acc => acc.accountType === accountType);
+        return this.projectBalance(account?.balance || 0, account?.contribution || 0);
+    }
+
+    getProjectedDiversificationSummary(): { total: number; taxFreePercent: number } {
+        const projected = this.getTaxDiversificationProjected();
+        const total = projected.taxFree.balance + projected.taxDeferred.balance + projected.taxable.balance;
+        return { total, taxFreePercent: projected.taxFree.percent };
+    }
+
+    getGapMonthlyDelta(): number | null {
+        if (!this.response) return null;
+        if (this.response.status !== 'Slightly Behind' && this.response.status !== 'Behind') return null;
+        if (!this.response.requiredMonthlyContribution) return null;
+        const delta = this.response.requiredMonthlyContribution - this.getTotalContributions();
+        return delta > 0 ? delta : 0;
+    }
+
+    private projectBalance(balance: number, contribution: number): number {
+        const monthsToRetirement = Math.max(0, Math.round((this.targetRetirementAge - this.currentAge) * 12));
+        const monthlyRate = (this.annualReturn / 100) / 12;
+        if (monthsToRetirement <= 0) return balance;
+        if (monthlyRate === 0) return balance + (contribution * monthsToRetirement);
+        const growthFactor = Math.pow(1 + monthlyRate, monthsToRetirement);
+        return (balance * growthFactor) + (contribution * ((growthFactor - 1) / monthlyRate));
     }
 
     getStatusColor(status: string): string {
@@ -468,7 +660,7 @@ export class RetirementTrackerComponent implements OnInit {
 
         // 3. Tax Efficiency Bonus
         const taxDiv = this.getTaxDiversification();
-        if (taxDiv.taxFree > 10) {
+        if (taxDiv.taxFree.percent > 10) {
             score += 5;
             reasons.push(`✅ Good Tax Diversification (>10% Tax-Free) (+5)`);
         }

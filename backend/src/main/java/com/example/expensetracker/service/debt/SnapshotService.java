@@ -103,7 +103,9 @@ public class SnapshotService {
 
                 Snapshot snapshot = new Snapshot();
                 snapshot.setSnapshotDate(snapshotDate);
-                snapshot.setCreatedAt(LocalDateTime.now());
+                LocalDateTime now = LocalDateTime.now();
+                snapshot.setCreatedAt(now);
+                snapshot.setUpdatedAt(now);
 
                 // Initialize with zeros
                 snapshot.setTotalDebt(0.0);
@@ -192,6 +194,7 @@ public class SnapshotService {
                 // Calculate performance score (simple formula)
                 int performanceScore = calculatePerformanceScore(totalDebt, totalMonthlyPayment, totalMonthlyInterest);
                 snapshot.setPerformanceScore(performanceScore);
+                snapshot.setUpdatedAt(LocalDateTime.now());
 
                 return snapshotRepository.save(snapshot);
         }

@@ -80,6 +80,44 @@
     <!-- Main Content with dynamic padding for sidebar -->
     <div [class]="'transition-all duration-500 ' + (isSidebarCollapsed ? 'ml-20' : 'ml-72')">
         <div class="container mx-auto px-6 py-8">
+            <!-- Global KPI Ribbon -->
+            <div class="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-[#111827] rounded-2xl border border-slate-700/40 px-4 py-4 shadow-lg"
+                    [class.skeleton]="kpiLoading">
+                    <p class="text-xs uppercase tracking-wider text-slate-400">Net Worth</p>
+                    <p class="text-2xl font-black text-white">
+                        {{ kpiNetWorth | currency:'USD':'symbol':'1.0-0' }}
+                    </p>
+                    <p class="text-xs text-slate-500">Assets − Debt</p>
+                </div>
+                <div class="bg-[#111827] rounded-2xl border border-slate-700/40 px-4 py-4 shadow-lg"
+                    [class.skeleton]="kpiLoading">
+                    <p class="text-xs uppercase tracking-wider text-slate-400">Total Debt</p>
+                    <p class="text-2xl font-black text-rose-400">
+                        {{ kpiTotalDebt | currency:'USD':'symbol':'1.0-0' }}
+                    </p>
+                    <p class="text-xs text-slate-500">Snapshot total</p>
+                </div>
+                <div class="bg-[#111827] rounded-2xl border border-slate-700/40 px-4 py-4 shadow-lg"
+                    [class.skeleton]="kpiLoading">
+                    <p class="text-xs uppercase tracking-wider text-slate-400">Retirement Assets</p>
+                    <p class="text-2xl font-black text-emerald-400">
+                        {{ kpiRetirementAssets | currency:'USD':'symbol':'1.0-0' }}
+                    </p>
+                    <p class="text-xs text-slate-500">Latest snapshot</p>
+                </div>
+                <div class="bg-[#111827] rounded-2xl border border-slate-700/40 px-4 py-4 shadow-lg"
+                    [class.skeleton]="kpiLoading">
+                    <p class="text-xs uppercase tracking-wider text-slate-400">Savings Rate</p>
+                    <p class="text-2xl font-black"
+                        [class.text-emerald-400]="(kpiSavingsRate ?? 0) >= 0"
+                        [class.text-rose-400]="(kpiSavingsRate ?? 0) < 0">
+                        {{ kpiSavingsRate !== null ? (kpiSavingsRate | number:'1.0-0') + '%' : '—' }}
+                    </p>
+                    <p class="text-xs text-slate-500">Budget {{ kpiMonthlyBudget | currency:'USD':'symbol':'1.0-0' }}
+                        • Spent {{ kpiMonthlySpend | currency:'USD':'symbol':'1.0-0' }}</p>
+                </div>
+            </div>
 
             <!-- Debt Overview Section -->
             <div id="overview" class="scroll-mt-24">
@@ -101,7 +139,6 @@
             <!-- Debt Accounts Section -->
             <div id="accounts" class="scroll-mt-24 mt-8">
                 <div class="mb-8">
-                    <h2 class="text-3xl font-black text-gray-900 dark:text-white mb-6">Your Debt Accounts</h2>
                     <app-debt-accounts-list></app-debt-accounts-list>
                 </div>
             </div>
@@ -125,9 +162,33 @@
             <!-- Retirement Planning Section -->
             <div id="retirement" class="scroll-mt-24 mt-8">
                 <div class="mb-8">
-                    <app-retirement-tracker></app-retirement-tracker>
+                    <app-retirement-tracker [profileAge]="activeProfile.age" [profileRetirementAge]="activeProfile.retirementAge"></app-retirement-tracker>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <app-toast></app-toast>
+
+    <div class="fixed bottom-6 right-6 z-50">
+        <button type="button" (click)="toggleQuickAddMenu()"
+            class="w-12 h-12 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg flex items-center justify-center">
+            <span class="material-icons">{{ showQuickAddMenu ? 'close' : 'add' }}</span>
+        </button>
+        <div *ngIf="showQuickAddMenu"
+            class="absolute bottom-14 right-0 w-44 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl overflow-hidden">
+            <button type="button" (click)="quickAddScroll('accounts')"
+                class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800">
+                Add Debt Account
+            </button>
+            <button type="button" (click)="quickAddScroll('budget')"
+                class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800">
+                Add Expense
+            </button>
+            <button type="button" (click)="quickAddScroll('retirement')"
+                class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800">
+                Update Retirement
+            </button>
         </div>
     </div>
 </div>

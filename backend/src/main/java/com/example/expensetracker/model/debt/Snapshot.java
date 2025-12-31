@@ -26,6 +26,7 @@ public class Snapshot {
     private SnapshotMetadata metadata;
 
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     public static class SnapshotMetadata {
         private Double debtReduction;
@@ -191,5 +192,13 @@ public class Snapshot {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

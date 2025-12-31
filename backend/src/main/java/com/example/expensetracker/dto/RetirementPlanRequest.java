@@ -10,6 +10,12 @@ public class RetirementPlanRequest {
     private Double targetPortfolioValue; // Added for persistence
     private Double actualMonthlyContribution;
     private Double oneTimeAdditions;
+    private String afterTaxMode;
+    private Double flatTaxRate;
+    private Double taxFreeRate;
+    private Double taxDeferredRate;
+    private Double taxableRate;
+    private Boolean persistSnapshot;
 
     // New account-level fields
     private List<AccountBalanceDTO> accounts;
@@ -63,6 +69,54 @@ public class RetirementPlanRequest {
 
     public void setOneTimeAdditions(Double oneTimeAdditions) {
         this.oneTimeAdditions = oneTimeAdditions;
+    }
+
+    public String getAfterTaxMode() {
+        return afterTaxMode;
+    }
+
+    public void setAfterTaxMode(String afterTaxMode) {
+        this.afterTaxMode = afterTaxMode;
+    }
+
+    public Double getFlatTaxRate() {
+        return flatTaxRate;
+    }
+
+    public void setFlatTaxRate(Double flatTaxRate) {
+        this.flatTaxRate = flatTaxRate;
+    }
+
+    public Double getTaxFreeRate() {
+        return taxFreeRate;
+    }
+
+    public void setTaxFreeRate(Double taxFreeRate) {
+        this.taxFreeRate = taxFreeRate;
+    }
+
+    public Double getTaxDeferredRate() {
+        return taxDeferredRate;
+    }
+
+    public void setTaxDeferredRate(Double taxDeferredRate) {
+        this.taxDeferredRate = taxDeferredRate;
+    }
+
+    public Double getTaxableRate() {
+        return taxableRate;
+    }
+
+    public void setTaxableRate(Double taxableRate) {
+        this.taxableRate = taxableRate;
+    }
+
+    public Boolean getPersistSnapshot() {
+        return persistSnapshot;
+    }
+
+    public void setPersistSnapshot(Boolean persistSnapshot) {
+        this.persistSnapshot = persistSnapshot;
     }
 
     public List<AccountBalanceDTO> getAccounts() {
