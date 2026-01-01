@@ -122,3 +122,25 @@
         </div>
     </div>
 </div>
+
+<!-- Delete Confirmation Modal -->
+<div *ngIf="showDeleteConfirmation" class="fixed inset-0 z-[70] flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" (click)="cancelDelete()"></div>
+    <div
+        class="relative bg-white dark:bg-[#1a2332] rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-fade-in-up border border-gray-200 dark:border-gray-700">
+        <div class="p-6 text-center">
+            <div
+                class="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span class="material-icons text-3xl">warning</span>
+            </div>
+            <h3 class="text-xl font-black text-gray-900 dark:text-white mb-2">Delete Snapshot?</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">{{ deleteConfirmationMessage }}</p>
+            <div class="flex gap-3">
+                <button (click)="cancelDelete()"
+                    class="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">Cancel</button>
+                <button (click)="confirmDelete()"
+                    class="flex-1 px-4 py-2.5 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors shadow-lg shadow-red-500/20">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>

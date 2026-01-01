@@ -1,5 +1,10 @@
 import { Component, EventEmitter, Output, ChangeDetectorRef } from '@angular/core';
+import { forkJoin, of } from 'rxjs';
+import { catchError, finalize } from 'rxjs/operators';
 import { DebtAccountService, Snapshot } from '../../services/debt-account.service';
+import { RetirementService, RetirementPlanRequest } from '../../services/retirement.service';
+import { SnapshotStateService } from '../../services/snapshot-state.service';
+import { ToastService } from '../../services/toast.service';
 import { Account } from '../../models/account.model';
 
 @Component({
@@ -22,6 +27,9 @@ export class SnapshotManagerComponent {
 
     constructor(
         private debtService: DebtAccountService,
+        private retirementService: RetirementService,
+        private snapshotStateService: SnapshotStateService,
+        private toastService: ToastService,
         private cdr: ChangeDetectorRef
     ) { }
 
@@ -115,36 +123,166 @@ export class SnapshotManagerComponent {
                 await this.debtService.batchUpdateAccounts(snapshotDate, this.accounts).toPromise();
             }
 
+            await this.cloneRetirementSnapshot(this.selectedDate, this.cloneFromDate);
+
             this.snapshotCreated.emit(snapshotDate); // Emit the new date
             this.loadAvailableSnapshots(); // Refresh list
-            this.reset();
 
-            // Don't close modal, just show success (optional) and let user see the updated list
-            // this.closeModal(); 
-            alert('Snapshot created successfully!');
-        } catch (error) {
+            const displayDate = new Date(this.selectedDate + '-01T12:00:00').toLocaleDateString('en-US', {
+                month: 'long',
+                year: 'numeric'
+            });
+            this.closeModal();
+            this.toastService.show(`${displayDate} Snapshot created successfully!`, 'info', 5000);
+        } catch (error: any) {
             console.error('Error creating snapshot:', error);
-            alert('Error creating snapshot. Please try again.');
+            const message = this.extractErrorMessage(error) || 'Error creating snapshot. Please try again.';
+            this.toastService.show(message, 'error', 0);
         } finally {
             this.isLoading = false;
         }
     }
 
+    private async cloneRetirementSnapshot(monthYear: string, cloneFromDate: string | null) {
+        try {
+            const targetMonthYear = this.normalizeMonthYear(monthYear);
+            const existing = await this.retirementService.getSnapshotByMonth(targetMonthYear).toPromise();
+            if (this.hasRetirementData(existing)) {
+                return;
+            }
+
+            const sourceMonthYear = this.normalizeMonthYear(cloneFromDate || targetMonthYear);
+            await this.retirementService.cloneSnapshot(sourceMonthYear, targetMonthYear).toPromise();
+        } catch (error) {
+            console.error('Error cloning retirement snapshot:', error);
+        }
+    }
+
+    private hasRetirementData(snapshot: any): boolean {
+        if (!snapshot) return false;
+        if ((snapshot.totalBalance || 0) > 0) return true;
+        if ((snapshot.totalContributions || 0) > 0) return true;
+        if (!snapshot.accounts) return false;
+        return snapshot.accounts.some((acc: any) => (acc.balance || 0) > 0 || (acc.contribution || 0) > 0);
+    }
+
+    private findPreviousRetirementSnapshot(snapshots: any[], monthYear: string): any | null {
+        const monthStart = new Date(`${monthYear}-01`);
+        if (isNaN(monthStart.getTime())) return null;
+        const previous = snapshots
+            .filter(s => new Date(s.snapshotDate) < monthStart)
+            .filter(s => this.hasRetirementData(s))
+            .sort((a, b) => new Date(b.snapshotDate).getTime() - new Date(a.snapshotDate).getTime());
+        return previous.length ? previous[0] : null;
+    }
+
+    private pickSnapshotForMonthWithData(snapshots: any[], monthYear: string): any | null {
+        const monthStart = new Date(`${monthYear}-01`);
+        if (isNaN(monthStart.getTime())) return null;
+        const monthEnd = new Date(monthStart);
+        monthEnd.setMonth(monthEnd.getMonth() + 1);
+        const matches = snapshots
+            .filter(s => {
+                const date = new Date(s.snapshotDate);
+                return date >= monthStart && date < monthEnd;
+            })
+            .filter(s => this.hasRetirementData(s))
+            .sort((a, b) => new Date(b.snapshotDate).getTime() - new Date(a.snapshotDate).getTime());
+        return matches.length ? matches[0] : null;
+    }
+
+    private buildRetirementCloneRequest(snapshot: any, monthYear: string): RetirementPlanRequest {
+        const accounts = (snapshot.accounts || []).map((acc: any) => ({
+            accountType: acc.accountType,
+            goalType: acc.goalType,
+            balance: acc.balance || 0,
+            contribution: acc.contribution || 0
+        }));
+        const totalContribution = accounts.reduce((sum: number, acc: any) => sum + (acc.contribution || 0), 0);
+
+        return {
+            currentAge: snapshot.currentAge,
+            monthYear,
+            currentTotalInvestedBalance: snapshot.totalBalance,
+            targetPortfolioValue: snapshot.targetPortfolioValue,
+            actualMonthlyContribution: totalContribution,
+            oneTimeAdditions: snapshot.oneTimeAdditions ?? undefined,
+            afterTaxMode: snapshot.afterTaxMode,
+            flatTaxRate: snapshot.flatTaxRate,
+            taxFreeRate: snapshot.taxFreeRate,
+            taxDeferredRate: snapshot.taxDeferredRate,
+            taxableRate: snapshot.taxableRate,
+            persistSnapshot: true,
+            accounts
+        };
+    }
+
     deleteSnapshot(date: string) {
         if (confirm(`Are you sure you want to delete the snapshot for ${date}? This cannot be undone.`)) {
             this.isLoading = true;
-            this.debtService.deleteSnapshot(date).subscribe({
-                next: () => {
-                    this.loadAvailableSnapshots(); // Refresh list
-                    this.snapshotCreated.emit(null); // Emit null for deletion
-                    this.isLoading = false;
-                },
-                error: (err) => {
-                    console.error('Error deleting snapshot:', err);
-                    alert('Error deleting snapshot');
-                    this.isLoading = false;
-                }
-            });
+            const snapshotDate = this.normalizeSnapshotDate(date);
+            const monthYear = this.normalizeMonthYear(date);
+            forkJoin([
+                this.debtService.deleteSnapshot(snapshotDate),
+                this.retirementService.deleteSnapshotByMonth(monthYear).pipe(catchError(() => of(null)))
+            ])
+                .pipe(finalize(() => { this.isLoading = false; }))
+                .subscribe({
+                    next: () => {
+                        this.refreshAfterDelete();
+                        this.snapshotCreated.emit(null); // Emit null for deletion
+                    },
+                    error: (err) => {
+                        console.error('Error deleting snapshot:', err);
+                        alert('Error deleting snapshot');
+                    }
+                });
         }
+    }
+
+    private normalizeSnapshotDate(value: string): string {
+        return value ? value.slice(0, 10) : value;
+    }
+
+    private normalizeMonthYear(value: string): string {
+        return value ? value.slice(0, 7) : value;
+    }
+
+    private extractErrorMessage(error: any): string | null {
+        if (!error) return null;
+        if (typeof error === 'string') return error;
+        const apiMessage = error?.error?.message || error?.error?.error || error?.error;
+        if (typeof apiMessage === 'string' && apiMessage.trim().length > 0) {
+            return apiMessage;
+        }
+        if (typeof error?.message === 'string' && error.message.trim().length > 0) {
+            return error.message;
+        }
+        if (error?.status === 400) {
+            return 'Snapshot already exists for that month.';
+        }
+        return null;
+    }
+
+    private refreshAfterDelete() {
+        this.loadAvailableSnapshots();
+        this.debtService.getAvailableSnapshots().subscribe({
+            next: (snapshots) => {
+                if (!snapshots || snapshots.length === 0) {
+                    this.snapshotStateService.setCurrentSnapshot('');
+                    return;
+                }
+                const sorted = snapshots.sort((a, b) =>
+                    new Date(a.snapshotDate).getTime() - new Date(b.snapshotDate).getTime()
+                );
+                const latest = sorted[sorted.length - 1];
+                if (latest) {
+                    this.snapshotStateService.setCurrentSnapshot(latest.snapshotDate);
+                }
+            },
+            error: () => {
+                this.snapshotStateService.setCurrentSnapshot('');
+            }
+        });
     }
 }

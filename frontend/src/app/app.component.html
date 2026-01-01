@@ -110,27 +110,65 @@
             <div class="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="bg-[#111827] rounded-2xl border border-slate-700/40 px-4 py-4 shadow-lg"
                     [class.skeleton]="kpiLoading">
-                    <p class="text-xs uppercase tracking-wider text-slate-400">Net Worth</p>
-                    <p class="text-2xl font-black text-white">
-                        {{ kpiNetWorth | currency:'USD':'symbol':'1.0-0' }}
-                    </p>
-                    <p class="text-xs text-slate-500">Assets − Debt</p>
+                    <div class="flex flex-col">
+                        <p class="text-2xl font-black text-white">
+                            {{ kpiNetWorth | currency:'USD':'symbol':'1.0-0' }}
+                        </p>
+                        <div *ngIf="kpiNetWorthTrend" class="flex items-center gap-1.5 mt-1">
+                            <span class="material-icons text-[14px]"
+                                [class.text-emerald-400]="kpiNetWorthTrend.diff > 0"
+                                [class.text-rose-400]="kpiNetWorthTrend.diff < 0">
+                                {{ kpiNetWorthTrend.diff > 0 ? 'trending_up' : 'trending_down' }}
+                            </span>
+                            <span class="text-[11px] font-bold" [class.text-emerald-400]="kpiNetWorthTrend.diff > 0"
+                                [class.text-rose-400]="kpiNetWorthTrend.diff < 0">
+                                {{ kpiNetWorthTrend.diff > 0 ? '+' : '' }}{{ kpiNetWorthTrend.diff |
+                                currency:'USD':'symbol':'1.0-0' }} ({{ kpiNetWorthTrend.percent | number:'1.1-1' }}%)
+                            </span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-500">Net Assets − Core Debt</p>
                 </div>
                 <div class="bg-[#111827] rounded-2xl border border-slate-700/40 px-4 py-4 shadow-lg"
                     [class.skeleton]="kpiLoading">
-                    <p class="text-xs uppercase tracking-wider text-slate-400">Total Debt</p>
-                    <p class="text-2xl font-black text-rose-400">
-                        {{ kpiTotalDebt | currency:'USD':'symbol':'1.0-0' }}
-                    </p>
+                    <div class="flex flex-col">
+                        <p class="text-2xl font-black text-rose-400">
+                            {{ kpiTotalDebt | currency:'USD':'symbol':'1.0-0' }}
+                        </p>
+                        <div *ngIf="kpiDebtTrend && kpiDebtTrend.diff !== 0" class="flex items-center gap-1.5 mt-1">
+                            <span class="material-icons text-[12px]" [class.text-emerald-400]="kpiDebtTrend.diff < 0"
+                                [class.text-rose-400]="kpiDebtTrend.diff > 0">{{ kpiDebtTrend.diff > 0 ? 'arrow_upward'
+                                : 'arrow_downward' }}</span>
+                            <span class="text-[11px] font-bold" [class.text-emerald-400]="kpiDebtTrend.diff < 0"
+                                [class.text-rose-400]="kpiDebtTrend.diff > 0">
+                                {{ kpiDebtTrend.diff > 0 ? '+' : '' }}{{ kpiDebtTrend.diff |
+                                currency:'USD':'symbol':'1.0-0' }} ({{ kpiDebtTrend.percent | number:'1.1-1' }}%)
+                            </span>
+                        </div>
+                    </div>
                     <p class="text-xs text-slate-500">Snapshot total</p>
                 </div>
                 <div class="bg-[#111827] rounded-2xl border border-slate-700/40 px-4 py-4 shadow-lg"
                     [class.skeleton]="kpiLoading">
-                    <p class="text-xs uppercase tracking-wider text-slate-400">Retirement Assets</p>
-                    <p class="text-2xl font-black text-emerald-400">
-                        {{ kpiRetirementAssets | currency:'USD':'symbol':'1.0-0' }}
-                    </p>
-                    <p class="text-xs text-slate-500">Latest snapshot</p>
+                    <div class="flex flex-col">
+                        <p class="text-2xl font-black text-emerald-400">
+                            {{ kpiRetirementAssets | currency:'USD':'symbol':'1.0-0' }}
+                        </p>
+                        <div *ngIf="kpiRetirementTrend && kpiRetirementTrend.diff !== 0"
+                            class="flex items-center gap-1.5 mt-1">
+                            <span class="material-icons text-[12px]"
+                                [class.text-emerald-400]="kpiRetirementTrend.diff > 0"
+                                [class.text-rose-400]="kpiRetirementTrend.diff < 0">{{ kpiRetirementTrend.diff > 0 ?
+                                'arrow_upward' : 'arrow_downward' }}</span>
+                            <span class="text-[11px] font-bold" [class.text-emerald-400]="kpiRetirementTrend.diff > 0"
+                                [class.text-rose-400]="kpiRetirementTrend.diff < 0">
+                                {{ kpiRetirementTrend.diff > 0 ? '+' : '' }}{{ kpiRetirementTrend.diff |
+                                currency:'USD':'symbol':'1.0-0' }} ({{ kpiRetirementTrend.percent | number:'1.1-1' }}%)
+                            </span>
+                            <span class="text-[10px] text-slate-400">vs last month</span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-500">Selected snapshot</p>
                 </div>
                 <div class="bg-[#111827] rounded-2xl border border-slate-700/40 px-4 py-4 shadow-lg"
                     [class.skeleton]="kpiLoading">

@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 export interface AccountBalanceDTO {
     accountType: string;
+    goalType?: string;
     balance: number;
     contribution: number;
 }
@@ -75,10 +76,33 @@ export class RetirementService {
     }
 
     getLatestSnapshot(): Observable<any> {
-        return this.http.get<any>(`${this.apiUrl}/snapshots/latest`);
+        return this.http.get<any>(`${this.apiUrl}/latest`);
+    }
+
+    getAllSnapshots(): Observable<any[]> {
+        return this.http.get<any[]>(`${this.apiUrl}/history`);
     }
 
     getSnapshotsByYear(year: number): Observable<any[]> {
         return this.http.get<any[]>(`${this.apiUrl}/snapshots/${year}`);
+    }
+
+    getSnapshotByMonth(monthYear: string): Observable<any> {
+        return this.http.get<any>(`${this.apiUrl}/snapshot/${monthYear}`);
+    }
+
+    getSnapshotByDate(date: string): Observable<any> {
+        return this.http.get<any>(`${this.apiUrl}/snapshot/date/${date}`);
+    }
+
+    deleteSnapshotByMonth(monthYear: string): Observable<void> {
+        return this.http.delete<void>(`${this.apiUrl}/snapshot/${monthYear}`);
+    }
+
+    cloneSnapshot(sourceMonthYear: string, targetMonthYear: string): Observable<void> {
+        return this.http.post<void>(`${this.apiUrl}/snapshot/clone`, {
+            sourceMonthYear,
+            targetMonthYear
+        });
     }
 }

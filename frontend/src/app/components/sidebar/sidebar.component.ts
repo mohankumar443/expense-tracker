@@ -1,6 +1,9 @@
 import { Component, OnInit, Output, EventEmitter } from '@angular/core';
+import { forkJoin, of } from 'rxjs';
+import { catchError, finalize } from 'rxjs/operators';
 import { slideInLeft } from '../../animations';
 import { DebtAccountService, Snapshot } from '../../services/debt-account.service';
+import { RetirementService } from '../../services/retirement.service';
 import { SnapshotStateService } from '../../services/snapshot-state.service';
 
 @Component({
@@ -38,6 +41,7 @@ export class SidebarComponent implements OnInit {
 
     constructor(
         private debtService: DebtAccountService,
+        private retirementService: RetirementService,
         private snapshotStateService: SnapshotStateService
     ) { }
 
@@ -111,24 +115,59 @@ export class SidebarComponent implements OnInit {
 
     confirmDelete() {
         if (this.snapshotToDelete) {
-            this.debtService.deleteSnapshot(this.snapshotToDelete.snapshotDate).subscribe({
+            this.runDelete(this.snapshotToDelete);
+            this.showDeleteConfirmation = false;
+            this.snapshotToDelete = null;
+        }
+    }
+
+    private normalizeSnapshotDate(value: string): string {
+        return value ? value.slice(0, 10) : value;
+    }
+
+    private normalizeMonthYear(value: string): string {
+        return value ? value.slice(0, 7) : value;
+    }
+
+    private refreshAfterDelete() {
+        this.loadSnapshots();
+        this.debtService.getAvailableSnapshots().subscribe({
+            next: (snapshots) => {
+                if (!snapshots || snapshots.length === 0) {
+                    this.snapshotStateService.setCurrentSnapshot('');
+                    return;
+                }
+                const sorted = snapshots.sort((a, b) =>
+                    new Date(a.snapshotDate).getTime() - new Date(b.snapshotDate).getTime()
+                );
+                const latest = sorted[sorted.length - 1];
+                if (latest) {
+                    this.snapshotStateService.setCurrentSnapshot(latest.snapshotDate);
+                }
+            },
+            error: () => {
+                this.snapshotStateService.setCurrentSnapshot('');
+            }
+        });
+    }
+
+    private runDelete(snapshot: Snapshot) {
+        const snapshotDate = this.normalizeSnapshotDate(snapshot.snapshotDate);
+        const monthYear = this.normalizeMonthYear(snapshot.snapshotDate);
+        forkJoin([
+            this.debtService.deleteSnapshot(snapshotDate),
+            this.retirementService.deleteSnapshotByMonth(monthYear).pipe(catchError(() => of(null)))
+        ])
+            .subscribe({
                 next: () => {
                     console.log('Snapshot deleted successfully');
-                    // Reload snapshots to update the sidebar
-                    this.loadSnapshots();
-                    // Notify other components to refresh
-                    this.snapshotStateService.setCurrentSnapshot('');
-                    this.showDeleteConfirmation = false;
-                    this.snapshotToDelete = null;
+                    this.refreshAfterDelete();
                 },
                 error: (error) => {
                     console.error('Error deleting snapshot:', error);
                     alert('Failed to delete snapshot. Please try again.');
-                    this.showDeleteConfirmation = false;
-                    this.snapshotToDelete = null;
                 }
             });
-        }
     }
 
     cancelDelete() {

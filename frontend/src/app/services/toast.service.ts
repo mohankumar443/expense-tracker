@@ -7,6 +7,7 @@ export interface ToastMessage {
     id: number;
     text: string;
     type: ToastType;
+    durationMs?: number;
 }
 
 @Injectable({
@@ -17,7 +18,7 @@ export class ToastService {
     messages$ = this.messagesSubject.asObservable();
     private nextId = 1;
 
-    show(text: string, type: ToastType = 'info') {
-        this.messagesSubject.next({ id: this.nextId++, text, type });
+    show(text: string, type: ToastType = 'info', durationMs: number = 5000) {
+        this.messagesSubject.next({ id: this.nextId++, text, type, durationMs });
     }
 }

@@ -309,6 +309,14 @@ export class DebtAccountsListComponent implements OnInit {
         return account.currentBalance - previousBalance;
     }
 
+    getMonthlyChangePercentage(account: DebtAccount): number | null {
+        if (!this.previousAccountsMap.has(account.name)) return null;
+        const previousBalance = this.previousAccountsMap.get(account.name) || 0;
+        if (previousBalance === 0) return 0;
+        const diff = account.currentBalance - previousBalance;
+        return (diff / previousBalance) * 100;
+    }
+
     isNewAccount(account: DebtAccount): boolean {
         // If we have previous data loaded but this account isn't in it, it's new
         return this.previousAccountsMap.size > 0 && !this.previousAccountsMap.has(account.name);

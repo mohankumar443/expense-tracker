@@ -3,7 +3,8 @@
     <div class="header-section flex justify-between items-center mb-6">
         <div>
             <h1 class="text-4xl font-black text-white mb-2">🎯 FIRE Retirement Tracker</h1>
-            <p class="text-gray-300">Track your path to Financial Independence, Retire Early at age {{targetRetirementAge}}</p>
+            <p class="text-gray-300">Track your path to Financial Independence, Retire Early at age
+                {{targetRetirementAge}}</p>
             <p class="text-xs text-gray-400 mt-1">Last updated: {{ getLastUpdatedDisplay() }}</p>
         </div>
         <!-- Health Score Badge -->
@@ -41,6 +42,21 @@
                             {{acc.accountType}}</div>
                         <div class="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
                             {{formatCurrency(acc.balance || 0)}}
+                        </div>
+                        <div class="flex items-center gap-1 mt-0.5"
+                            *ngIf="previousAccountsMap.has(acc.accountType) && getAccountMoMChange(acc.accountType) !== 0">
+                            <span class="material-icons text-[12px]"
+                                [class.text-emerald-500]="getAccountMoMChange(acc.accountType) > 0"
+                                [class.text-rose-500]="getAccountMoMChange(acc.accountType) < 0">
+                                {{ getAccountMoMChange(acc.accountType) > 0 ? 'arrow_upward' : 'arrow_downward' }}
+                            </span>
+                            <span class="text-[10px] font-bold"
+                                [class.text-emerald-500]="getAccountMoMChange(acc.accountType) > 0"
+                                [class.text-rose-500]="getAccountMoMChange(acc.accountType) < 0">
+                                {{ getAccountMoMChange(acc.accountType) > 0 ? '+' : '' }}{{
+                                getAccountMoMChange(acc.accountType) | currency:'USD':'symbol':'1.0-0' }} ({{
+                                Math.abs(getAccountMoMChangePercent(acc.accountType)) | number:'1.1-1' }}%)
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -88,12 +104,24 @@
         <!-- Total Invested -->
         <div class="balance-card total-card" [class.skeleton]="loading">
             <div class="balance-label">Total Invested</div>
-            <div class="balance-amount total">{{formatCurrency(getTotalBalance())}}</div>
+            <div class="balance-amount total" [appCountUp]="getTotalBalance()" [prefix]="'$'" [decimals]="0">0</div>
+            <div class="flex items-center gap-1.5 mt-1" *ngIf="previousTotalBalance > 0 && getTotalMoMChange() !== 0">
+                <span class="material-icons text-[14px]" [class.text-emerald-500]="getTotalMoMChange() > 0"
+                    [class.text-rose-500]="getTotalMoMChange() < 0">
+                    {{ getTotalMoMChange() > 0 ? 'arrow_upward' : 'arrow_downward' }}
+                </span>
+                <span class="text-[11px] font-bold" [class.text-emerald-500]="getTotalMoMChange() > 0"
+                    [class.text-rose-500]="getTotalMoMChange() < 0">
+                    {{ getTotalMoMChange() > 0 ? '+' : '' }}{{ getTotalMoMChange() | currency:'USD':'symbol':'1.0-0' }}
+                    ({{ Math.abs(getTotalMoMChangePercent()) | number:'1.1-1' }}%)
+                </span>
+            </div>
         </div>
 
         <!-- Target at Age 50 -->
         <div class="balance-card target-card" [class.skeleton]="loading">
-            <div class="balance-label">Target at Age {{targetRetirementAge}} <span class="edit-badge">✏️ Editable</span></div>
+            <div class="balance-label">Target at Age {{targetRetirementAge}} <span class="edit-badge">✏️ Editable</span>
+            </div>
             <div class="balance-amount target">{{formatCurrency(targetPortfolioValue)}}</div>
             <input type="number" [(ngModel)]="targetPortfolioValue" (blur)="calculate()" placeholder="Enter target"
                 class="balance-input" />
@@ -107,352 +135,359 @@
             </div>
             <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 <span *ngIf="response?.bufferMonths">Buffer: {{response?.bufferMonths?.toFixed(1)}} months</span>
-                <span *ngIf="!response?.bufferMonths && getGapMonthlyDelta()">Need +{{formatCurrency(getGapMonthlyDelta() || 0)}}/mo</span>
+                <span *ngIf="!response?.bufferMonths && getGapMonthlyDelta()">Need
+                    +{{formatCurrency(getGapMonthlyDelta() || 0)}}/mo</span>
                 <span *ngIf="!response?.bufferMonths && !getGapMonthlyDelta()">On track</span>
             </div>
         </div>
     </div>
 
     <!-- Health Score Insights -->
-        <div class="mb-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4"
-            *ngIf="healthScoreDetails">
-            <div class="flex items-start">
-                <div class="flex-shrink-0 bg-red-100 dark:bg-red-900/20 rounded-lg p-3 mr-4">
-                    <span class="text-2xl">❤️</span>
+    <div class="mb-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4"
+        *ngIf="healthScoreDetails">
+        <div class="flex items-start">
+            <div class="flex-shrink-0 bg-red-100 dark:bg-red-900/20 rounded-lg p-3 mr-4">
+                <span class="text-2xl">❤️</span>
+            </div>
+            <div class="flex-grow">
+                <div class="flex justify-between items-start">
+                    <h4 class="text-lg font-bold text-gray-900 dark:text-white mb-1">Health Score Insights</h4>
+                    <span
+                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        {{healthScoreDetails.score}}/100
+                    </span>
                 </div>
-                <div class="flex-grow">
-                    <div class="flex justify-between items-start">
-                        <h4 class="text-lg font-bold text-gray-900 dark:text-white mb-1">Health Score Insights</h4>
-                        <span
-                            class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            {{healthScoreDetails.score}}/100
-                        </span>
-                    </div>
-                    <p class="text-blue-600 dark:text-blue-400 font-medium text-sm mb-3">
-                        ⚡ {{ healthScoreDetails.action }}
-                    </p>
-                    <ul class="space-y-1">
-                        <li *ngFor="let reason of healthScoreDetails.reasons"
-                            class="text-xs text-gray-500 flex items-center">
-                            <span class="mr-2">•</span> {{ reason }}
-                        </li>
-                    </ul>
-                </div>
+                <p class="text-blue-600 dark:text-blue-400 font-medium text-sm mb-3">
+                    ⚡ {{ healthScoreDetails.action }}
+                </p>
+                <ul class="space-y-1">
+                    <li *ngFor="let reason of healthScoreDetails.reasons"
+                        class="text-xs text-gray-500 flex items-center">
+                        <span class="mr-2">•</span> {{ reason }}
+                    </li>
+                </ul>
             </div>
         </div>
+    </div>
 
-        <!-- NEW: Financial Freedom & Withdrawal Section -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <!-- Retirement Paycheck (Withdrawal Strategy) -->
-            <div class="bg-emerald-900/10 border border-emerald-500/20 rounded-xl p-4" [class.skeleton]="loading">
-                <div class="flex items-center justify-between mb-2">
-                    <h4 class="font-bold text-emerald-700 dark:text-emerald-400">💰 Retirement Paycheck</h4>
-                    <span
-                        class="text-xs bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 px-2 py-0.5 rounded-full">Age
-                        {{targetRetirementAge}}+</span>
-                </div>
-                <div class="text-3xl font-black text-emerald-600 dark:text-emerald-400 mb-1">
-                    {{formatCurrency(getSafeWithdrawalAmount())}}<span
-                        class="text-sm font-normal text-emerald-800 dark:text-emerald-300">/mo</span>
-                </div>
-                <div class="text-sm text-emerald-700 dark:text-emerald-300 font-semibold">
-                    After tax: {{formatCurrency(getAfterTaxWithdrawalMonthly())}}/mo • {{formatCurrency(getAfterTaxWithdrawalAnnual())}}/yr
-                </div>
-                <div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+    <!-- NEW: Financial Freedom & Withdrawal Section -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <!-- Retirement Paycheck (Withdrawal Strategy) -->
+        <div class="bg-emerald-900/10 border border-emerald-500/20 rounded-xl p-4" [class.skeleton]="loading">
+            <div class="flex items-center justify-between mb-2">
+                <h4 class="font-bold text-emerald-700 dark:text-emerald-400">💰 Retirement Paycheck</h4>
+                <span
+                    class="text-xs bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 px-2 py-0.5 rounded-full">Age
+                    {{targetRetirementAge}}+</span>
+            </div>
+            <div class="text-3xl font-black text-emerald-600 dark:text-emerald-400 mb-1">
+                {{formatCurrency(getSafeWithdrawalAmount())}}<span
+                    class="text-sm font-normal text-emerald-800 dark:text-emerald-300">/mo</span>
+            </div>
+            <div class="text-sm text-emerald-700 dark:text-emerald-300 font-semibold">
+                After tax: {{formatCurrency(getAfterTaxWithdrawalMonthly())}}/mo •
+                {{formatCurrency(getAfterTaxWithdrawalAnnual())}}/yr
+            </div>
+            <div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+                <label class="text-gray-600 dark:text-gray-300">
+                    Tax mode
+                    <select [(ngModel)]="afterTaxMode"
+                        class="mt-1 w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2 py-1">
+                        <option value="flat">Flat rate</option>
+                        <option value="bucketed">By bucket (default)</option>
+                        <option value="custom">Custom rates</option>
+                    </select>
+                </label>
+                <label *ngIf="afterTaxMode === 'flat'" class="text-gray-600 dark:text-gray-300">
+                    Flat tax %
+                    <input type="number" [(ngModel)]="flatTaxRate"
+                        class="mt-1 w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2 py-1" />
+                </label>
+                <div *ngIf="afterTaxMode === 'custom'" class="md:col-span-2 grid grid-cols-3 gap-2">
                     <label class="text-gray-600 dark:text-gray-300">
-                        Tax mode
-                        <select [(ngModel)]="afterTaxMode"
-                            class="mt-1 w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2 py-1">
-                            <option value="flat">Flat rate</option>
-                            <option value="bucketed">By bucket (default)</option>
-                            <option value="custom">Custom rates</option>
-                        </select>
-                    </label>
-                    <label *ngIf="afterTaxMode === 'flat'" class="text-gray-600 dark:text-gray-300">
-                        Flat tax %
-                        <input type="number" [(ngModel)]="flatTaxRate"
+                        Tax-free %
+                        <input type="number" [(ngModel)]="customTaxRates.taxFree"
                             class="mt-1 w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2 py-1" />
                     </label>
-                    <div *ngIf="afterTaxMode === 'custom'" class="md:col-span-2 grid grid-cols-3 gap-2">
-                        <label class="text-gray-600 dark:text-gray-300">
-                            Tax-free %
-                            <input type="number" [(ngModel)]="customTaxRates.taxFree"
-                                class="mt-1 w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2 py-1" />
-                        </label>
-                        <label class="text-gray-600 dark:text-gray-300">
-                            Deferred %
-                            <input type="number" [(ngModel)]="customTaxRates.taxDeferred"
-                                class="mt-1 w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2 py-1" />
-                        </label>
-                        <label class="text-gray-600 dark:text-gray-300">
-                            Taxable %
-                            <input type="number" [(ngModel)]="customTaxRates.taxable"
-                                class="mt-1 w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2 py-1" />
-                        </label>
-                    </div>
-                    <div *ngIf="afterTaxMode === 'bucketed'" class="text-gray-500 dark:text-gray-400 md:col-span-2 self-end">
-                        Uses defaults: Tax-free 0%, Deferred 22%, Taxable 15%.
+                    <label class="text-gray-600 dark:text-gray-300">
+                        Deferred %
+                        <input type="number" [(ngModel)]="customTaxRates.taxDeferred"
+                            class="mt-1 w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2 py-1" />
+                    </label>
+                    <label class="text-gray-600 dark:text-gray-300">
+                        Taxable %
+                        <input type="number" [(ngModel)]="customTaxRates.taxable"
+                            class="mt-1 w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-2 py-1" />
+                    </label>
+                </div>
+                <div *ngIf="afterTaxMode === 'bucketed'"
+                    class="text-gray-500 dark:text-gray-400 md:col-span-2 self-end">
+                    Uses defaults: Tax-free 0%, Deferred 22%, Taxable 15%.
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+                Safe Withdrawal Rate (4%) from your Target Portfolio.
+                <span class="block mt-1 text-orange-500">⚠️ Early Withdrawal (Age 50): Use <strong>Rule of
+                        55</strong> or <strong>SEPP (72t)</strong> to avoid penalties.</span>
+            </p>
+        </div>
+
+        <!-- Tax Diversification (3 Buckets) -->
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm"
+            [class.skeleton]="loading">
+            <div class="flex justify-between items-center mb-4">
+                <h4 class="font-bold text-gray-900 dark:text-white flex items-center">
+                    <span class="text-xl mr-2">🏛️</span> Tax Diversification
+                </h4>
+                <div class="group relative">
+                    <span
+                        class="cursor-help text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 rounded-full px-2 py-1">What
+                        is this?</span>
+                    <div
+                        class="absolute right-0 w-64 bg-gray-900 text-white text-xs rounded-lg p-3 hidden group-hover:block z-50 shadow-xl">
+                        <p class="mb-1"><strong>Tax-Free:</strong> You pay 0% tax on withdrawal.</p>
+                        <p class="mb-1"><strong>Deferred:</strong> You pay income tax later.</p>
+                        <p><strong>Taxable:</strong> You pay capital gains tax.</p>
                     </div>
                 </div>
-                <p class="text-xs text-gray-500 dark:text-gray-400">
-                    Safe Withdrawal Rate (4%) from your Target Portfolio.
-                    <span class="block mt-1 text-orange-500">⚠️ Early Withdrawal (Age 50): Use <strong>Rule of
-                            55</strong> or <strong>SEPP (72t)</strong> to avoid penalties.</span>
-                </p>
+            </div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                At {{targetRetirementAge}}: {{formatCurrency(getProjectedDiversificationSummary().total)}} total •
+                {{getProjectedDiversificationSummary().taxFreePercent | number:'1.0-0'}}% tax-free
             </div>
 
-            <!-- Tax Diversification (3 Buckets) -->
-            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm"
-                [class.skeleton]="loading">
-                <div class="flex justify-between items-center mb-4">
-                    <h4 class="font-bold text-gray-900 dark:text-white flex items-center">
-                        <span class="text-xl mr-2">🏛️</span> Tax Diversification
-                    </h4>
-                    <div class="group relative">
+            <!-- 3 Buckets Layout -->
+            <div class="space-y-4">
+                <!-- 1. Tax Free (Best) -->
+                <div>
+                    <div class="flex justify-between text-sm mb-1">
+                        <span class="font-bold text-emerald-600">Tax-Free (Yours)</span>
                         <span
-                            class="cursor-help text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 rounded-full px-2 py-1">What
-                            is this?</span>
-                        <div
-                            class="absolute right-0 w-64 bg-gray-900 text-white text-xs rounded-lg p-3 hidden group-hover:block z-50 shadow-xl">
-                            <p class="mb-1"><strong>Tax-Free:</strong> You pay 0% tax on withdrawal.</p>
-                            <p class="mb-1"><strong>Deferred:</strong> You pay income tax later.</p>
-                            <p><strong>Taxable:</strong> You pay capital gains tax.</p>
-                        </div>
+                            class="font-bold text-gray-900 dark:text-white">{{formatCurrency(getTaxDiversification().taxFree.balance)}}</span>
+                    </div>
+                    <div class="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div class="h-full bg-emerald-500 rounded-full"
+                            [style.width.%]="getTaxDiversification().taxFree.percent"></div>
+                    </div>
+                    <div class="text-xs text-gray-400 mt-0.5 text-right">{{getTaxDiversification().taxFree.percent |
+                        number:'1.0-0'}}% of total</div>
+                    <div class="text-xs text-gray-500 mt-0.5 text-right">
+                        At {{targetRetirementAge}}: {{formatCurrency(getTaxDiversificationProjected().taxFree.balance)}}
+                        ({{getTaxDiversificationProjected().taxFree.percent | number:'1.0-0'}}%)
                     </div>
                 </div>
-                <div class="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                    At {{targetRetirementAge}}: {{formatCurrency(getProjectedDiversificationSummary().total)}} total •
-                    {{getProjectedDiversificationSummary().taxFreePercent | number:'1.0-0'}}% tax-free
+
+                <!-- 2. Pre-Tax (Standard) -->
+                <div>
+                    <div class="flex justify-between text-sm mb-1">
+                        <span class="font-bold text-gray-600 dark:text-gray-400">Pre-Tax (Deferred)</span>
+                        <span
+                            class="font-bold text-gray-900 dark:text-white">{{formatCurrency(getTaxDiversification().taxDeferred.balance)}}</span>
+                    </div>
+                    <div class="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div class="h-full bg-gray-400 rounded-full"
+                            [style.width.%]="getTaxDiversification().taxDeferred.percent"></div>
+                    </div>
+                    <div class="text-xs text-gray-400 mt-0.5 text-right">
+                        {{getTaxDiversification().taxDeferred.percent | number:'1.0-0'}}% of total</div>
+                    <div class="text-xs text-gray-500 mt-0.5 text-right">
+                        At {{targetRetirementAge}}:
+                        {{formatCurrency(getTaxDiversificationProjected().taxDeferred.balance)}}
+                        ({{getTaxDiversificationProjected().taxDeferred.percent | number:'1.0-0'}}%)
+                    </div>
                 </div>
 
-                <!-- 3 Buckets Layout -->
-                <div class="space-y-4">
-                    <!-- 1. Tax Free (Best) -->
-                    <div>
-                        <div class="flex justify-between text-sm mb-1">
-                            <span class="font-bold text-emerald-600">Tax-Free (Yours)</span>
-                            <span
-                                class="font-bold text-gray-900 dark:text-white">{{formatCurrency(getTaxDiversification().taxFree.balance)}}</span>
-                        </div>
-                        <div class="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                            <div class="h-full bg-emerald-500 rounded-full"
-                                [style.width.%]="getTaxDiversification().taxFree.percent"></div>
-                        </div>
-                        <div class="text-xs text-gray-400 mt-0.5 text-right">{{getTaxDiversification().taxFree.percent |
-                            number:'1.0-0'}}% of total</div>
-                        <div class="text-xs text-gray-500 mt-0.5 text-right">
-                            At {{targetRetirementAge}}: {{formatCurrency(getTaxDiversificationProjected().taxFree.balance)}} ({{getTaxDiversificationProjected().taxFree.percent | number:'1.0-0'}}%)
-                        </div>
+                <!-- 3. Taxable -->
+                <div>
+                    <div class="flex justify-between text-sm mb-1">
+                        <span class="font-bold text-blue-500">Taxable Brokerage</span>
+                        <span
+                            class="font-bold text-gray-900 dark:text-white">{{formatCurrency(getTaxDiversification().taxable.balance)}}</span>
                     </div>
-
-                    <!-- 2. Pre-Tax (Standard) -->
-                    <div>
-                        <div class="flex justify-between text-sm mb-1">
-                            <span class="font-bold text-gray-600 dark:text-gray-400">Pre-Tax (Deferred)</span>
-                            <span
-                                class="font-bold text-gray-900 dark:text-white">{{formatCurrency(getTaxDiversification().taxDeferred.balance)}}</span>
-                        </div>
-                        <div class="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                            <div class="h-full bg-gray-400 rounded-full"
-                                [style.width.%]="getTaxDiversification().taxDeferred.percent"></div>
-                        </div>
-                        <div class="text-xs text-gray-400 mt-0.5 text-right">
-                            {{getTaxDiversification().taxDeferred.percent | number:'1.0-0'}}% of total</div>
-                        <div class="text-xs text-gray-500 mt-0.5 text-right">
-                            At {{targetRetirementAge}}: {{formatCurrency(getTaxDiversificationProjected().taxDeferred.balance)}} ({{getTaxDiversificationProjected().taxDeferred.percent | number:'1.0-0'}}%)
-                        </div>
+                    <div class="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div class="h-full bg-blue-400 rounded-full"
+                            [style.width.%]="getTaxDiversification().taxable.percent"></div>
                     </div>
-
-                    <!-- 3. Taxable -->
-                    <div>
-                        <div class="flex justify-between text-sm mb-1">
-                            <span class="font-bold text-blue-500">Taxable Brokerage</span>
-                            <span
-                                class="font-bold text-gray-900 dark:text-white">{{formatCurrency(getTaxDiversification().taxable.balance)}}</span>
-                        </div>
-                        <div class="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                            <div class="h-full bg-blue-400 rounded-full"
-                                [style.width.%]="getTaxDiversification().taxable.percent"></div>
-                        </div>
-                        <div class="text-xs text-gray-400 mt-0.5 text-right">{{getTaxDiversification().taxable.percent |
-                            number:'1.0-0'}}% of total</div>
-                        <div class="text-xs text-gray-500 mt-0.5 text-right">
-                            At {{targetRetirementAge}}: {{formatCurrency(getTaxDiversificationProjected().taxable.balance)}} ({{getTaxDiversificationProjected().taxable.percent | number:'1.0-0'}}%)
-                        </div>
+                    <div class="text-xs text-gray-400 mt-0.5 text-right">{{getTaxDiversification().taxable.percent |
+                        number:'1.0-0'}}% of total</div>
+                    <div class="text-xs text-gray-500 mt-0.5 text-right">
+                        At {{targetRetirementAge}}: {{formatCurrency(getTaxDiversificationProjected().taxable.balance)}}
+                        ({{getTaxDiversificationProjected().taxable.percent | number:'1.0-0'}}%)
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Additional Inputs -->
-        <div class="additional-inputs">
-            <div class="input-group">
-                <label class="input-label">Month / Year</label>
-                <input type="month" [(ngModel)]="monthYear" class="month-input" />
+    <!-- Additional Inputs -->
+    <div class="additional-inputs">
+        <div class="input-group">
+            <label class="input-label">Month / Year</label>
+            <input type="month" [(ngModel)]="monthYear" class="month-input" />
+        </div>
+        <div class="input-group">
+            <label class="input-label">One-Time Additions (Bonus, Tax Refund, etc.)</label>
+            <input type="number" [(ngModel)]="oneTimeAdditions" placeholder="$0" class="month-input" />
+        </div>
+    </div>
+
+    <!-- Calculate Button -->
+    <div class="button-container">
+        <button (click)="calculate()" [disabled]="loading" class="calculate-btn">
+            <span *ngIf="!loading">🚀 Calculate Retirement Plan</span>
+            <span *ngIf="loading">⏳ Calculating...</span>
+        </button>
+        <button (click)="resetForm()" class="reset-btn">🔄 Reset</button>
+    </div>
+
+    <!-- Error Message -->
+    <div *ngIf="error" class="error-message">
+        ⚠️ {{error}}
+    </div>
+</div>
+
+<!-- RESULTS SECTION (Only show after calculation) -->
+<div *ngIf="response" class="results-container">
+
+    <!-- C) ACCOUNT SCOREBOARD TABLE -->
+    <div class="section-card">
+        <h2 class="section-title">📊 Account Scoreboard</h2>
+
+        <div class="table-container">
+            <table class="scoreboard-table">
+                <thead>
+                    <tr>
+                        <th>Account</th>
+                        <th>Balance</th>
+                        <th>YTD Contrib</th>
+                        <th>YTD Growth $</th>
+                        <th>YTD Growth %</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let scorecard of response.accountScorecard">
+                        <td class="account-name">{{scorecard.accountType}}</td>
+                        <td class="balance-cell">{{formatCurrency(scorecard.balance)}}</td>
+                        <td class="contrib-cell">{{formatCurrency(scorecard.ytdContributions)}}</td>
+                        <td class="growth-cell">{{formatCurrency(scorecard.ytdGrowthDollars)}}</td>
+                        <td class="growth-percent-cell">{{formatPercent(scorecard.ytdGrowthPercent)}}</td>
+                        <td>
+                            <span [class]="'status-badge ' + getStatusBadgeColor(scorecard.status)">
+                                {{getStatusIcon(scorecard.status)}} {{scorecard.status}}
+                            </span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- D) GROWTH DRIVERS -->
+    <div class="section-card" *ngIf="response.growthAttribution">
+        <h2 class="section-title">🎯 Growth Drivers</h2>
+
+        <div class="drivers-grid">
+            <div class="driver-card">
+                <div class="driver-icon">⭐</div>
+                <div class="driver-label">Top Growth Driver</div>
+                <div class="driver-value">{{response.growthAttribution.topGrowthDriver}}</div>
             </div>
-            <div class="input-group">
-                <label class="input-label">One-Time Additions (Bonus, Tax Refund, etc.)</label>
-                <input type="number" [(ngModel)]="oneTimeAdditions" placeholder="$0" class="month-input" />
+
+            <div class="driver-card">
+                <div class="driver-icon">📉</div>
+                <div class="driver-label">Weakest Contributor</div>
+                <div class="driver-value">{{response.growthAttribution.weakestContributor}}</div>
+            </div>
+
+            <div class="driver-card">
+                <div class="driver-icon">📊</div>
+                <div class="driver-label">Market vs Contributions</div>
+                <div class="driver-value">
+                    {{response.growthAttribution.marketGrowthPercent}}% Market /
+                    {{response.growthAttribution.contributionPercent}}% Contributions
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- E) TARGET PATH STATUS -->
+    <div class="section-card">
+        <h2 class="section-title">🎯 Target Path Status</h2>
+
+        <div class="status-grid">
+            <div class="status-card">
+                <div class="status-label">Target Balance</div>
+                <div class="status-value">{{formatCurrency(response.currentTargetBalance)}}</div>
+            </div>
+
+            <div class="status-card">
+                <div class="status-label">Actual Balance</div>
+                <div class="status-value">{{formatCurrency(response.actualBalance)}}</div>
+            </div>
+
+            <div class="status-card">
+                <div class="status-label">Difference</div>
+                <div class="status-value" [class.positive]="(response.differenceAmount || 0) >= 0"
+                    [class.negative]="(response.differenceAmount || 0) < 0">
+                    {{formatCurrency(response.differenceAmount)}} ({{formatPercent(response.differencePercent)}})
+                </div>
+            </div>
+
+            <div class="status-card status-badge-card">
+                <div class="status-label">Status</div>
+                <div [class]="'status-badge-large ' + getStatusBadgeColor(response.status || '')">
+                    {{getStatusIcon(response.status || '')}} {{response.status}}
+                </div>
             </div>
         </div>
 
-        <!-- Calculate Button -->
-        <div class="button-container">
-            <button (click)="calculate()" [disabled]="loading" class="calculate-btn">
-                <span *ngIf="!loading">🚀 Calculate Retirement Plan</span>
-                <span *ngIf="loading">⏳ Calculating...</span>
+        <!-- Remaining Months -->
+        <div class="remaining-months">
+            <span class="months-label">Remaining Months to Age {{targetRetirementAge}}:</span>
+            <span class="months-value">{{response.remainingMonths}} months</span>
+        </div>
+    </div>
+
+    <!-- F) GUIDANCE -->
+    <div class="section-card guidance-card">
+        <h2 class="section-title">💡 Guidance</h2>
+
+        <div class="guidance-content">
+            <p class="commentary">{{response.commentary}}</p>
+
+            <div *ngIf="response.requiredMonthlyContribution" class="required-contrib">
+                <span class="required-label">Required Monthly Contribution:</span>
+                <span class="required-value">{{formatCurrency(response.requiredMonthlyContribution)}}/month</span>
+            </div>
+
+            <div *ngIf="response.bufferMonths" class="buffer-months">
+                <span class="buffer-label">Buffer Created:</span>
+                <span class="buffer-value">{{response.bufferMonths.toFixed(1)}} months</span>
+            </div>
+
+            <div *ngIf="response.bonusAdditions" class="bonus-additions">
+                <span class="bonus-label">🎉 Bonus Additions This Month:</span>
+                <span class="bonus-value">{{formatCurrency(response.bonusAdditions)}}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Projection Chart -->
+    <div class="section-card">
+        <h2 class="section-title">📈 Projection Chart</h2>
+        <div class="flex flex-wrap gap-2 text-xs mb-3">
+            <button type="button" (click)="projectionScenario = 'actual'; generateChartData()"
+                [class]="'px-3 py-1 rounded-full border ' + (projectionScenario === 'actual' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700')">
+                Actual contributions
             </button>
-            <button (click)="resetForm()" class="reset-btn">🔄 Reset</button>
+            <button type="button" (click)="projectionScenario = 'base'; generateChartData()"
+                [class]="'px-3 py-1 rounded-full border ' + (projectionScenario === 'base' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700')">
+                Base $2,600/mo
+            </button>
         </div>
-
-        <!-- Error Message -->
-        <div *ngIf="error" class="error-message">
-            ⚠️ {{error}}
-        </div>
-    </div>
-
-    <!-- RESULTS SECTION (Only show after calculation) -->
-    <div *ngIf="response" class="results-container">
-
-        <!-- C) ACCOUNT SCOREBOARD TABLE -->
-        <div class="section-card">
-            <h2 class="section-title">📊 Account Scoreboard</h2>
-
-            <div class="table-container">
-                <table class="scoreboard-table">
-                    <thead>
-                        <tr>
-                            <th>Account</th>
-                            <th>Balance</th>
-                            <th>YTD Contrib</th>
-                            <th>YTD Growth $</th>
-                            <th>YTD Growth %</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr *ngFor="let scorecard of response.accountScorecard">
-                            <td class="account-name">{{scorecard.accountType}}</td>
-                            <td class="balance-cell">{{formatCurrency(scorecard.balance)}}</td>
-                            <td class="contrib-cell">{{formatCurrency(scorecard.ytdContributions)}}</td>
-                            <td class="growth-cell">{{formatCurrency(scorecard.ytdGrowthDollars)}}</td>
-                            <td class="growth-percent-cell">{{formatPercent(scorecard.ytdGrowthPercent)}}</td>
-                            <td>
-                                <span [class]="'status-badge ' + getStatusBadgeColor(scorecard.status)">
-                                    {{getStatusIcon(scorecard.status)}} {{scorecard.status}}
-                                </span>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- D) GROWTH DRIVERS -->
-        <div class="section-card" *ngIf="response.growthAttribution">
-            <h2 class="section-title">🎯 Growth Drivers</h2>
-
-            <div class="drivers-grid">
-                <div class="driver-card">
-                    <div class="driver-icon">⭐</div>
-                    <div class="driver-label">Top Growth Driver</div>
-                    <div class="driver-value">{{response.growthAttribution.topGrowthDriver}}</div>
-                </div>
-
-                <div class="driver-card">
-                    <div class="driver-icon">📉</div>
-                    <div class="driver-label">Weakest Contributor</div>
-                    <div class="driver-value">{{response.growthAttribution.weakestContributor}}</div>
-                </div>
-
-                <div class="driver-card">
-                    <div class="driver-icon">📊</div>
-                    <div class="driver-label">Market vs Contributions</div>
-                    <div class="driver-value">
-                        {{response.growthAttribution.marketGrowthPercent}}% Market /
-                        {{response.growthAttribution.contributionPercent}}% Contributions
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- E) TARGET PATH STATUS -->
-        <div class="section-card">
-            <h2 class="section-title">🎯 Target Path Status</h2>
-
-            <div class="status-grid">
-                <div class="status-card">
-                    <div class="status-label">Target Balance</div>
-                    <div class="status-value">{{formatCurrency(response.currentTargetBalance)}}</div>
-                </div>
-
-                <div class="status-card">
-                    <div class="status-label">Actual Balance</div>
-                    <div class="status-value">{{formatCurrency(response.actualBalance)}}</div>
-                </div>
-
-                <div class="status-card">
-                    <div class="status-label">Difference</div>
-                    <div class="status-value" [class.positive]="(response.differenceAmount || 0) >= 0"
-                        [class.negative]="(response.differenceAmount || 0) < 0">
-                        {{formatCurrency(response.differenceAmount)}} ({{formatPercent(response.differencePercent)}})
-                    </div>
-                </div>
-
-                <div class="status-card status-badge-card">
-                    <div class="status-label">Status</div>
-                    <div [class]="'status-badge-large ' + getStatusBadgeColor(response.status || '')">
-                        {{getStatusIcon(response.status || '')}} {{response.status}}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Remaining Months -->
-            <div class="remaining-months">
-                <span class="months-label">Remaining Months to Age {{targetRetirementAge}}:</span>
-                <span class="months-value">{{response.remainingMonths}} months</span>
-            </div>
-        </div>
-
-        <!-- F) GUIDANCE -->
-        <div class="section-card guidance-card">
-            <h2 class="section-title">💡 Guidance</h2>
-
-            <div class="guidance-content">
-                <p class="commentary">{{response.commentary}}</p>
-
-                <div *ngIf="response.requiredMonthlyContribution" class="required-contrib">
-                    <span class="required-label">Required Monthly Contribution:</span>
-                    <span class="required-value">{{formatCurrency(response.requiredMonthlyContribution)}}/month</span>
-                </div>
-
-                <div *ngIf="response.bufferMonths" class="buffer-months">
-                    <span class="buffer-label">Buffer Created:</span>
-                    <span class="buffer-value">{{response.bufferMonths.toFixed(1)}} months</span>
-                </div>
-
-                <div *ngIf="response.bonusAdditions" class="bonus-additions">
-                    <span class="bonus-label">🎉 Bonus Additions This Month:</span>
-                    <span class="bonus-value">{{formatCurrency(response.bonusAdditions)}}</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Projection Chart -->
-        <div class="section-card">
-            <h2 class="section-title">📈 Projection Chart</h2>
-            <div class="flex flex-wrap gap-2 text-xs mb-3">
-                <button type="button" (click)="projectionScenario = 'actual'; generateChartData()"
-                    [class]="'px-3 py-1 rounded-full border ' + (projectionScenario === 'actual' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700')">
-                    Actual contributions
-                </button>
-                <button type="button" (click)="projectionScenario = 'base'; generateChartData()"
-                    [class]="'px-3 py-1 rounded-full border ' + (projectionScenario === 'base' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700')">
-                    Base $2,600/mo
-                </button>
-            </div>
-            <div class="chart-container">
-                <canvas baseChart [data]="lineChartData" [options]="lineChartOptions" [type]="'line'"></canvas>
-            </div>
+        <div class="chart-container">
+            <canvas baseChart [data]="lineChartData" [options]="lineChartOptions" [type]="'line'"></canvas>
         </div>
     </div>
+</div>

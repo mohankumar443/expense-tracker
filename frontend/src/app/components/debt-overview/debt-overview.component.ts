@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { fadeIn, slideInUp, staggerFadeIn } from '../../animations';
 import { DebtAccountService, DebtSummary, DebtAccount } from '../../services/debt-account.service';
+import { RetirementService } from '../../services/retirement.service';
 import { SnapshotStateService } from '../../services/snapshot-state.service';
 import { AnalyticsService } from '../../services/analytics.service';
 import { SnapshotManagerComponent } from '../snapshot-manager/snapshot-manager.component';
@@ -57,11 +58,14 @@ export class DebtOverviewComponent implements OnInit {
     // Net Worth
     totalAssets = 0;
     netWorth = 0;
+    retirementCurrent = 0;
+    retirementPrevious = 0;
 
     constructor(
         private debtService: DebtAccountService,
         private snapshotStateService: SnapshotStateService,
         private analyticsService: AnalyticsService,
+        private retirementService: RetirementService,
         private cdr: ChangeDetectorRef
     ) { }
 
@@ -160,6 +164,7 @@ export class DebtOverviewComponent implements OnInit {
         const currentIndex = this.availableSnapshots.findIndex(s => s.snapshotDate === resolvedDate);
         if (currentIndex > 0) {
             const previousDate = this.availableSnapshots[currentIndex - 1].snapshotDate;
+            const previousMonthYear = previousDate.slice(0, 7);
             this.debtService.getSnapshotSummary(previousDate).subscribe({
                 next: (data) => {
                     this.previousSummary = data;
@@ -172,9 +177,36 @@ export class DebtOverviewComponent implements OnInit {
                 },
                 error: (err) => console.error('Error loading previous accounts', err)
             });
+            this.retirementService.getSnapshotByDate(previousDate).subscribe({
+                next: (snapshot) => {
+                    if (snapshot) {
+                        this.retirementPrevious = this.getRetirementTotal(snapshot);
+                        return;
+                    }
+                    this.retirementService.getSnapshotByMonth(previousMonthYear).subscribe({
+                        next: (fallback) => {
+                            this.retirementPrevious = this.getRetirementTotal(fallback);
+                        },
+                        error: () => {
+                            this.retirementPrevious = 0;
+                        }
+                    });
+                },
+                error: () => {
+                    this.retirementService.getSnapshotByMonth(previousMonthYear).subscribe({
+                        next: (fallback) => {
+                            this.retirementPrevious = this.getRetirementTotal(fallback);
+                        },
+                        error: () => {
+                            this.retirementPrevious = 0;
+                        }
+                    });
+                }
+            });
         } else {
             this.previousSummary = null;
             this.previousAccounts = [];
+            this.retirementPrevious = 0;
         }
 
         // Load Accounts & Run Analytics
@@ -188,6 +220,39 @@ export class DebtOverviewComponent implements OnInit {
                 console.error('Error loading accounts', err);
                 this.error = 'Failed to load accounts';
                 this.loading = false;
+            }
+        });
+
+        const currentMonthYear = resolvedDate.slice(0, 7);
+        this.retirementService.getSnapshotByDate(resolvedDate).subscribe({
+            next: (snapshot) => {
+                if (snapshot) {
+                    this.retirementCurrent = this.getRetirementTotal(snapshot);
+                    this.calculateNetWorth();
+                    return;
+                }
+                this.retirementService.getSnapshotByMonth(currentMonthYear).subscribe({
+                    next: (fallback) => {
+                        this.retirementCurrent = this.getRetirementTotal(fallback);
+                        this.calculateNetWorth();
+                    },
+                    error: () => {
+                        this.retirementCurrent = 0;
+                        this.calculateNetWorth();
+                    }
+                });
+            },
+            error: () => {
+                this.retirementService.getSnapshotByMonth(currentMonthYear).subscribe({
+                    next: (fallback) => {
+                        this.retirementCurrent = this.getRetirementTotal(fallback);
+                        this.calculateNetWorth();
+                    },
+                    error: () => {
+                        this.retirementCurrent = 0;
+                        this.calculateNetWorth();
+                    }
+                });
             }
         });
     }
@@ -341,6 +406,17 @@ export class DebtOverviewComponent implements OnInit {
         }
     }
 
+    private getRetirementTotal(snapshot: any): number {
+        if (!snapshot) return 0;
+        if (snapshot.totalBalance !== undefined && snapshot.totalBalance !== null) {
+            return snapshot.totalBalance || 0;
+        }
+        if (snapshot.accounts && Array.isArray(snapshot.accounts)) {
+            return snapshot.accounts.reduce((sum: number, acc: any) => sum + (acc.balance || 0), 0);
+        }
+        return 0;
+    }
+
     onAssetsChange() {
         localStorage.setItem('debt_tracker_assets', this.totalAssets.toString());
         this.calculateNetWorth();
@@ -456,6 +532,35 @@ export class DebtOverviewComponent implements OnInit {
     getDebtChangePercentage(): number {
         if (!this.previousSummary || !this.summary || this.previousSummary.totalDebt === 0) return 0;
         return ((this.summary.totalDebt - this.previousSummary.totalDebt) / this.previousSummary.totalDebt) * 100;
+    }
+
+    getCategoryChange(category: 'creditCard' | 'personalLoan' | 'autoLoan'): number {
+        if (!this.previousSummary || !this.summary) return 0;
+        const current = category === 'creditCard' ? this.summary.creditCardDebt :
+            category === 'personalLoan' ? this.summary.personalLoanDebt :
+                this.summary.autoLoanDebt;
+        const previous = category === 'creditCard' ? this.previousSummary.creditCardDebt :
+            category === 'personalLoan' ? this.previousSummary.personalLoanDebt :
+                this.previousSummary.autoLoanDebt;
+        return (current || 0) - (previous || 0);
+    }
+
+    getCategoryChangePercentage(category: 'creditCard' | 'personalLoan' | 'autoLoan'): number {
+        const diff = this.getCategoryChange(category);
+        const previous = category === 'creditCard' ? this.previousSummary?.creditCardDebt :
+            category === 'personalLoan' ? this.previousSummary?.personalLoanDebt :
+                this.previousSummary?.autoLoanDebt;
+        if (!previous || previous === 0) return 0;
+        return (diff / previous) * 100;
+    }
+
+    getRetirementChange(): number {
+        return this.retirementCurrent - this.retirementPrevious;
+    }
+
+    getRetirementChangePercentage(): number {
+        if (this.retirementPrevious === 0) return 0;
+        return (this.getRetirementChange() / this.retirementPrevious) * 100;
     }
 
     isSnapshotChanged(): boolean {

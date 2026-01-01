@@ -1,5 +1,6 @@
 import { Component, OnInit, OnChanges, Input, SimpleChanges } from '@angular/core';
 import { RetirementService, RetirementPlanRequest, RetirementPlanResponse, AccountBalanceDTO } from '../../services/retirement.service';
+import { SnapshotStateService } from '../../services/snapshot-state.service';
 import { ToastService } from '../../services/toast.service';
 import { ChartConfiguration } from 'chart.js';
 
@@ -20,6 +21,8 @@ export class RetirementTrackerComponent implements OnInit, OnChanges {
     baseMonthlyContribution = 2600;
     targetPortfolioValue = 1270000;
     annualReturn = 7;
+    previousTotalBalance = 0;
+    previousAccountsMap: Map<string, any> = new Map();
 
     healthScoreDetails: any = { score: 50, reasons: [], action: '' };
 
@@ -68,19 +71,72 @@ export class RetirementTrackerComponent implements OnInit, OnChanges {
             y: { beginAtZero: false, ticks: { callback: (value) => `$${(+value).toLocaleString()}` } }
         }
     };
+    Math = Math;
 
     constructor(
         private retirementService: RetirementService,
+        private snapshotStateService: SnapshotStateService,
         private toastService: ToastService
     ) { }
 
     ngOnInit(): void {
-        // Set current month/year
-        const now = new Date();
-        this.monthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        this.snapshotStateService.currentSnapshot$.subscribe(date => {
+            if (date) {
+                this.monthYear = date.substring(0, 7);
+                if (date.length >= 10) {
+                    this.loadSnapshotForDate(date);
+                } else {
+                    this.loadSnapshotForMonth(this.monthYear);
+                }
+            } else {
+                const now = new Date();
+                this.monthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                this.loadPreviousMonthData();
+            }
+        });
+    }
 
-        // Load previous month's data to auto-calculate balances
-        this.loadPreviousMonthData();
+    loadSnapshotForDate(date: string): void {
+        this.loading = true;
+        this.retirementService.getSnapshotByDate(date).subscribe({
+            next: (snapshot) => {
+                if (snapshot && this.hasRetirementData(snapshot)) {
+                    this.populateFromSnapshot(snapshot);
+                } else if (this.monthYear) {
+                    this.loadSnapshotForMonth(this.monthYear);
+                } else {
+                    this.loadPreviousMonthData();
+                }
+                this.loading = false;
+            },
+            error: () => {
+                if (this.monthYear) {
+                    this.loadSnapshotForMonth(this.monthYear);
+                } else {
+                    this.loadPreviousMonthData();
+                }
+                this.loading = false;
+            }
+        });
+    }
+
+    loadSnapshotForMonth(monthYear: string): void {
+        this.loading = true;
+        this.retirementService.getSnapshotByMonth(monthYear).subscribe({
+            next: (snapshot) => {
+                if (snapshot && this.hasRetirementData(snapshot)) {
+                    this.populateFromSnapshot(snapshot);
+                } else {
+                    // If no snapshot for this month, carry over from latest to avoid starting at $0
+                    this.loadPreviousMonthData();
+                }
+                this.loading = false;
+            },
+            error: (err) => {
+                this.loadPreviousMonthData();
+                this.loading = false;
+            }
+        });
     }
 
     ngOnChanges(changes: SimpleChanges): void {
@@ -97,59 +153,20 @@ export class RetirementTrackerComponent implements OnInit, OnChanges {
     }
 
     loadPreviousMonthData(): void {
-        this.retirementService.getLatestSnapshot().subscribe({
-            next: (snapshot) => {
-                if (snapshot) {
-                    if (snapshot.accounts) {
-                        // Auto-populate balances from previous month
-                        snapshot.accounts.forEach((prevAccount: any) => {
-                            const currentAccount = this.accounts.find(acc => acc.accountType === prevAccount.accountType);
-                            if (currentAccount) {
-                                // Set balance to previous balance (will be updated when user enters contribution)
-                                currentAccount.balance = prevAccount.balance || 0;
-                            }
-                        });
-                    }
+        this.retirementService.getAllSnapshots().subscribe({
+            next: (snapshots) => {
+                if (snapshots && snapshots.length > 0) {
+                    // Find the latest snapshot that is BEFORE the current monthYear
+                    const currentMonthDate = new Date(`${this.monthYear}-01`);
+                    const previousSnapshots = snapshots
+                        .filter(s => new Date(s.snapshotDate) < currentMonthDate)
+                        .sort((a, b) => new Date(b.snapshotDate).getTime() - new Date(a.snapshotDate).getTime());
 
-                    // Restore persisted target value
-                    if (snapshot.targetPortfolioValue) {
-                        this.targetPortfolioValue = snapshot.targetPortfolioValue;
+                    if (previousSnapshots.length > 0) {
+                        this.populateFromSnapshot(previousSnapshots[0]);
+                    } else {
+                        this.hasLoadedSnapshot = true;
                     }
-
-                    if (snapshot.totalContributions !== undefined) {
-                        this.accounts.forEach(account => {
-                            const prevAccount = snapshot.accounts?.find((acc: any) => acc.accountType === account.accountType);
-                            if (prevAccount && prevAccount.contribution !== undefined) {
-                                account.contribution = prevAccount.contribution || 0;
-                            }
-                        });
-                    }
-
-                    if (snapshot.oneTimeAdditions !== undefined && snapshot.oneTimeAdditions !== null) {
-                        this.oneTimeAdditions = snapshot.oneTimeAdditions;
-                    }
-
-                    if (snapshot.afterTaxMode) {
-                        this.afterTaxMode = snapshot.afterTaxMode;
-                    }
-                    if (snapshot.flatTaxRate !== undefined && snapshot.flatTaxRate !== null) {
-                        this.flatTaxRate = snapshot.flatTaxRate;
-                    }
-                    if (snapshot.taxFreeRate !== undefined && snapshot.taxDeferredRate !== undefined && snapshot.taxableRate !== undefined) {
-                        this.customTaxRates = {
-                            taxFree: snapshot.taxFreeRate,
-                            taxDeferred: snapshot.taxDeferredRate,
-                            taxable: snapshot.taxableRate
-                        };
-                    }
-
-                    if (snapshot.snapshotDate) {
-                        this.lastSnapshotDate = snapshot.snapshotDate;
-                    }
-
-                    // Trigger calculation to update Score, Chart, and Strategy immediately
-                    this.hasLoadedSnapshot = true;
-                    this.calculate(false);
                 } else {
                     this.hasLoadedSnapshot = true;
                 }
@@ -159,6 +176,71 @@ export class RetirementTrackerComponent implements OnInit, OnChanges {
                 this.hasLoadedSnapshot = true;
             }
         });
+    }
+
+    private populateFromSnapshot(snapshot: any): void {
+        if (!snapshot) return;
+
+        if (snapshot.accounts) {
+            this.previousTotalBalance = snapshot.totalBalance || 0;
+            // Auto-populate balances from previous month
+            snapshot.accounts.forEach((prevAccount: any) => {
+                this.previousAccountsMap.set(prevAccount.accountType, prevAccount);
+                const currentAccount = this.accounts.find(acc => acc.accountType === prevAccount.accountType);
+                if (currentAccount) {
+                    // Set balance to previous balance (will be updated when user enters contribution)
+                    currentAccount.balance = prevAccount.balance || 0;
+                }
+            });
+        }
+
+        // Restore persisted target value
+        if (snapshot.targetPortfolioValue) {
+            this.targetPortfolioValue = snapshot.targetPortfolioValue;
+        }
+
+        if (snapshot.totalContributions !== undefined) {
+            this.accounts.forEach(account => {
+                const prevAccount = snapshot.accounts?.find((acc: any) => acc.accountType === account.accountType);
+                if (prevAccount && prevAccount.contribution !== undefined) {
+                    account.contribution = prevAccount.contribution || 0;
+                }
+            });
+        }
+
+        if (snapshot.oneTimeAdditions !== undefined && snapshot.oneTimeAdditions !== null) {
+            this.oneTimeAdditions = snapshot.oneTimeAdditions;
+        }
+
+        if (snapshot.afterTaxMode) {
+            this.afterTaxMode = snapshot.afterTaxMode;
+        }
+        if (snapshot.flatTaxRate !== undefined && snapshot.flatTaxRate !== null) {
+            this.flatTaxRate = snapshot.flatTaxRate;
+        }
+        if (snapshot.taxFreeRate !== undefined && snapshot.taxDeferredRate !== undefined && snapshot.taxableRate !== undefined) {
+            this.customTaxRates = {
+                taxFree: snapshot.taxFreeRate,
+                taxDeferred: snapshot.taxDeferredRate,
+                taxable: snapshot.taxableRate
+            };
+        }
+
+        if (snapshot.snapshotDate) {
+            this.lastSnapshotDate = snapshot.snapshotDate;
+        }
+
+        // Trigger calculation to update Score, Chart, and Strategy immediately
+        this.hasLoadedSnapshot = true;
+        this.calculate(false);
+    }
+
+    private hasRetirementData(snapshot: any): boolean {
+        if (!snapshot) return false;
+        if ((snapshot.totalBalance || 0) > 0) return true;
+        if ((snapshot.totalContributions || 0) > 0) return true;
+        if (!snapshot.accounts) return false;
+        return snapshot.accounts.some((acc: any) => (acc.balance || 0) > 0 || (acc.contribution || 0) > 0);
     }
 
     // Called when user manually edits a balance
@@ -173,7 +255,14 @@ export class RetirementTrackerComponent implements OnInit, OnChanges {
             return;
         }
 
-        this.retirementService.getLatestSnapshot().subscribe({
+        if (!this.monthYear) return;
+
+        // Calculate previous month
+        const [year, month] = this.monthYear.split('-').map(Number);
+        const prevDate = new Date(year, month - 2, 1); // month is 1-indexed in split, but 0-indexed in Date constructor. month-2 gives previous month.
+        const prevMonthYear = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+
+        this.retirementService.getSnapshotByMonth(prevMonthYear).subscribe({
             next: (snapshot) => {
                 if (snapshot && snapshot.accounts) {
                     const prevAccount = snapshot.accounts.find((acc: any) =>
@@ -185,15 +274,9 @@ export class RetirementTrackerComponent implements OnInit, OnChanges {
                             (prevAccount.balance || 0) + (this.accounts[accountIndex].contribution || 0);
                     }
                 }
-
-                // Restore target portfolio value if it exists in snapshot
-                // REMOVED to prevent overwriting user input during session
-                // if (snapshot && snapshot.targetPortfolioValue) {
-                //     this.targetPortfolioValue = snapshot.targetPortfolioValue;
-                // }
             },
             error: (err) => {
-                console.log('Could not auto-calculate balance');
+                console.log('Could not auto-calculate balance - no previous month found');
             }
         });
     }
@@ -230,6 +313,29 @@ export class RetirementTrackerComponent implements OnInit, OnChanges {
 
     getScorecard(accountType: string) {
         return this.response?.accountScorecard?.find((s: any) => s.accountType === accountType);
+    }
+
+    getAccountMoMChange(accountType: string): number {
+        const current = this.accounts.find(a => a.accountType === accountType)?.balance || 0;
+        const previous = this.previousAccountsMap.get(accountType)?.balance || 0;
+        return current - previous;
+    }
+
+    getAccountMoMChangePercent(accountType: string): number {
+        const diff = this.getAccountMoMChange(accountType);
+        const previous = this.previousAccountsMap.get(accountType)?.balance || 0;
+        if (previous === 0) return 0;
+        return (diff / previous) * 100;
+    }
+
+    getTotalMoMChange(): number {
+        return this.getTotalBalance() - this.previousTotalBalance;
+    }
+
+    getTotalMoMChangePercent(): number {
+        const diff = this.getTotalMoMChange();
+        if (this.previousTotalBalance === 0) return 0;
+        return (diff / this.previousTotalBalance) * 100;
     }
 
     calculate(persistSnapshot: boolean = true): void {

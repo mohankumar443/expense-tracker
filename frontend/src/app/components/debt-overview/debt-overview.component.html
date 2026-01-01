@@ -87,7 +87,7 @@
         <div *ngIf="!loading && !error && summary" class="space-y-6 animate-fade-in-up">
 
             <!-- Top Stats Row -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" @staggerFadeIn>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4" @staggerFadeIn>
 
                 <!-- Total Debt -->
                 <div class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-slate-200 dark:border-slate-500/30 shadow-soft relative overflow-hidden hover-lift"
@@ -102,13 +102,19 @@
                     </p>
                     <h3 class="text-4xl font-black text-slate-900 dark:text-white mb-1 relative z-10"
                         [appCountUp]="summary.totalDebt" [prefix]="'$'" [decimals]="0">0</h3>
-                    <p class="text-sm text-slate-500 dark:text-slate-400 relative z-10" *ngIf="previousSummary">
-                        <span [class]="getDebtChange() <= 0 ? 'text-emerald-500' : 'text-rose-500' + ' font-bold'">
-                            {{ getDebtChange() <= 0 ? '↓' : '↑' }} {{ Math.abs(getDebtChangePercentage()) |
-                                number:'1.1-1' }}% </span>
-                                vs last month
-                    </p>
-                    <p class="text-sm text-slate-500 dark:text-slate-400 relative z-10" *ngIf="!previousSummary">
+                    <div class="flex items-center gap-1.5 relative z-10"
+                        *ngIf="previousSummary && getDebtChange() !== 0">
+                        <span class="material-icons text-[14px]" [class.text-emerald-500]="getDebtChange() <= 0"
+                            [class.text-rose-500]="getDebtChange() > 0">
+                            {{ getDebtChange() <= 0 ? 'arrow_downward' : 'arrow_upward' }} </span>
+                                <span class="text-[11px] font-bold" [class.text-emerald-500]="getDebtChange() <= 0"
+                                    [class.text-rose-500]="getDebtChange() > 0">
+                                    {{ getDebtChange() > 0 ? '+' : '' }}{{ getDebtChange() |
+                                    currency:'USD':'symbol':'1.0-0' }} ({{ Math.abs(getDebtChangePercentage()) |
+                                    number:'1.1-1' }}%)
+                                </span>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 relative z-10" *ngIf="!previousSummary">
                         Starting Balance
                     </p>
                 </div>
@@ -125,9 +131,23 @@
                         Cards</p>
                     <h3 class="text-4xl font-black text-gray-900 dark:text-white mb-1 relative z-10"
                         [appCountUp]="summary.creditCardDebt" [prefix]="'$'" [decimals]="0">0</h3>
-                    <p class="text-sm text-blue-600/70 dark:text-blue-200/70 relative z-10">{{ (summary.creditCardDebt /
-                        summary.totalDebt) *
-                        100 |
+                    <div class="flex items-center gap-1.5 relative z-10"
+                        *ngIf="previousSummary && getCategoryChange('creditCard') !== 0">
+                        <span class="material-icons text-[12px]"
+                            [class.text-emerald-500]="getCategoryChange('creditCard') <= 0"
+                            [class.text-rose-500]="getCategoryChange('creditCard') > 0">
+                            {{ getCategoryChange('creditCard') <= 0 ? 'arrow_downward' : 'arrow_upward' }} </span>
+                                <span class="text-[11px] font-bold"
+                                    [class.text-emerald-500]="getCategoryChange('creditCard') <= 0"
+                                    [class.text-rose-500]="getCategoryChange('creditCard') > 0">
+                                    {{ getCategoryChange('creditCard') > 0 ? '+' : '' }}{{
+                                    getCategoryChange('creditCard') | currency:'USD':'symbol':'1.0-0' }} ({{
+                                    Math.abs(getCategoryChangePercentage('creditCard')) | number:'1.1-1' }}%)
+                                </span>
+                                <span class="text-[10px] text-slate-500 dark:text-slate-400">vs last month</span>
+                    </div>
+                    <p class="text-xs text-blue-600/70 dark:text-blue-200/70 relative z-10 mt-1"
+                        *ngIf="summary.totalDebt > 0">{{ (summary.creditCardDebt / summary.totalDebt) * 100 |
                         number:'1.0-0' }}% of total</p>
                 </div>
 
@@ -143,9 +163,23 @@
                         % Loans</p>
                     <h3 class="text-4xl font-black text-gray-900 dark:text-white mb-1 relative z-10"
                         [appCountUp]="summary.personalLoanDebt" [prefix]="'$'" [decimals]="0">0</h3>
-                    <p class="text-sm text-purple-600/70 dark:text-purple-200/70 relative z-10">{{
-                        (summary.personalLoanDebt /
-                        summary.totalDebt) * 100 |
+                    <div class="flex items-center gap-1.5 relative z-10"
+                        *ngIf="previousSummary && getCategoryChange('personalLoan') !== 0">
+                        <span class="material-icons text-[12px]"
+                            [class.text-emerald-500]="getCategoryChange('personalLoan') <= 0"
+                            [class.text-rose-500]="getCategoryChange('personalLoan') > 0">
+                            {{ getCategoryChange('personalLoan') <= 0 ? 'arrow_downward' : 'arrow_upward' }} </span>
+                                <span class="text-[11px] font-bold"
+                                    [class.text-emerald-500]="getCategoryChange('personalLoan') <= 0"
+                                    [class.text-rose-500]="getCategoryChange('personalLoan') > 0">
+                                    {{ getCategoryChange('personalLoan') > 0 ? '+' : '' }}{{
+                                    getCategoryChange('personalLoan') | currency:'USD':'symbol':'1.0-0' }} ({{
+                                    Math.abs(getCategoryChangePercentage('personalLoan')) | number:'1.1-1' }}%)
+                                </span>
+                                <span class="text-[10px] text-slate-500 dark:text-slate-400">vs last month</span>
+                    </div>
+                    <p class="text-xs text-purple-600/70 dark:text-purple-200/70 relative z-10 mt-1"
+                        *ngIf="summary.totalDebt > 0">{{ (summary.personalLoanDebt / summary.totalDebt) * 100 |
                         number:'1.0-0' }}% of total</p>
                 </div>
 
@@ -162,10 +196,53 @@
                     </p>
                     <h3 class="text-4xl font-black text-gray-900 dark:text-white mb-1 relative z-10"
                         [appCountUp]="summary.autoLoanDebt" [prefix]="'$'" [decimals]="0">0</h3>
-                    <p class="text-sm text-emerald-600/70 dark:text-emerald-200/70 relative z-10">{{
-                        (summary.autoLoanDebt / summary.totalDebt) *
-                        100 |
+                    <div class="flex items-center gap-1.5 relative z-10"
+                        *ngIf="previousSummary && getCategoryChange('autoLoan') !== 0">
+                        <span class="material-icons text-[12px]"
+                            [class.text-emerald-500]="getCategoryChange('autoLoan') <= 0"
+                            [class.text-rose-500]="getCategoryChange('autoLoan') > 0">
+                            {{ getCategoryChange('autoLoan') <= 0 ? 'arrow_downward' : 'arrow_upward' }} </span>
+                                <span class="text-[11px] font-bold"
+                                    [class.text-emerald-500]="getCategoryChange('autoLoan') <= 0"
+                                    [class.text-rose-500]="getCategoryChange('autoLoan') > 0">
+                                    {{ getCategoryChange('autoLoan') > 0 ? '+' : '' }}{{ getCategoryChange('autoLoan') |
+                                    currency:'USD':'symbol':'1.0-0' }} ({{
+                                    Math.abs(getCategoryChangePercentage('autoLoan')) | number:'1.1-1' }}%)
+                                </span>
+                                <span class="text-[10px] text-slate-500 dark:text-slate-400">vs last month</span>
+                    </div>
+                    <p class="text-xs text-emerald-600/70 dark:text-emerald-200/70 relative z-10 mt-1"
+                        *ngIf="summary.totalDebt > 0">{{ (summary.autoLoanDebt / summary.totalDebt) * 100 |
                         number:'1.0-0' }}% of total</p>
+                </div>
+
+                <!-- Retirement Assets -->
+                <div class="bg-white dark:bg-[#1a2332] rounded-2xl p-6 border border-cyan-200 dark:border-cyan-500/30 shadow-soft relative overflow-hidden hover-lift"
+                    @slideInUp>
+                    <div class="absolute top-4 right-4 opacity-50 dark:opacity-40">
+                        <span class="material-icons text-6xl text-cyan-600 dark:text-cyan-400">savings</span>
+                    </div>
+                    <p
+                        class="text-xs font-bold text-cyan-600 dark:text-cyan-300 uppercase tracking-wider mb-2 relative z-10">
+                        Retirement Assets
+                    </p>
+                    <h3 class="text-4xl font-black text-gray-900 dark:text-white mb-1 relative z-10"
+                        [appCountUp]="retirementCurrent" [prefix]="'$'" [decimals]="0">0</h3>
+                    <div class="flex items-center gap-1.5 relative z-10" *ngIf="retirementPrevious !== 0">
+                        <span class="material-icons text-[12px]"
+                            [class.text-emerald-500]="getRetirementChange() >= 0"
+                            [class.text-rose-500]="getRetirementChange() < 0">
+                            {{ getRetirementChange() >= 0 ? 'arrow_upward' : 'arrow_downward' }}
+                        </span>
+                        <span class="text-[11px] font-bold"
+                            [class.text-emerald-500]="getRetirementChange() >= 0"
+                            [class.text-rose-500]="getRetirementChange() < 0">
+                            {{ getRetirementChange() > 0 ? '+' : '' }}{{ getRetirementChange() |
+                            currency:'USD':'symbol':'1.0-0' }} ({{ Math.abs(getRetirementChangePercentage()) |
+                            number:'1.1-1' }}%)
+                        </span>
+                        <span class="text-[10px] text-slate-500 dark:text-slate-400">vs last month</span>
+                    </div>
                 </div>
             </div>
 
@@ -183,12 +260,19 @@
                         Total Min Payment</p>
                     <h3 class="text-4xl font-black text-gray-900 dark:text-white mb-1 relative z-10"
                         [appCountUp]="getTotalMinPayment()" [prefix]="'$'" [decimals]="0">0</h3>
-                    <p class="text-sm text-orange-600/70 dark:text-orange-200/70 relative z-10">required monthly</p>
-                    <p class="text-xs text-orange-600/70 dark:text-orange-200/70 relative z-10"
-                        *ngIf="previousAccounts.length">
-                        <span *ngIf="getMinPaymentDelta() >= 0">↑</span>
-                        <span *ngIf="getMinPaymentDelta() < 0">↓</span>
-                        {{ Math.abs(getMinPaymentDelta()) | number:'1.0-0' }} vs last month
+                    <div class="flex items-center justify-center gap-1.5 relative z-10"
+                        *ngIf="previousAccounts.length && getMinPaymentDelta() !== 0">
+                        <span class="material-icons text-[12px]" [class.text-rose-500]="getMinPaymentDelta() > 0"
+                            [class.text-emerald-500]="getMinPaymentDelta() < 0">
+                            {{ getMinPaymentDelta() > 0 ? 'arrow_upward' : 'arrow_downward' }}
+                        </span>
+                        <span class="text-[11px] font-bold" [class.text-rose-500]="getMinPaymentDelta() > 0"
+                            [class.text-emerald-500]="getMinPaymentDelta() < 0">
+                            {{ getMinPaymentDelta() > 0 ? '+' : '' }}{{ getMinPaymentDelta() |
+                            currency:'USD':'symbol':'1.0-0' }}
+                        </span>
+                    </div>
+                    <p class="text-xs text-orange-600/70 dark:text-orange-200/70 relative z-10 mt-1">required monthly
                     </p>
                 </div>
 
@@ -220,13 +304,19 @@
                     </div>
                     <h3 class="text-4xl font-black text-gray-900 dark:text-white mb-1 relative z-10"
                         [appCountUp]="getTotalMonthlyInterest()" [prefix]="'$'" [decimals]="0">0</h3>
-                    <p class="text-sm text-cyan-600/70 dark:text-cyan-200/70 relative z-10">monthly cost</p>
-                    <p class="text-xs text-cyan-600/70 dark:text-cyan-200/70 relative z-10"
-                        *ngIf="previousAccounts.length">
-                        <span *ngIf="getInterestDelta() >= 0">↑</span>
-                        <span *ngIf="getInterestDelta() < 0">↓</span>
-                        {{ Math.abs(getInterestDelta()) | number:'1.0-0' }} vs last month
-                    </p>
+                    <div class="flex items-center justify-center gap-1.5 relative z-10"
+                        *ngIf="previousAccounts.length && getInterestDelta() !== 0">
+                        <span class="material-icons text-[12px]" [class.text-rose-500]="getInterestDelta() > 0"
+                            [class.text-emerald-500]="getInterestDelta() < 0">
+                            {{ getInterestDelta() > 0 ? 'arrow_upward' : 'arrow_downward' }}
+                        </span>
+                        <span class="text-[11px] font-bold" [class.text-rose-500]="getInterestDelta() > 0"
+                            [class.text-emerald-500]="getInterestDelta() < 0">
+                            {{ getInterestDelta() > 0 ? '+' : '' }}{{ getInterestDelta() |
+                            currency:'USD':'symbol':'1.0-0' }}
+                        </span>
+                    </div>
+                    <p class="text-xs text-cyan-600/70 dark:text-cyan-200/70 relative z-10 mt-1">monthly cost</p>
                 </div>
 
                 <!-- High APR Threat List -->

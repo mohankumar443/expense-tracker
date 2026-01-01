@@ -96,8 +96,9 @@ public class RetirementPlanningService {
         List<RetirementSnapshot> ytdSnapshots = snapshotRepository.findByYear(yearStart, snapshotDate.plusDays(1));
         ytdSnapshots.sort(Comparator.comparing(RetirementSnapshot::getSnapshotDate));
 
-        // Get previous snapshot for growth calculation
-        Optional<RetirementSnapshot> previousSnapshotOpt = snapshotRepository.findTopByOrderBySnapshotDateDesc();
+        // Get previous snapshot for growth calculation (relative to current snapshot)
+        LocalDate previousMonthDate = snapshotDate.minusMonths(1);
+        Optional<RetirementSnapshot> previousSnapshotOpt = snapshotRepository.findBySnapshotDate(previousMonthDate);
 
         List<AccountScorecard> scorecards = new ArrayList<>();
         Map<String, Double> accountGrowthMap = new HashMap<>();
@@ -115,7 +116,8 @@ public class RetirementPlanningService {
             // Calculate YTD metrics
             double ytdContributions = calculateYTDContributions(ytdSnapshots, accountDTO.getAccountType());
             double ytdStartBalance = findYearStartBalance(ytdSnapshots, accountDTO.getAccountType(), previousBalance);
-            double ytdGrowth = accountDTO.getBalance() - ytdStartBalance - (ytdContributions + accountDTO.getContribution());
+            double ytdGrowth = accountDTO.getBalance() - ytdStartBalance
+                    - (ytdContributions + accountDTO.getContribution());
             double ytdGrowthPercent = ytdStartBalance > 0 ? (ytdGrowth / ytdStartBalance) * 100.0 : 0.0;
 
             totalYTDContributions += ytdContributions;
