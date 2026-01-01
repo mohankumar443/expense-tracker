@@ -1,6 +1,6 @@
 import { Component, OnInit, Output, EventEmitter } from '@angular/core';
 import { forkJoin, of } from 'rxjs';
-import { catchError, finalize } from 'rxjs/operators';
+import { catchError } from 'rxjs/operators';
 import { slideInLeft } from '../../animations';
 import { DebtAccountService, Snapshot } from '../../services/debt-account.service';
 import { RetirementService } from '../../services/retirement.service';
@@ -16,22 +16,32 @@ import { SnapshotStateService } from '../../services/snapshot-state.service';
 export class SidebarComponent implements OnInit {
     isCollapsed = false;
     activeSection = 'overview';
-    showMore = false;
-    showRetirement = false;
-    private navItemType = null as unknown as { id: string; label: string; icon: string; hint?: string };
-    primaryNavItems: Array<{ id: string; label: string; icon: string; hint?: string }> = [
-        { id: 'overview', label: 'Overview', icon: 'dashboard', hint: 'Debt + Retirement' }
+    compareActive = false;
+    showCore = false;
+    showAnalyze = false;
+    showDebt = false;
+    showWealth = false;
+    showStrategy = false;
+    coreNavItems: Array<{ id: string; label: string; icon: string; hint?: string }> = [
+        { id: 'overview', label: 'Overview', icon: 'home', hint: 'Debt + Retirement' }
     ];
-    secondaryNavItems: Array<{ id: string; label: string; icon: string; hint?: string }> = [
-        { id: 'strategy', label: 'Strategy Center', icon: 'bolt' },
-        { id: 'progress', label: 'Progress', icon: 'show_chart' },
-        { id: 'accounts', label: 'Debt Accounts', icon: 'account_balance_wallet' },
-        { id: 'budget', label: 'Budget & Expenses', icon: 'payments' },
-        { id: 'recurring', label: 'Recurring & EMIs', icon: 'repeat' }
-    ];
-    retirementNavItems: Array<{ id: string; label: string; icon: string }> = [
-        { id: 'retirement', label: 'Retirement Pulse', icon: 'savings' },
+    analyzeNavItems: Array<{ id: string; label: string; icon: string; type?: 'compare' }> = [
+        { id: 'compare', label: 'Compare', icon: 'bar_chart', type: 'compare' },
+        { id: 'progress', label: 'Progress', icon: 'trending_up' },
         { id: 'networthify', label: 'Networthify', icon: 'calculate' }
+    ];
+    debtNavItems: Array<{ id: string; label: string; icon: string }> = [
+        { id: 'debt-hub', label: 'Debt Hub', icon: 'credit_card' },
+        { id: 'accounts', label: 'Debt Accounts', icon: 'folder' },
+        { id: 'recurring', label: 'Recurring & EMIs', icon: 'repeat' },
+        { id: 'budget', label: 'Budget & Expenses', icon: 'account_balance_wallet' }
+    ];
+    wealthNavItems: Array<{ id: string; label: string; icon: string }> = [
+        { id: 'retirement', label: 'Retirement Hub', icon: 'show_chart' },
+        { id: 'retirement-pulse', label: 'Retirement Pulse', icon: 'monitoring' }
+    ];
+    strategyNavItems: Array<{ id: string; label: string; icon: string }> = [
+        { id: 'strategy', label: 'Strategy Center', icon: 'track_changes' }
     ];
 
     @Output() sidebarToggled = new EventEmitter<boolean>();
@@ -39,6 +49,7 @@ export class SidebarComponent implements OnInit {
     groupedSnapshots: { [key: number]: Snapshot[] } = {};
     years: number[] = [];
     expandedYears: { [key: number]: boolean } = {};
+    showHistory = false;
 
     // Confirmation modal state
     showDeleteConfirmation = false;
@@ -54,6 +65,10 @@ export class SidebarComponent implements OnInit {
 
     ngOnInit() {
         this.loadSnapshots();
+        this.compareStateService.setActive(!!localStorage.getItem('compare_snapshot_date'));
+        this.compareStateService.compareActive$.subscribe(isActive => {
+            this.compareActive = isActive;
+        });
     }
 
     loadSnapshots() {
@@ -75,6 +90,10 @@ export class SidebarComponent implements OnInit {
         this.expandedYears[year] = !this.expandedYears[year];
     }
 
+    toggleHistory() {
+        this.showHistory = !this.showHistory;
+    }
+
     getMonthName(dateStr: string): string {
         const date = new Date(dateStr);
         // Add timezone offset handling if needed, but for month name usually fine
@@ -88,31 +107,55 @@ export class SidebarComponent implements OnInit {
         this.setActiveSection('overview');
     }
 
-    get shouldShowMoreExpanded() {
-        return this.showMore;
-    }
-
-    toggleMore() {
-        this.showMore = !this.showMore;
-    }
-
-    toggleRetirement() {
-        this.showRetirement = !this.showRetirement;
-    }
-
     openCompare() {
         this.compareStateService.open();
     }
 
-    get totalSecondaryCount() {
-        return this.secondaryNavItems.length;
+    toggleCore() {
+        this.showCore = !this.showCore;
     }
 
-    get totalRetirementCount() {
-        return this.retirementNavItems.length;
+    toggleAnalyze() {
+        this.showAnalyze = !this.showAnalyze;
+    }
+
+    toggleDebt() {
+        this.showDebt = !this.showDebt;
+    }
+
+    toggleWealth() {
+        this.showWealth = !this.showWealth;
+    }
+
+    toggleStrategy() {
+        this.showStrategy = !this.showStrategy;
+    }
+
+    get totalCoreCount() {
+        return this.coreNavItems.length;
+    }
+
+    get totalAnalyzeCount() {
+        return this.analyzeNavItems.length;
+    }
+
+    get totalDebtCount() {
+        return this.debtNavItems.length;
+    }
+
+    get totalWealthCount() {
+        return this.wealthNavItems.length;
+    }
+
+    get totalStrategyCount() {
+        return this.strategyNavItems.length;
     }
 
     setActiveSection(sectionId: string) {
+        if (sectionId === 'compare') {
+            this.openCompare();
+            return;
+        }
         this.activeSection = sectionId;
         this.scrollToSection(sectionId);
     }

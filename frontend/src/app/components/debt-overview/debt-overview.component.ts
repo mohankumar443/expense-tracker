@@ -87,6 +87,7 @@ export class DebtOverviewComponent implements OnInit {
         this.loadHighestInterest();
         this.compareSnapshotDate = localStorage.getItem(this.COMPARE_STORAGE_KEY) || '';
         this.compareSelectionPrimary = localStorage.getItem(this.COMPARE_PRIMARY_KEY) || '';
+        this.compareStateService.setActive(!!this.compareSnapshotDate);
         this.loadSnapshots();
 
         // Subscribe to snapshot changes
@@ -408,6 +409,7 @@ export class DebtOverviewComponent implements OnInit {
             this.compareSelectionBaseline = normalized;
             this.compareLabel = this.getSnapshotLabel(normalized);
             this.loadCompareData(this.selectedSnapshot || normalized);
+            this.compareStateService.setActive(true);
         } else {
             this.compareSnapshotDate = '';
             this.compareSelectionBaseline = '';
@@ -415,6 +417,7 @@ export class DebtOverviewComponent implements OnInit {
             this.compareLabel = '';
             localStorage.removeItem(this.COMPARE_STORAGE_KEY);
             localStorage.removeItem(this.COMPARE_PRIMARY_KEY);
+            this.compareStateService.setActive(false);
         }
     }
 
@@ -459,6 +462,7 @@ export class DebtOverviewComponent implements OnInit {
         this.selectedSnapshot = resolvedPrimary;
         this.snapshotStateService.setCurrentSnapshot(resolvedPrimary);
         this.loadCompareData(resolvedPrimary);
+        this.compareStateService.setActive(true);
         this.showCompareModal = false;
     }
 
@@ -469,6 +473,7 @@ export class DebtOverviewComponent implements OnInit {
         this.compareLabel = '';
         localStorage.removeItem(this.COMPARE_STORAGE_KEY);
         localStorage.removeItem(this.COMPARE_PRIMARY_KEY);
+        this.compareStateService.setActive(false);
         this.loadData(this.selectedSnapshot);
     }
 
