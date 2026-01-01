@@ -1,8 +1,10 @@
 import { Component, OnInit, OnDestroy, ViewChild, ChangeDetectorRef } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { fadeIn, slideInUp, staggerFadeIn } from '../../animations';
 import { DebtAccountService, DebtSummary, DebtAccount } from '../../services/debt-account.service';
 import { RetirementService } from '../../services/retirement.service';
 import { SnapshotStateService } from '../../services/snapshot-state.service';
+import { CompareStateService } from '../../services/compare-state.service';
 import { AnalyticsService } from '../../services/analytics.service';
 import { SnapshotManagerComponent } from '../snapshot-manager/snapshot-manager.component';
 
@@ -14,6 +16,8 @@ import { SnapshotManagerComponent } from '../snapshot-manager/snapshot-manager.c
 })
 export class DebtOverviewComponent implements OnInit {
     Math = Math; // Expose Math to template
+    private readonly COMPARE_STORAGE_KEY = 'compare_snapshot_date';
+    private readonly COMPARE_PRIMARY_KEY = 'compare_snapshot_primary';
 
     @ViewChild(SnapshotManagerComponent, { static: false }) snapshotManager!: SnapshotManagerComponent;
 
@@ -28,6 +32,12 @@ export class DebtOverviewComponent implements OnInit {
 
     previousSummary: DebtSummary | null = null;
     previousAccounts: DebtAccount[] = [];
+    compareSummary: DebtSummary | null = null;
+    compareLabel = '';
+    compareSnapshotDate = '';
+    compareSelectionPrimary = '';
+    compareSelectionBaseline = '';
+    showCompareModal = false;
 
     highestInterestAccount: DebtAccount | null = null;
     availableSnapshots: any[] = [];
@@ -40,6 +50,7 @@ export class DebtOverviewComponent implements OnInit {
     loading = false;
     error = '';
     snapshotSubscription: any;
+    compareSubscription?: Subscription;
 
     // Analytics Data
     interestBreakdown: any;
@@ -66,6 +77,7 @@ export class DebtOverviewComponent implements OnInit {
         private snapshotStateService: SnapshotStateService,
         private analyticsService: AnalyticsService,
         private retirementService: RetirementService,
+        private compareStateService: CompareStateService,
         private cdr: ChangeDetectorRef
     ) { }
 
@@ -73,6 +85,8 @@ export class DebtOverviewComponent implements OnInit {
         // Initial data loading is handled after snapshots are loaded.
         // Removed premature loadSummary call to avoid empty snapshot requests.
         this.loadHighestInterest();
+        this.compareSnapshotDate = localStorage.getItem(this.COMPARE_STORAGE_KEY) || '';
+        this.compareSelectionPrimary = localStorage.getItem(this.COMPARE_PRIMARY_KEY) || '';
         this.loadSnapshots();
 
         // Subscribe to snapshot changes
@@ -85,6 +99,11 @@ export class DebtOverviewComponent implements OnInit {
             this.selectedSnapshot = resolvedDate;
             this.loadData(resolvedDate);
         });
+
+        this.compareSubscription = this.compareStateService.openCompare$.subscribe(() => {
+            this.openCompareModal();
+        });
+
     }
 
     loadSnapshots() {
@@ -111,6 +130,7 @@ export class DebtOverviewComponent implements OnInit {
 
             this.ensureSelectedSnapshot();
             this.snapshotsReady = true;
+            this.ensureCompareSelection();
         });
     }
 
@@ -126,6 +146,7 @@ export class DebtOverviewComponent implements OnInit {
         if (this.snapshotSubscription) {
             this.snapshotSubscription.unsubscribe();
         }
+        this.compareSubscription?.unsubscribe();
     }
 
     loadData(date: string) {
@@ -133,6 +154,10 @@ export class DebtOverviewComponent implements OnInit {
         this.loading = true;
         this.error = '';
         const resolvedDate = this.resolveSnapshotDate(date);
+        this.compareSelectionPrimary = resolvedDate;
+        if (this.compareSnapshotDate) {
+            localStorage.setItem(this.COMPARE_PRIMARY_KEY, resolvedDate);
+        }
         this.setLastUpdated(resolvedDate);
         this.refreshSnapshots(resolvedDate);
 
@@ -255,6 +280,8 @@ export class DebtOverviewComponent implements OnInit {
                 });
             }
         });
+
+        this.loadCompareData(resolvedDate);
     }
 
     private setLastUpdated(snapshotDate: string) {
@@ -285,6 +312,7 @@ export class DebtOverviewComponent implements OnInit {
                 this.ensureSelectedSnapshot(normalizedDate);
                 this.setLastUpdated(normalizedDate);
                 this.snapshotsReady = true;
+                this.ensureCompareSelection();
             }
         });
     }
@@ -366,6 +394,167 @@ export class DebtOverviewComponent implements OnInit {
         } else if (!preferredDate) {
             this.loadData(nextSelection);
         }
+    }
+
+    private ensureCompareSelection() {
+        if (!this.compareSnapshotDate) {
+            this.compareSummary = null;
+            this.compareLabel = '';
+            return;
+        }
+        const normalized = this.normalizeSnapshotDate(this.compareSnapshotDate) || this.compareSnapshotDate;
+        if (normalized && this.availableSnapshots.some(s => s.snapshotDate === normalized)) {
+            this.compareSnapshotDate = normalized;
+            this.compareSelectionBaseline = normalized;
+            this.compareLabel = this.getSnapshotLabel(normalized);
+            this.loadCompareData(this.selectedSnapshot || normalized);
+        } else {
+            this.compareSnapshotDate = '';
+            this.compareSelectionBaseline = '';
+            this.compareSummary = null;
+            this.compareLabel = '';
+            localStorage.removeItem(this.COMPARE_STORAGE_KEY);
+            localStorage.removeItem(this.COMPARE_PRIMARY_KEY);
+        }
+    }
+
+    openCompareModal() {
+        if (!this.snapshotsReady) return;
+        const resolvedCurrent = this.resolveSnapshotDate(this.selectedSnapshot)
+            || (this.availableSnapshots[this.availableSnapshots.length - 1]?.snapshotDate || '');
+        const storedPrimary = this.resolveSnapshotDate(this.compareSelectionPrimary);
+        const currentPrimary = storedPrimary && this.availableSnapshots.some(s => s.snapshotDate === storedPrimary)
+            ? storedPrimary
+            : resolvedCurrent;
+        const storedBaseline = this.resolveSnapshotDate(this.compareSnapshotDate);
+        let baseline = storedBaseline && this.availableSnapshots.some(s => s.snapshotDate === storedBaseline)
+            ? storedBaseline
+            : this.getPreviousSnapshotDate(currentPrimary);
+        if (!baseline) {
+            baseline = this.availableSnapshots[0]?.snapshotDate || '';
+        }
+        if (baseline === currentPrimary) {
+            baseline = this.getPreviousSnapshotDate(currentPrimary) || this.availableSnapshots[0]?.snapshotDate || '';
+        }
+        this.compareSelectionPrimary = currentPrimary;
+        this.compareSelectionBaseline = baseline;
+        this.showCompareModal = true;
+    }
+
+    cancelCompare() {
+        this.showCompareModal = false;
+        this.compareSelectionPrimary = this.selectedSnapshot;
+        this.compareSelectionBaseline = this.compareSnapshotDate;
+    }
+
+    applyCompare() {
+        if (!this.compareSelectionPrimary || !this.compareSelectionBaseline) return;
+        const resolvedPrimary = this.resolveSnapshotDate(this.compareSelectionPrimary);
+        const resolvedBaseline = this.resolveSnapshotDate(this.compareSelectionBaseline);
+        if (!resolvedPrimary || !resolvedBaseline || resolvedPrimary === resolvedBaseline) return;
+        this.compareSnapshotDate = resolvedBaseline;
+        localStorage.setItem(this.COMPARE_STORAGE_KEY, resolvedBaseline);
+        localStorage.setItem(this.COMPARE_PRIMARY_KEY, resolvedPrimary);
+        this.compareLabel = this.getSnapshotLabel(resolvedBaseline);
+        this.selectedSnapshot = resolvedPrimary;
+        this.snapshotStateService.setCurrentSnapshot(resolvedPrimary);
+        this.loadCompareData(resolvedPrimary);
+        this.showCompareModal = false;
+    }
+
+    clearCompare() {
+        this.compareSnapshotDate = '';
+        this.compareSelectionBaseline = '';
+        this.compareSummary = null;
+        this.compareLabel = '';
+        localStorage.removeItem(this.COMPARE_STORAGE_KEY);
+        localStorage.removeItem(this.COMPARE_PRIMARY_KEY);
+        this.loadData(this.selectedSnapshot);
+    }
+
+    private loadCompareData(currentDate: string) {
+        if (!this.compareSnapshotDate) {
+            this.compareSummary = null;
+            this.compareLabel = '';
+            return;
+        }
+        const resolvedCompare = this.resolveSnapshotDate(this.compareSnapshotDate);
+        if (!resolvedCompare) {
+            this.compareSummary = null;
+            this.compareLabel = '';
+            return;
+        }
+        if (resolvedCompare === currentDate) {
+            this.compareSummary = null;
+            this.compareLabel = this.getSnapshotLabel(resolvedCompare);
+            this.retirementPrevious = this.retirementCurrent;
+            return;
+        }
+
+        this.debtService.getSnapshotSummary(resolvedCompare).subscribe({
+            next: (summary) => {
+                this.compareSummary = summary;
+            },
+            error: () => {
+                this.compareSummary = null;
+            }
+        });
+
+        this.retirementService.getSnapshotByDate(resolvedCompare).subscribe({
+            next: (snapshot) => {
+                if (snapshot) {
+                    this.retirementPrevious = this.getRetirementTotal(snapshot);
+                    return;
+                }
+                const compareMonthYear = resolvedCompare.slice(0, 7);
+                this.retirementService.getSnapshotByMonth(compareMonthYear).subscribe({
+                    next: (fallback) => {
+                        this.retirementPrevious = this.getRetirementTotal(fallback);
+                    },
+                    error: () => {
+                        this.retirementPrevious = 0;
+                    }
+                });
+            },
+            error: () => {
+                const compareMonthYear = resolvedCompare.slice(0, 7);
+                this.retirementService.getSnapshotByMonth(compareMonthYear).subscribe({
+                    next: (fallback) => {
+                        this.retirementPrevious = this.getRetirementTotal(fallback);
+                    },
+                    error: () => {
+                        this.retirementPrevious = 0;
+                    }
+                });
+            }
+        });
+    }
+
+    getCompareLabel(): string {
+        if (this.compareSnapshotDate) {
+            return `vs ${this.getSnapshotLabel(this.compareSnapshotDate)}`;
+        }
+        return 'vs last month';
+    }
+
+    getSnapshotLabel(snapshotDate: string): string {
+        if (!snapshotDate) return '';
+        const date = new Date(snapshotDate + 'T12:00:00');
+        if (isNaN(date.getTime())) return snapshotDate;
+        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    }
+
+    isCompareActive(): boolean {
+        return !!this.compareSnapshotDate;
+    }
+
+    private getPreviousSnapshotDate(currentDate: string): string {
+        const resolved = this.resolveSnapshotDate(currentDate);
+        const index = this.availableSnapshots.findIndex(s => s.snapshotDate === resolved);
+        if (index > 0) {
+            return this.availableSnapshots[index - 1].snapshotDate;
+        }
+        return '';
     }
 
     // Placeholder for loadHighestInterest, assuming it's part of runAnalytics or removed
@@ -525,31 +714,35 @@ export class DebtOverviewComponent implements OnInit {
     }
 
     getDebtChange(): number {
-        if (!this.previousSummary || !this.summary) return 0;
-        return this.summary.totalDebt - this.previousSummary.totalDebt;
+        const baseline = this.compareSummary || this.previousSummary;
+        if (!baseline || !this.summary) return 0;
+        return this.summary.totalDebt - baseline.totalDebt;
     }
 
     getDebtChangePercentage(): number {
-        if (!this.previousSummary || !this.summary || this.previousSummary.totalDebt === 0) return 0;
-        return ((this.summary.totalDebt - this.previousSummary.totalDebt) / this.previousSummary.totalDebt) * 100;
+        const baseline = this.compareSummary || this.previousSummary;
+        if (!baseline || !this.summary || baseline.totalDebt === 0) return 0;
+        return ((this.summary.totalDebt - baseline.totalDebt) / baseline.totalDebt) * 100;
     }
 
     getCategoryChange(category: 'creditCard' | 'personalLoan' | 'autoLoan'): number {
-        if (!this.previousSummary || !this.summary) return 0;
+        const baseline = this.compareSummary || this.previousSummary;
+        if (!baseline || !this.summary) return 0;
         const current = category === 'creditCard' ? this.summary.creditCardDebt :
             category === 'personalLoan' ? this.summary.personalLoanDebt :
                 this.summary.autoLoanDebt;
-        const previous = category === 'creditCard' ? this.previousSummary.creditCardDebt :
-            category === 'personalLoan' ? this.previousSummary.personalLoanDebt :
-                this.previousSummary.autoLoanDebt;
+        const previous = category === 'creditCard' ? baseline.creditCardDebt :
+            category === 'personalLoan' ? baseline.personalLoanDebt :
+                baseline.autoLoanDebt;
         return (current || 0) - (previous || 0);
     }
 
     getCategoryChangePercentage(category: 'creditCard' | 'personalLoan' | 'autoLoan'): number {
         const diff = this.getCategoryChange(category);
-        const previous = category === 'creditCard' ? this.previousSummary?.creditCardDebt :
-            category === 'personalLoan' ? this.previousSummary?.personalLoanDebt :
-                this.previousSummary?.autoLoanDebt;
+        const baseline = this.compareSummary || this.previousSummary;
+        const previous = category === 'creditCard' ? baseline?.creditCardDebt :
+            category === 'personalLoan' ? baseline?.personalLoanDebt :
+                baseline?.autoLoanDebt;
         if (!previous || previous === 0) return 0;
         return (diff / previous) * 100;
     }
@@ -561,6 +754,18 @@ export class DebtOverviewComponent implements OnInit {
     getRetirementChangePercentage(): number {
         if (this.retirementPrevious === 0) return 0;
         return (this.getRetirementChange() / this.retirementPrevious) * 100;
+    }
+
+    getTrendIcon(change: number): string {
+        if (change > 0) return 'arrow_upward';
+        if (change < 0) return 'arrow_downward';
+        return 'remove';
+    }
+
+    getTrendClass(change: number, isAsset: boolean): string {
+        if (change === 0) return 'text-slate-400';
+        const good = isAsset ? change > 0 : change < 0;
+        return good ? 'text-emerald-500' : 'text-rose-500';
     }
 
     isSnapshotChanged(): boolean {

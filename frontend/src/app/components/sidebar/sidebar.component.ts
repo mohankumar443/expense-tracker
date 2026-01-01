@@ -4,6 +4,7 @@ import { catchError, finalize } from 'rxjs/operators';
 import { slideInLeft } from '../../animations';
 import { DebtAccountService, Snapshot } from '../../services/debt-account.service';
 import { RetirementService } from '../../services/retirement.service';
+import { CompareStateService } from '../../services/compare-state.service';
 import { SnapshotStateService } from '../../services/snapshot-state.service';
 
 @Component({
@@ -42,6 +43,7 @@ export class SidebarComponent implements OnInit {
     constructor(
         private debtService: DebtAccountService,
         private retirementService: RetirementService,
+        private compareStateService: CompareStateService,
         private snapshotStateService: SnapshotStateService
     ) { }
 
@@ -87,6 +89,10 @@ export class SidebarComponent implements OnInit {
 
     toggleMore() {
         this.showMore = !this.showMore;
+    }
+
+    openCompare() {
+        this.compareStateService.open();
     }
 
     get totalSecondaryCount() {
