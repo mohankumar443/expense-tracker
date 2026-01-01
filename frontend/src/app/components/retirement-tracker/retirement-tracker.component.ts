@@ -71,6 +71,48 @@ export class RetirementTrackerComponent implements OnInit, OnChanges {
             y: { beginAtZero: false, ticks: { callback: (value) => `$${(+value).toLocaleString()}` } }
         }
     };
+
+    earlyRetirementInputs = {
+        annualIncome: 120000,
+        annualExpenses: 100000,
+        currentPortfolio: 0,
+        annualReturnPct: 5,
+        withdrawalRatePct: 4
+    };
+    earlyRetirementResult = {
+        yearsToRetire: 0,
+        savingsRate: 0,
+        annualSavings: 0,
+        monthlyExpenses: 0,
+        monthlySavings: 0,
+        targetPortfolio: 0
+    };
+    earlyRetirementRows: Array<{
+        year: number;
+        income: number;
+        expenses: number;
+        roi: number;
+        percentExpensesCovered: number;
+        netWorthChange: number;
+        netWorth: number;
+    }> = [];
+    earlyRetirementTableExpanded = false;
+    earlyRetirementRowsToShow = 10;
+    earlyRetirementChartData: ChartConfiguration<'line'>['data'] = {
+        labels: [],
+        datasets: []
+    };
+    earlyRetirementChartOptions: ChartConfiguration<'line'>['options'] = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: { mode: 'index', intersect: false }
+        },
+        scales: {
+            y: { beginAtZero: false, ticks: { callback: (value) => `$${(+value).toLocaleString()}` } }
+        }
+    };
     Math = Math;
 
     constructor(
@@ -94,6 +136,8 @@ export class RetirementTrackerComponent implements OnInit, OnChanges {
                 this.loadPreviousMonthData();
             }
         });
+
+        this.calculateEarlyRetirement();
     }
 
     loadSnapshotForDate(date: string): void {
@@ -645,6 +689,89 @@ export class RetirementTrackerComponent implements OnInit, OnChanges {
     formatPercent(value: number | null | undefined): string {
         if (value === null || value === undefined) return '0%';
         return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+    }
+
+    calculateEarlyRetirement(): void {
+        const income = Math.max(0, this.earlyRetirementInputs.annualIncome || 0);
+        const expenses = Math.max(0, this.earlyRetirementInputs.annualExpenses || 0);
+        const portfolio = Math.max(0, this.earlyRetirementInputs.currentPortfolio || 0);
+        const annualReturn = (this.earlyRetirementInputs.annualReturnPct || 0) / 100;
+        const withdrawalRate = (this.earlyRetirementInputs.withdrawalRatePct || 0) / 100;
+        const annualSavings = Math.max(income - expenses, 0);
+        const savingsRate = income > 0 ? (annualSavings / income) * 100 : 0;
+        const targetPortfolio = withdrawalRate > 0 ? expenses / withdrawalRate : 0;
+
+        this.earlyRetirementResult.annualSavings = annualSavings;
+        this.earlyRetirementResult.savingsRate = savingsRate;
+        this.earlyRetirementResult.monthlyExpenses = expenses / 12;
+        this.earlyRetirementResult.monthlySavings = annualSavings / 12;
+        this.earlyRetirementResult.targetPortfolio = targetPortfolio;
+
+        const rows: Array<{
+            year: number;
+            income: number;
+            expenses: number;
+            roi: number;
+            percentExpensesCovered: number;
+            netWorthChange: number;
+            netWorth: number;
+        }> = [];
+
+        let netWorth = portfolio;
+        let yearsToRetire = 0;
+        const maxYears = 60;
+
+        for (let year = 0; year <= maxYears; year += 1) {
+            const roi = netWorth * annualReturn;
+            const netWorthChange = annualSavings + roi;
+            const percentExpensesCovered = expenses > 0 ? (roi / expenses) * 100 : 0;
+
+            rows.push({
+                year,
+                income,
+                expenses,
+                roi,
+                percentExpensesCovered,
+                netWorthChange,
+                netWorth
+            });
+
+            if (netWorth >= targetPortfolio && yearsToRetire === 0 && year > 0) {
+                yearsToRetire = year;
+            }
+
+            netWorth = netWorth + netWorthChange;
+        }
+
+        if (yearsToRetire === 0 && targetPortfolio > 0) {
+            const found = rows.find(row => row.netWorth >= targetPortfolio);
+            yearsToRetire = found ? found.year : maxYears;
+        }
+
+        this.earlyRetirementResult.yearsToRetire = yearsToRetire;
+        this.earlyRetirementRows = rows;
+
+        this.earlyRetirementChartData = {
+            labels: rows.map(row => `Year ${row.year}`),
+            datasets: [
+                {
+                    label: 'Projected Net Worth',
+                    data: rows.map(row => row.netWorth),
+                    borderColor: '#6366f1',
+                    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                    pointRadius: 0,
+                    tension: 0.3,
+                    fill: true
+                }
+            ]
+        };
+    }
+
+    getEarlyRetirementDisplayedRows() {
+        if (this.earlyRetirementRowsToShow <= 0) {
+            return this.earlyRetirementRows;
+        }
+        return this.earlyRetirementRows.slice(0, this.earlyRetirementRowsToShow);
     }
 
     get retirementScorecards(): any[] {

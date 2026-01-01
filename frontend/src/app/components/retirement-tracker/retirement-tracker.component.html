@@ -1,4 +1,4 @@
-<div class="retirement-tracker-container">
+<div class="retirement-tracker-container" id="retirement">
     <!-- Header -->
     <div class="header-section flex justify-between items-center mb-6">
         <div>
@@ -488,6 +488,180 @@
         </div>
         <div class="chart-container">
             <canvas baseChart [data]="lineChartData" [options]="lineChartOptions" [type]="'line'"></canvas>
+        </div>
+    </div>
+
+    <!-- Retirement Hub -->
+    <div class="section-card">
+        <h2 class="section-title">🏡 Retirement Hub</h2>
+
+        <!-- Early Retirement Calculator -->
+        <div id="networthify"
+            class="mt-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white/60 dark:bg-gray-900/30 p-6">
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+                <h3 class="text-3xl font-black text-gray-900 dark:text-white tracking-tight">Networthify</h3>
+                <button type="button" (click)="calculateEarlyRetirement()"
+                    class="px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-500 transition-colors">
+                    Crunch the numbers
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <label class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                            Current annual income
+                            <input type="number" [(ngModel)]="earlyRetirementInputs.annualIncome"
+                                (ngModelChange)="calculateEarlyRetirement()"
+                                class="mt-2 w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm font-semibold text-gray-900 dark:text-white" />
+                        </label>
+                        <label class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                            Current annual expenses
+                            <input type="number" [(ngModel)]="earlyRetirementInputs.annualExpenses"
+                                (ngModelChange)="calculateEarlyRetirement()"
+                                class="mt-2 w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm font-semibold text-gray-900 dark:text-white" />
+                        </label>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <label class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                            Current portfolio value
+                            <input type="number" [(ngModel)]="earlyRetirementInputs.currentPortfolio"
+                                (ngModelChange)="calculateEarlyRetirement()"
+                                class="mt-2 w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm font-semibold text-gray-900 dark:text-white" />
+                        </label>
+                        <label class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                            Expected annual return (%)
+                            <input type="number" [(ngModel)]="earlyRetirementInputs.annualReturnPct"
+                                (ngModelChange)="calculateEarlyRetirement()"
+                                class="mt-2 w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm font-semibold text-gray-900 dark:text-white" />
+                        </label>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <label class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                            Withdrawal rate (%)
+                            <input type="number" [(ngModel)]="earlyRetirementInputs.withdrawalRatePct"
+                                (ngModelChange)="calculateEarlyRetirement()"
+                                class="mt-2 w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm font-semibold text-gray-900 dark:text-white" />
+                        </label>
+                        <div
+                            class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3">
+                            <div class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                Current savings rate
+                            </div>
+                            <div class="text-2xl font-black text-gray-900 dark:text-white mt-1">
+                                {{ earlyRetirementResult.savingsRate | number:'1.0-1' }}%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="rounded-2xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/40 dark:bg-indigo-900/20 p-6">
+                    <div class="text-sm text-indigo-700 dark:text-indigo-200 font-semibold uppercase tracking-wider">
+                        You can retire in
+                    </div>
+                    <div class="text-5xl font-black text-indigo-900 dark:text-white mt-2">
+                        {{ earlyRetirementResult.yearsToRetire | number:'1.0-1' }} years
+                    </div>
+                    <div class="mt-4 text-sm text-indigo-700 dark:text-indigo-200">
+                        with a savings rate of
+                        <span class="font-bold">{{ earlyRetirementResult.savingsRate | number:'1.0-1' }}%</span>
+                    </div>
+                    <div class="mt-4 grid grid-cols-2 gap-3 text-xs text-indigo-700 dark:text-indigo-200">
+                        <div>
+                            Annual savings
+                            <div class="text-lg font-black text-indigo-900 dark:text-white">
+                                {{ earlyRetirementResult.annualSavings | currency:'USD':'symbol':'1.0-0' }}
+                            </div>
+                        </div>
+                        <div>
+                            Annual expenses
+                            <div class="text-lg font-black text-indigo-900 dark:text-white">
+                                {{ earlyRetirementInputs.annualExpenses | currency:'USD':'symbol':'1.0-0' }}
+                            </div>
+                        </div>
+                        <div>
+                            Monthly expenses
+                            <div class="text-lg font-black text-indigo-900 dark:text-white">
+                                {{ earlyRetirementResult.monthlyExpenses | currency:'USD':'symbol':'1.0-0' }}
+                            </div>
+                        </div>
+                        <div>
+                            Monthly savings
+                            <div class="text-lg font-black text-indigo-900 dark:text-white">
+                                {{ earlyRetirementResult.monthlySavings | currency:'USD':'symbol':'1.0-0' }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 text-xs text-indigo-700 dark:text-indigo-200">
+                        Target portfolio: <span class="font-bold">{{
+                            earlyRetirementResult.targetPortfolio | currency:'USD':'symbol':'1.0-0' }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6">
+                <div class="text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Projected Net Worth</div>
+                <div class="chart-container">
+                    <canvas baseChart [data]="earlyRetirementChartData" [options]="earlyRetirementChartOptions"
+                        [type]="'line'"></canvas>
+                </div>
+            </div>
+
+            <div class="mt-6">
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                    <div class="flex items-center gap-3">
+                        <button type="button" (click)="earlyRetirementTableExpanded = !earlyRetirementTableExpanded"
+                            class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/60 transition-colors">
+                            {{ earlyRetirementTableExpanded ? 'Collapse table' : 'Expand table' }}
+                        </button>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                            Showing {{ getEarlyRetirementDisplayedRows().length }} of {{ earlyRetirementRows.length }}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                        <span class="font-semibold">Rows</span>
+                        <select [(ngModel)]="earlyRetirementRowsToShow"
+                            class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 text-xs font-semibold text-gray-700 dark:text-gray-200">
+                            <option [ngValue]="5">5</option>
+                            <option [ngValue]="10">10</option>
+                            <option [ngValue]="20">20</option>
+                            <option [ngValue]="50">50</option>
+                            <option [ngValue]="0">All</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div *ngIf="earlyRetirementTableExpanded" class="overflow-auto rounded-2xl border border-gray-200 dark:border-gray-700">
+                    <table class="min-w-full text-sm">
+                        <thead class="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 uppercase text-xs">
+                            <tr>
+                                <th class="px-4 py-3 text-left">End of Year</th>
+                                <th class="px-4 py-3 text-left">Income</th>
+                                <th class="px-4 py-3 text-left">Expenses</th>
+                                <th class="px-4 py-3 text-left">ROI</th>
+                                <th class="px-4 py-3 text-left">% Expenses Covered by ROI</th>
+                                <th class="px-4 py-3 text-left">Change in Net Worth</th>
+                                <th class="px-4 py-3 text-left">Net Worth</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let row of getEarlyRetirementDisplayedRows()"
+                                class="border-t border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200">
+                                <td class="px-4 py-3">{{ row.year }}</td>
+                                <td class="px-4 py-3">{{ row.income | currency:'USD':'symbol':'1.0-0' }}</td>
+                                <td class="px-4 py-3">{{ row.expenses | currency:'USD':'symbol':'1.0-0' }}</td>
+                                <td class="px-4 py-3">{{ row.roi | currency:'USD':'symbol':'1.0-0' }}</td>
+                                <td class="px-4 py-3">{{ row.percentExpensesCovered | number:'1.0-0' }}%</td>
+                                <td class="px-4 py-3">{{ row.netWorthChange | currency:'USD':'symbol':'1.0-0' }}</td>
+                                <td class="px-4 py-3">{{ row.netWorth | currency:'USD':'symbol':'1.0-0' }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>

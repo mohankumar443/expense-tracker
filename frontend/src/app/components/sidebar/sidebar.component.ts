@@ -17,6 +17,7 @@ export class SidebarComponent implements OnInit {
     isCollapsed = false;
     activeSection = 'overview';
     showMore = false;
+    showRetirement = false;
     private navItemType = null as unknown as { id: string; label: string; icon: string; hint?: string };
     primaryNavItems: Array<{ id: string; label: string; icon: string; hint?: string }> = [
         { id: 'overview', label: 'Overview', icon: 'dashboard', hint: 'Debt + Retirement' }
@@ -27,6 +28,10 @@ export class SidebarComponent implements OnInit {
         { id: 'accounts', label: 'Debt Accounts', icon: 'account_balance_wallet' },
         { id: 'budget', label: 'Budget & Expenses', icon: 'payments' },
         { id: 'recurring', label: 'Recurring & EMIs', icon: 'repeat' }
+    ];
+    retirementNavItems: Array<{ id: string; label: string; icon: string }> = [
+        { id: 'retirement', label: 'Retirement Pulse', icon: 'savings' },
+        { id: 'networthify', label: 'Networthify', icon: 'calculate' }
     ];
 
     @Output() sidebarToggled = new EventEmitter<boolean>();
@@ -91,12 +96,20 @@ export class SidebarComponent implements OnInit {
         this.showMore = !this.showMore;
     }
 
+    toggleRetirement() {
+        this.showRetirement = !this.showRetirement;
+    }
+
     openCompare() {
         this.compareStateService.open();
     }
 
     get totalSecondaryCount() {
         return this.secondaryNavItems.length;
+    }
+
+    get totalRetirementCount() {
+        return this.retirementNavItems.length;
     }
 
     setActiveSection(sectionId: string) {

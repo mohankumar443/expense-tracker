@@ -84,13 +84,34 @@
                 </ng-container>
             </div>
 
-            <button (click)="setActiveSection('retirement')" title="Retirement" [class]="'group w-full flex items-center rounded-xl transition-all duration-200 ' +
+            <button (click)="toggleRetirement()" [title]="showRetirement ? 'Hide Retirement Hub' : 'Show Retirement Hub'" [class]="'group w-full flex items-center rounded-xl transition-all duration-200 ' +
                     (isCollapsed ? 'justify-center p-3' : 'gap-3 px-3 py-2.5') +
-                    (activeSection === 'retirement' ? ' bg-gradient-to-r from-primary to-purple-600 text-white shadow-lg' :
+                    (showRetirement ? ' bg-gray-100 dark:bg-gray-800/70 text-gray-900 dark:text-gray-100' :
                     ' text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/60')">
                 <span class="material-icons text-xl">savings</span>
-                <span *ngIf="!isCollapsed" class="font-semibold text-sm">Retirement</span>
+                <span *ngIf="!isCollapsed" class="flex items-center justify-between w-full">
+                    <span class="font-semibold text-sm">Retirement Hub</span>
+                    <span
+                        class="px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-[10px] font-bold text-gray-600 dark:text-gray-400">
+                        {{ totalRetirementCount }}
+                    </span>
+                </span>
+                <span *ngIf="!isCollapsed" class="material-icons text-base ml-auto">
+                    {{ showRetirement ? 'expand_less' : 'expand_more' }}
+                </span>
             </button>
+
+            <div *ngIf="showRetirement" class="space-y-2 pl-1">
+                <ng-container *ngFor="let item of retirementNavItems">
+                    <button (click)="setActiveSection(item.id)" [title]="item.label" [class]="'group w-full flex items-center rounded-xl transition-all duration-200 ' +
+                            (isCollapsed ? 'justify-center p-3' : 'gap-3 px-3 py-2.5') +
+                            (activeSection === item.id ? ' bg-gradient-to-r from-primary to-purple-600 text-white shadow-lg' :
+                            ' text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/60')">
+                        <span class="material-icons text-xl">{{ item.icon }}</span>
+                        <span *ngIf="!isCollapsed" class="font-semibold text-sm">{{ item.label }}</span>
+                    </button>
+                </ng-container>
+            </div>
         </nav>
 
         <!-- History -->

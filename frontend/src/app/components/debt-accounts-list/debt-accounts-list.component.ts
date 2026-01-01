@@ -400,12 +400,17 @@ export class DebtAccountsListComponent implements OnInit {
         const accounts = this.getCategoryAccounts(category);
         if (accounts.length === 0) return ['No accounts available in this category yet.'];
 
-        const highestApr = [...accounts].sort((a, b) => (b.apr || 0) - (a.apr || 0))[0];
-        const monthlyInterest = accounts.reduce((sum, acc) => sum + this.calculateMonthlyInterest(acc.currentBalance || 0, acc.apr || 0), 0);
-        const suggestedPayoff = [...accounts].sort((a, b) =>
+        const activeAccounts = accounts.filter(acc => (acc.currentBalance || 0) > 0);
+        if (activeAccounts.length === 0) {
+            return ['All accounts in this category are paid off.'];
+        }
+
+        const highestApr = [...activeAccounts].sort((a, b) => (b.apr || 0) - (a.apr || 0))[0];
+        const monthlyInterest = activeAccounts.reduce((sum, acc) => sum + this.calculateMonthlyInterest(acc.currentBalance || 0, acc.apr || 0), 0);
+        const suggestedPayoff = [...activeAccounts].sort((a, b) =>
             this.calculateMonthlyInterest(b.currentBalance || 0, b.apr || 0) - this.calculateMonthlyInterest(a.currentBalance || 0, a.apr || 0)
         )[0];
-        const payoffMonths = accounts
+        const payoffMonths = activeAccounts
             .filter(acc => acc.monthlyPayment && acc.currentBalance && acc.monthlyPayment > 0)
             .map(acc => Math.ceil((acc.currentBalance || 0) / (acc.monthlyPayment || 1)))[0];
 

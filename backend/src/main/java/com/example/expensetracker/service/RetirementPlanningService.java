@@ -95,10 +95,12 @@ public class RetirementPlanningService {
         // Get YTD snapshots
         List<RetirementSnapshot> ytdSnapshots = snapshotRepository.findByYear(yearStart, snapshotDate.plusDays(1));
         ytdSnapshots.sort(Comparator.comparing(RetirementSnapshot::getSnapshotDate));
+        boolean hasPriorYtd = ytdSnapshots.stream()
+                .anyMatch(snapshot -> snapshot.getSnapshotDate().isBefore(snapshotDate));
 
         // Get previous snapshot for growth calculation (relative to current snapshot)
         LocalDate previousMonthDate = snapshotDate.minusMonths(1);
-        Optional<RetirementSnapshot> previousSnapshotOpt = snapshotRepository.findBySnapshotDate(previousMonthDate);
+        Optional<RetirementSnapshot> previousSnapshotOpt = findPreviousSnapshot(previousMonthDate);
 
         List<AccountScorecard> scorecards = new ArrayList<>();
         Map<String, Double> accountGrowthMap = new HashMap<>();
@@ -116,6 +118,11 @@ public class RetirementPlanningService {
             // Calculate YTD metrics
             double ytdContributions = calculateYTDContributions(ytdSnapshots, accountDTO.getAccountType());
             double ytdStartBalance = findYearStartBalance(ytdSnapshots, accountDTO.getAccountType(), previousBalance);
+            if (!hasPriorYtd && previousBalance > 0) {
+                // No earlier YTD baseline: fall back to last month's snapshot.
+                ytdContributions = 0.0;
+                ytdStartBalance = previousBalance;
+            }
             double ytdGrowth = accountDTO.getBalance() - ytdStartBalance
                     - (ytdContributions + accountDTO.getContribution());
             double ytdGrowthPercent = ytdStartBalance > 0 ? (ytdGrowth / ytdStartBalance) * 100.0 : 0.0;
@@ -240,6 +247,23 @@ public class RetirementPlanningService {
         } else {
             return "On Plan";
         }
+    }
+
+    private Optional<RetirementSnapshot> findPreviousSnapshot(LocalDate previousMonthDate) {
+        Optional<RetirementSnapshot> exactMatch = snapshotRepository.findBySnapshotDate(previousMonthDate);
+        if (exactMatch.isPresent()) {
+            return exactMatch;
+        }
+
+        LocalDate monthStart = previousMonthDate.withDayOfMonth(1);
+        LocalDate monthEnd = monthStart.plusMonths(1);
+        List<RetirementSnapshot> snapshots = snapshotRepository.findBySnapshotDateBetween(monthStart, monthEnd);
+        if (snapshots == null || snapshots.isEmpty()) {
+            return Optional.empty();
+        }
+
+        snapshots.sort(Comparator.comparing(RetirementSnapshot::getSnapshotDate));
+        return Optional.ofNullable(snapshots.get(snapshots.size() - 1));
     }
 
     private GrowthAttribution calculateGrowthAttribution(Map<String, Double> accountGrowthMap,
