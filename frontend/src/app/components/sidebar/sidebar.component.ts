@@ -37,8 +37,7 @@ export class SidebarComponent implements OnInit {
         { id: 'budget', label: 'Budget & Expenses', icon: 'account_balance_wallet' }
     ];
     wealthNavItems: Array<{ id: string; label: string; icon: string }> = [
-        { id: 'retirement', label: 'Retirement Hub', icon: 'show_chart' },
-        { id: 'retirement-pulse', label: 'Retirement Pulse', icon: 'monitoring' }
+        { id: 'retirement', label: 'Retirement Hub', icon: 'savings' }
     ];
     strategyNavItems: Array<{ id: string; label: string; icon: string }> = [
         { id: 'strategy', label: 'Strategy Center', icon: 'track_changes' }
@@ -157,7 +156,7 @@ export class SidebarComponent implements OnInit {
             return;
         }
         this.activeSection = sectionId;
-        this.scrollToSection(sectionId);
+        setTimeout(() => this.scrollToSection(sectionId), 50);
     }
 
     scrollToSection(sectionId: string) {
