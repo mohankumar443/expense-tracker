@@ -4,5 +4,6 @@ export interface Expense {
     amount: number;
     category: string;
     date: string;
+    cardName?: string;
     isRecurring?: boolean;
 }

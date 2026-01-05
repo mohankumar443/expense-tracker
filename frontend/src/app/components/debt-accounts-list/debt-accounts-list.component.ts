@@ -101,22 +101,13 @@ export class DebtAccountsListComponent implements OnInit {
         { label: 'Utilities / Mobile', value: '$220–$260' },
         { label: 'Fun money', value: '$120–$150' }
     ];
-    coachDebtPlan = [
-        { step: 1, name: 'Bank of America', note: '24% APR – clear first' },
-        { step: 2, name: 'Citi Card 2', note: '24% APR – next target' },
-        { step: 3, name: 'Bilt Credit Card', note: '18% APR, promo 2025-11-11' },
-        { step: 4, name: 'Then 0% promos expiring soon, then 13% loan', note: 'Snowball payments forward' }
-    ];
+    coachDebtPlan: Array<{ step: number; name: string; note: string }> = [];
     coachChallenges = [
         { title: 'One-Trip Groceries (30 days)', savings: '$60–$100', detail: 'Plan one Costco + one ethnic trip; no extra runs.', actions: ['Add to Calendar', 'Apply to Budget'] },
         { title: 'Micro-Spend Cap', savings: '$40–$70', detail: 'Limit app/coffee swipes to $X per week; batch on one day.', actions: ['Add to Calendar', 'Apply to Budget'] },
         { title: 'Subscription Audit', savings: '$20–$40', detail: 'Drop one unused app/stream; confirm mobile promo.', actions: ['Add to Calendar', 'Apply to Budget'] }
     ];
-    coachDonuts = [
-        { label: 'Bank of America', progress: 35 },
-        { label: 'Citi Card 2', progress: 20 },
-        { label: 'Bilt Credit Card', progress: 10 }
-    ];
+    coachDonuts: Array<{ label: string; progress: number }> = [];
     coachExplainOpen = false;
     activeActionPanel: string | null = null;
 
@@ -238,6 +229,7 @@ export class DebtAccountsListComponent implements OnInit {
             this.creditCards = accounts.filter(a => a.type === 'CREDIT_CARD');
             this.personalLoans = accounts.filter(a => a.type === 'PERSONAL_LOAN');
             this.autoLoans = accounts.filter(a => a.type === 'AUTO_LOAN');
+            this.updateCoachData(accounts);
         });
     }
 
@@ -251,6 +243,7 @@ export class DebtAccountsListComponent implements OnInit {
             this.creditCards = accounts.filter(a => a.type === 'CREDIT_CARD');
             this.personalLoans = accounts.filter(a => a.type === 'PERSONAL_LOAN');
             this.autoLoans = accounts.filter(a => a.type === 'AUTO_LOAN');
+            this.updateCoachData(accounts);
 
             // Load previous month's data
             this.debtService.getAvailableSnapshots().subscribe(snapshots => {
@@ -273,6 +266,57 @@ export class DebtAccountsListComponent implements OnInit {
                 }
             });
         });
+    }
+
+    updateCoachData(accounts: DebtAccount[]) {
+        const activeAccounts = accounts.filter(acc => (acc.currentBalance || 0) > 0 && acc.status !== 'PAID_OFF');
+        if (activeAccounts.length === 0) {
+            this.coachDebtPlan = [{ step: 1, name: 'All debts cleared', note: 'No active balances found.' }];
+            this.coachDonuts = [];
+            return;
+        }
+
+        const ranked = [...activeAccounts].sort((a, b) =>
+            this.calculateMonthlyInterest(b.currentBalance || 0, b.apr || 0) -
+            this.calculateMonthlyInterest(a.currentBalance || 0, a.apr || 0)
+        );
+        const topPlan = ranked.slice(0, 4);
+        this.coachDebtPlan = topPlan.map((account, index) => {
+            const apr = account.apr || 0;
+            let note = `${apr}% APR`;
+            if (this.isPromoExpiringSoon(account) && account.promoExpires) {
+                note += ` · promo ends ${account.promoExpires}`;
+            }
+            if (index === 0) {
+                note += ' — clear first';
+            } else if (index === 1) {
+                note += ' — next target';
+            } else {
+                note += ' — then';
+            }
+            return { step: index + 1, name: account.name, note };
+        });
+
+        if (ranked.length > topPlan.length) {
+            const remaining = ranked.length - topPlan.length;
+            this.coachDebtPlan.push({
+                step: topPlan.length + 1,
+                name: `Then ${remaining} remaining account${remaining > 1 ? 's' : ''}`,
+                note: 'Snowball payments forward'
+            });
+        }
+
+        this.coachDonuts = ranked.slice(0, 3).map(account => ({
+            label: account.name,
+            progress: this.getPayoffProgress(account)
+        }));
+    }
+
+    getPayoffProgress(account: DebtAccount): number {
+        const baseline = account.creditLimit || account.loanAmount || account.currentBalance || 0;
+        if (baseline <= 0) return 0;
+        const paidFraction = 1 - (account.currentBalance || 0) / baseline;
+        return Math.max(0, Math.min(100, Math.round(paidFraction * 100)));
     }
 
     getAprClass(apr: number): string {

@@ -359,6 +359,66 @@ export class RetirementTrackerComponent implements OnInit, OnChanges {
         return this.response?.accountScorecard?.find((s: any) => s.accountType === accountType);
     }
 
+    getScorecardNote(scorecard: any): string {
+        if (!scorecard) return '—';
+        const status = scorecard.status || '';
+        const required = this.response?.requiredMonthlyContribution || 0;
+        const accountContribution = this.getAccountContribution(scorecard.accountType);
+        const totalContribution = this.getTotalContributions();
+
+        if (!required) {
+            if (status === 'Behind' || status === 'Slightly Behind') {
+                const suggested = accountContribution > 0 ? Math.max(10, Math.round(accountContribution * 0.1)) : 50;
+                const totalGap = Math.abs(this.response?.differenceAmount || 0);
+                if (totalGap > 0) {
+                    return `Behind by ${this.formatCurrency(totalGap)} — add ${this.formatCurrency(suggested)}/mo to ${scorecard.accountType}.`;
+                }
+                return `Behind — add ${this.formatCurrency(suggested)}/mo to ${scorecard.accountType} to improve pace.`;
+            }
+            if (status === 'Ahead' || status === 'Leading') {
+                if (accountContribution <= 0) {
+                    return 'Ahead — keep current pace or redirect surplus.';
+                }
+                return `Ahead — keep ${this.formatCurrency(accountContribution)}/mo or redirect surplus.`;
+            }
+            return `On plan — keep ${this.formatCurrency(accountContribution)}/mo.`;
+        }
+
+        const totalGap = Math.max(0, required - totalContribution);
+        const share = this.getScorecardGapShare(scorecard, totalGap);
+        const targetShare = accountContribution + share;
+
+        if (status === 'Behind' || status === 'Slightly Behind') {
+            return `Short by ${this.formatCurrency(share)}/mo — aim for ${this.formatCurrency(targetShare)}/mo (current ${this.formatCurrency(accountContribution)}/mo).`;
+        }
+
+        if (status === 'Ahead' || status === 'Leading') {
+            return `Ahead — keep ${this.formatCurrency(accountContribution)}/mo or shift extra to lagging accounts.`;
+        }
+
+        return `On plan — keep ${this.formatCurrency(accountContribution)}/mo (target ${this.formatCurrency(targetShare)}/mo).`;
+    }
+
+    private getScorecardGapShare(scorecard: any, totalGap: number): number {
+        const totalContrib = this.getTotalContributions();
+        if (totalContrib > 0) {
+            const account = this.accounts.find(a => a.accountType === scorecard.accountType);
+            const accountContribution = account?.contribution || 0;
+            return Math.max(0, Math.round((accountContribution / totalContrib) * totalGap));
+        }
+
+        const behind = this.response?.accountScorecard?.filter((s: any) =>
+            s.status === 'Behind' || s.status === 'Slightly Behind'
+        ) || [];
+        const divisor = behind.length > 0 ? behind.length : 1;
+        return Math.max(0, Math.round(totalGap / divisor));
+    }
+
+    private getAccountContribution(accountType: string): number {
+        const account = this.accounts.find(a => a.accountType === accountType);
+        return account?.contribution || 0;
+    }
+
     getAccountMoMChange(accountType: string): number {
         const current = this.accounts.find(a => a.accountType === accountType)?.balance || 0;
         const previous = this.previousAccountsMap.get(accountType)?.balance || 0;
@@ -412,6 +472,7 @@ export class RetirementTrackerComponent implements OnInit, OnChanges {
                 this.response = data;
                 this.updateFinancialHealthScore();
                 this.generateChartData();
+                this.lastSnapshotDate = new Date().toISOString();
                 this.loading = false;
                 if (persistSnapshot) {
                     this.toastService.show('Balances saved.', 'success');

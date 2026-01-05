@@ -128,8 +128,14 @@
         </div>
 
         <!-- Gap to Target -->
-        <div class="balance-card" [class.skeleton]="loading">
+        <div class="balance-card gap-card" [class.skeleton]="loading">
             <div class="balance-label">Gap to Target</div>
+            <div *ngIf="response?.status" class="retirement-status-badge">
+                <span class="status-pill" [ngClass]="getStatusBadgeColor(response?.status || '')">
+                    <span class="status-icon">{{ getStatusIcon(response?.status || '') }}</span>
+                    {{ response?.status }}
+                </span>
+            </div>
             <div class="balance-amount" [ngClass]="getStatusColor(response?.status || '')">
                 {{formatCurrency(response?.differenceAmount || 0)}}
             </div>
@@ -363,6 +369,7 @@
                         <th>YTD Growth $</th>
                         <th>YTD Growth %</th>
                         <th>Status</th>
+                        <th>Notes</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -377,6 +384,7 @@
                                 {{getStatusIcon(scorecard.status)}} {{scorecard.status}}
                             </span>
                         </td>
+                        <td class="notes-cell">{{ getScorecardNote(scorecard) }}</td>
                     </tr>
                 </tbody>
             </table>

@@ -5,6 +5,7 @@ import { SnapshotStateService } from '../../services/snapshot-state.service';
 import { AutoCategorizationService } from '../../services/auto-categorization.service';
 import { BudgetAnalyticsService, CategoryBreakdown, Insight, MonthlyStats, BudgetScore, Prediction } from '../../services/budget-analytics.service';
 import { RecurringExpenseService, RecurringExpense } from '../../services/recurring-expense.service';
+import { DebtAccountService, DebtAccount } from '../../services/debt-account.service';
 import { ChartConfiguration, ChartData, ChartType } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 
@@ -58,13 +59,15 @@ export class BudgetTrackerComponent implements OnInit {
     newSubscription = { name: '', amount: 0 };
     showEMIForm: boolean = false;
     newEMI = { description: '', amount: 0, category: 'Loan EMI' };
+    creditCardOptions: string[] = [];
 
     // Form
     newExpense: any = {
         description: '',
         amount: undefined,
         category: 'Grocery',
-        date: new Date().toISOString().split('T')[0]
+        date: new Date().toISOString().split('T')[0],
+        cardName: ''
     };
     categories = [
         'Amazon',
@@ -149,7 +152,8 @@ export class BudgetTrackerComponent implements OnInit {
         private snapshotStateService: SnapshotStateService,
         private autoCategorizationService: AutoCategorizationService,
         private analyticsService: BudgetAnalyticsService,
-        private recurringExpenseService: RecurringExpenseService
+        private recurringExpenseService: RecurringExpenseService,
+        private debtAccountService: DebtAccountService
     ) { }
 
     ngOnInit(): void {
@@ -159,11 +163,24 @@ export class BudgetTrackerComponent implements OnInit {
         });
         this.loadExpenses();
         this.loadRecurringExpenses();
+        this.loadCreditCardOptions();
     }
 
     loadRecurringExpenses() {
         this.recurringExpenseService.getAll().subscribe(data => {
             this.recurringExpensesList = data;
+        });
+    }
+
+    loadCreditCardOptions() {
+        this.debtAccountService.getAllDebts().subscribe(accounts => {
+            const uniqueNames = new Set(
+                accounts
+                    .filter(account => account.type === 'CREDIT_CARD')
+                    .map(account => account.name?.trim())
+                    .filter((name): name is string => !!name)
+            );
+            this.creditCardOptions = Array.from(uniqueNames).sort((a, b) => a.localeCompare(b));
         });
     }
 
@@ -299,7 +316,8 @@ export class BudgetTrackerComponent implements OnInit {
                 const term = this.searchTerm.toLowerCase();
                 const matchesDesc = expense.description.toLowerCase().includes(term);
                 const matchesAmount = expense.amount.toString().includes(term);
-                if (!matchesDesc && !matchesAmount) return false;
+                const matchesCard = (expense.cardName || '').toLowerCase().includes(term);
+                if (!matchesDesc && !matchesAmount && !matchesCard) return false;
             }
 
             // 2. Category Filter
@@ -468,7 +486,8 @@ export class BudgetTrackerComponent implements OnInit {
             description: '',
             amount: 0,
             category: 'Food', // Default category
-            date: new Date().toISOString().split('T')[0]
+            date: new Date().toISOString().split('T')[0],
+            cardName: ''
         };
         this.showAddExpenseModal = false;
     }
@@ -523,6 +542,7 @@ export class BudgetTrackerComponent implements OnInit {
         this.newExpense.description = '';
         this.newExpense.amount = undefined;
         this.newExpense.category = 'Grocery';
+        this.newExpense.cardName = '';
         this.resetFormDate(this.targetDate);
     }
 

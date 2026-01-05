@@ -18,6 +18,9 @@ public class Expense {
     @Field("category")
     private String category;
 
+    @Field("card_name")
+    private String cardName;
+
     @Field("is_recurring")
     private Boolean isRecurring = false;
 
@@ -60,6 +63,14 @@ public class Expense {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public String getCardName() {
+        return cardName;
+    }
+
+    public void setCardName(String cardName) {
+        this.cardName = cardName;
     }
 
     public Boolean getIsRecurring() {

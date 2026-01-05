@@ -46,6 +46,35 @@
     transition: all 0.3s ease;
 }
 
+.gap-card {
+    position: relative;
+}
+
+.retirement-status-badge {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.6rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.retirement-status-badge .status-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+}
+
+.retirement-status-badge .status-icon {
+    font-size: 1.2rem;
+    line-height: 1;
+    margin-right: 0.25rem;
+    display: inline-block;
+}
+
 .balance-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
@@ -354,6 +383,14 @@
 
 .growth-percent-cell {
     font-weight: 700;
+    color: #e5e7eb;
+}
+
+.notes-cell {
+    color: #cbd5e1;
+    font-size: 0.85rem;
+    font-weight: 600;
+    max-width: 260px;
 }
 
 .status-badge {
