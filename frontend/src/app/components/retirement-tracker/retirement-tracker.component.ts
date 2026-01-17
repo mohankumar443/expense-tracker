@@ -63,6 +63,56 @@ export class RetirementTrackerComponent implements OnInit {
     earlyRetirementRowsToShow = 10;
     isGapCardDetailed = false; // Collapsed by default
 
+    // Investment Donut Chart
+    public donutChartData: ChartConfiguration<'doughnut'>['data'] = {
+        labels: [],
+        datasets: [{
+            data: [],
+            backgroundColor: [],
+            borderWidth: 0,
+            borderRadius: 8,
+            spacing: 4
+        }]
+    };
+
+    public donutChartOptions: ChartConfiguration<'doughnut'>['options'] = {
+        responsive: true,
+        maintainAspectRatio: true,
+        cutout: '78%',
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                enabled: false,
+                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                padding: 12,
+                titleColor: '#fff',
+                bodyColor: '#fff',
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                borderWidth: 1,
+                displayColors: true,
+                callbacks: {
+                    label: (context) => {
+                        const label = context.label || '';
+                        const value = context.parsed || 0;
+                        const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0) as number;
+                        const percentage = ((value / total) * 100).toFixed(1);
+                        return `${label}: ${this.formatCurrency(value)} (${percentage}%)`;
+                    }
+                }
+            }
+        },
+        onClick: (event, activeElements) => {
+            if (activeElements && activeElements.length > 0) {
+                const index = activeElements[0].index;
+                this.selectedAccountIndex = index;
+            }
+        }
+    };
+
+    hoveredAccountIndex: number | null = null;
+    selectedAccountIndex: number | null = null;
+    showDonutChart: boolean = true; // Toggle between static card and donut chart
+
     // Signals Proxies
     get accounts(): RetirementAccount[] { return this.service.accounts(); }
     get targetRetirementAge(): number { return this.service.targetRetirementAge(); }
@@ -117,6 +167,11 @@ export class RetirementTrackerComponent implements OnInit {
                 this.service.runSimulation();
             }
         }, { allowSignalWrites: true });
+
+        // Effect to update donut chart when accounts change
+        effect(() => {
+            this.generateDonutChartData();
+        });
     }
 
     ngOnInit(): void {
@@ -162,6 +217,41 @@ export class RetirementTrackerComponent implements OnInit {
         };
 
         this.updateChart(chartDataWithBands);
+    }
+
+    generateDonutChartData(): void {
+        const retirementAccounts = this.accounts.filter(acc => acc.goalType === 'RETIREMENT');
+
+        // Color palette matching account cards
+        const colorMap: { [key: string]: string } = {
+            '401k': '#6366f1',        // Indigo
+            'Roth IRA': '#8b5cf6',    // Purple
+            'HSA': '#ec4899',         // Pink
+            'Brokerage': '#14b8a6'    // Teal
+        };
+
+        const labels: string[] = [];
+        const data: number[] = [];
+        const backgroundColor: string[] = [];
+
+        retirementAccounts.forEach(acc => {
+            if (acc.balance > 0) {
+                labels.push(acc.accountType);
+                data.push(acc.balance);
+                backgroundColor.push(colorMap[acc.accountType] || '#6b7280');
+            }
+        });
+
+        this.donutChartData = {
+            labels,
+            datasets: [{
+                data,
+                backgroundColor,
+                borderWidth: 0,
+                borderRadius: 8,
+                spacing: 4
+            }]
+        };
     }
 
     // --- Playground State ---
@@ -230,6 +320,43 @@ export class RetirementTrackerComponent implements OnInit {
     getAccountMoMChangePercent(type: string): number { return this.service.getAccountMoMChangePercent(type); }
     getTotalMoMChange(): number { return this.service.getTotalMoMChange(); }
     getTotalMoMChangePercent(): number { return this.service.getTotalMoMChangePercent(); }
+
+    getDonutCenterValue(): number {
+        if (this.hoveredAccountIndex !== null && this.donutChartData.datasets[0].data[this.hoveredAccountIndex]) {
+            return this.donutChartData.datasets[0].data[this.hoveredAccountIndex] as number;
+        }
+        return this.service.totalRetirementBalance();
+    }
+
+    getDonutCenterLabel(): string {
+        if (this.hoveredAccountIndex !== null && this.donutChartData.labels) {
+            return this.donutChartData.labels[this.hoveredAccountIndex] as string;
+        }
+        return 'Total Invested';
+    }
+
+    getDonutCenterPercent(): string {
+        if (this.hoveredAccountIndex === null) return '';
+        const data = this.donutChartData.datasets[0].data as number[];
+        const value = data[this.hoveredAccountIndex] || 0;
+        const total = data.reduce((sum, item) => sum + item, 0);
+        if (!total) return '';
+        return `${((value / total) * 100).toFixed(1)}%`;
+    }
+
+    clearDonutHover(): void {
+        this.hoveredAccountIndex = null;
+    }
+
+    onDonutHover(event: { active?: unknown[] } | null): void {
+        const active = event?.active ?? [];
+        const index = (active[0] as { index?: number } | undefined)?.index;
+        this.hoveredAccountIndex = typeof index === 'number' ? index : null;
+    }
+
+    toggleDonutView(): void {
+        this.showDonutChart = !this.showDonutChart;
+    }
 
     getScorecard(type: string): any { return this.service.getScorecard(type); }
 
