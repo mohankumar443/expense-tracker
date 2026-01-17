@@ -1,7 +1,8 @@
 import { Directive, ElementRef, Input, OnChanges, SimpleChanges, Renderer2 } from '@angular/core';
 
 @Directive({
-    selector: '[appCountUp]'
+    selector: '[appCountUp]',
+    standalone: true
 })
 export class CountUpDirective implements OnChanges {
     @Input('appCountUp') endValue: number = 0;

@@ -44,9 +44,7 @@ import { ToastComponent } from './components/toast/toast.component';
         ConfirmationModalComponent,
         AccountFormModalComponent,
         StrategyDashboardComponent,
-        CountUpDirective,
         BudgetTrackerComponent,
-        RetirementTrackerComponent,
         ToastComponent
     ],
     imports: [
@@ -55,7 +53,9 @@ import { ToastComponent } from './components/toast/toast.component';
         HttpClientModule,
         FormsModule,
         NgChartsModule,
-        RecurringExpensesComponent
+        RecurringExpensesComponent,
+        RetirementTrackerComponent,
+        CountUpDirective
     ],
     providers: [ExpenseService],
     bootstrap: [AppComponent]

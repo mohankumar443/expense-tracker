@@ -403,18 +403,13 @@ public class RetirementPlanningService {
     }
 
     private String classifyStatus(double differenceAmount, double targetBalance) {
-        if (differenceAmount >= 0) {
+        if (differenceAmount > 1000) {
             return "Ahead";
         }
-        double onTrackThreshold = -0.05 * targetBalance;
-        double slightlyBehindThreshold = -0.10 * targetBalance;
-        if (differenceAmount >= onTrackThreshold) {
-            return "On Track";
+        if (differenceAmount < -1000) {
+            return "Behind";
         }
-        if (differenceAmount >= slightlyBehindThreshold) {
-            return "Slightly Behind";
-        }
-        return "Behind";
+        return "On Track";
     }
 
     private String buildCommentary(String status, Double requiredMonthlyContribution, int remainingMonths,

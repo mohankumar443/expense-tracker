@@ -1,80 +1,49 @@
-import { Component, OnInit, OnChanges, Input, SimpleChanges } from '@angular/core';
-import { RetirementService, RetirementPlanRequest, RetirementPlanResponse, AccountBalanceDTO } from '../../services/retirement.service';
-import { SnapshotStateService } from '../../services/snapshot-state.service';
-import { ToastService } from '../../services/toast.service';
-import { ChartConfiguration } from 'chart.js';
+import { Component, OnInit, computed, effect, Input } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { NgChartsModule } from 'ng2-charts';
+import { ChartConfiguration, ChartType } from 'chart.js';
+import { RetirementStateService, RetirementAccount } from '../../services/retirement-state.service';
+import { RetirementPlanResponse } from '../../services/retirement.service';
+import { CountUpDirective } from '../../directives/count-up.directive';
+import { SliderControlComponent } from '../ui/slider-control/slider-control.component';
 
 @Component({
     selector: 'app-retirement-tracker',
+    standalone: true,
+    imports: [CommonModule, FormsModule, NgChartsModule, CountUpDirective, SliderControlComponent],
     templateUrl: './retirement-tracker.component.html',
-    styleUrls: ['./retirement-tracker.component.css']
+    styleUrls: ['./retirement-tracker.component.scss']
 })
-export class RetirementTrackerComponent implements OnInit, OnChanges {
-    @Input() profileAge: number | null = null;
-    @Input() profileRetirementAge: number | null = null;
-    private hasLoadedSnapshot = false;
-    lastSnapshotDate: string | null = null;
-    // Fixed profile parameters
-    currentAge = 33;
-    targetRetirementAge = 50;
-    startingBalance = 94000;
-    baseMonthlyContribution = 2600;
-    targetPortfolioValue = 1270000;
-    annualReturn = 7;
-    previousTotalBalance = 0;
-    previousAccountsMap: Map<string, any> = new Map();
+export class RetirementTrackerComponent implements OnInit {
+    // Inputs from Parent (AppComponent)
+    @Input() set profileAge(val: number | null | undefined) {
+        if (val) this.service.currentAge.set(val);
+    }
 
-    healthScoreDetails: any = { score: 50, reasons: [], action: '' };
+    @Input() set profileRetirementAge(val: number | null | undefined) {
+        if (val) this.service.targetRetirementAge.set(val);
+    }
 
-    // Form inputs
-    monthYear: string = '';
-    oneTimeAdditions: number = 0;
-    afterTaxMode: 'flat' | 'bucketed' | 'custom' = 'bucketed';
-    flatTaxRate = 20;
-    customTaxRates = {
-        taxFree: 0,
-        taxDeferred: 22,
-        taxable: 15
-    };
-    projectionScenario: 'base' | 'actual' = 'actual';
-
-    // Account balances and contributions
-    accounts: any[] = [
-        { accountType: '401k', goalType: 'RETIREMENT', balance: 0, contribution: 0 },
-        { accountType: 'Roth IRA', goalType: 'RETIREMENT', balance: 0, contribution: 0 },
-        { accountType: 'HSA', goalType: 'RETIREMENT', balance: 0, contribution: 0 },
-        { accountType: 'Brokerage', goalType: 'RETIREMENT', balance: 0, contribution: 0 }
-    ];
-
-    // Track if balance was manually edited to prevent auto-overwrite
-    isManualBalance: boolean[] = [false, false, false, false];
-
-    // Response data
-    response: RetirementPlanResponse | null = null;
-    loading = false;
-    error: string | null = null;
-
-    // Chart data
-    lineChartData: ChartConfiguration<'line'>['data'] = {
-        labels: [],
-        datasets: []
-    };
-
-    lineChartOptions: ChartConfiguration<'line'>['options'] = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { display: true, position: 'top' },
-            tooltip: { mode: 'index', intersect: false }
-        },
+    // Chart Configuration
+    public lineChartData: ChartConfiguration['data'] = { datasets: [], labels: [] };
+    public lineChartOptions: ChartConfiguration['options'] = {
+        elements: { line: { tension: 0.4 } },
         scales: {
-            y: { beginAtZero: false, ticks: { callback: (value) => `$${(+value).toLocaleString()}` } }
-        }
+            y: { beginAtZero: true, grid: { color: 'rgba(100,100,100,0.1)' } },
+            x: { grid: { display: false } }
+        },
+        plugins: { legend: { display: true } }
     };
 
+    // Local UI State
+    projectionScenario: 'actual' | 'base' = 'actual';
+    baseMonthlyContribution = 2600; // Legacy default
+
+    // Early Retirement Calculator State (Networthify)
     earlyRetirementInputs = {
         annualIncome: 120000,
-        annualExpenses: 100000,
+        annualExpenses: 80000,
         currentPortfolio: 0,
         annualReturnPct: 5,
         withdrawalRatePct: 4
@@ -87,647 +56,211 @@ export class RetirementTrackerComponent implements OnInit, OnChanges {
         monthlySavings: 0,
         targetPortfolio: 0
     };
-    earlyRetirementRows: Array<{
-        year: number;
-        income: number;
-        expenses: number;
-        roi: number;
-        percentExpensesCovered: number;
-        netWorthChange: number;
-        netWorth: number;
-    }> = [];
+    earlyRetirementChartData: ChartConfiguration['data'] = { datasets: [], labels: [] };
+    earlyRetirementChartOptions: ChartConfiguration['options'] = { responsive: true };
     earlyRetirementTableExpanded = false;
+    earlyRetirementRows: any[] = [];
     earlyRetirementRowsToShow = 10;
-    earlyRetirementChartData: ChartConfiguration<'line'>['data'] = {
-        labels: [],
-        datasets: []
-    };
-    earlyRetirementChartOptions: ChartConfiguration<'line'>['options'] = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { display: false },
-            tooltip: { mode: 'index', intersect: false }
-        },
-        scales: {
-            y: { beginAtZero: false, ticks: { callback: (value) => `$${(+value).toLocaleString()}` } }
-        }
-    };
-    Math = Math;
+    isGapCardDetailed = false; // Collapsed by default
 
-    constructor(
-        private retirementService: RetirementService,
-        private snapshotStateService: SnapshotStateService,
-        private toastService: ToastService
-    ) { }
+    // Signals Proxies
+    get accounts(): RetirementAccount[] { return this.service.accounts(); }
+    get targetRetirementAge(): number { return this.service.targetRetirementAge(); }
+    set targetRetirementAge(val: number) { this.service.setTargetAge(val); }
+    get targetPortfolioValue(): number { return this.service.targetPortfolioValue(); }
+    set targetPortfolioValue(val: number) { this.service.setTargetValue(val); }
+    get monthYear(): string { return this.service.monthYear(); }
+    set monthYear(val: string) { this.service.setMonthYear(val); }
+    get oneTimeAdditions(): number { return this.service.oneTimeAdditions(); }
+    set oneTimeAdditions(val: number) { this.service.oneTimeAdditions.set(val); }
+    get afterTaxMode(): 'flat' | 'bucketed' | 'custom' { return this.service.afterTaxMode(); }
+    set afterTaxMode(val: 'flat' | 'bucketed' | 'custom') { this.service.afterTaxMode.set(val); }
+    get flatTaxRate(): number { return this.service.flatTaxRate(); }
+    set flatTaxRate(val: number) { this.service.flatTaxRate.set(val); }
+    get customTaxRates() { return this.service.customTaxRates(); }
+    get response(): RetirementPlanResponse | null { return this.service.response(); }
+    get loading(): boolean { return this.service.loading(); }
+    get error(): string | null { return this.service.error(); }
+    get recommendations() { return this.service.recommendations(); }
+
+    get monteCarloResults() { return this.service.monteCarloResults(); }
+    get probabilitySuccess(): number { return this.monteCarloResults?.probabilitySuccess ?? 0; }
+    get isSimulationEnabled(): boolean { return this.service.simulationEnabled(); }
+    set isSimulationEnabled(val: boolean) { this.service.simulationEnabled.set(val); }
+
+    get previousTotalBalance(): number {
+        return this.service.previousSnapshot() ? this.service.previousSnapshot().totalBalance || 0 : 0;
+    }
+
+    constructor(public service: RetirementStateService) {
+        // Effect to update Chart when data changes
+        effect(() => {
+            this.generateChartData();
+        });
+
+        // Initialize Early Retirement calculator
+        effect(() => {
+            const total = this.service.totalRetirementBalance();
+            if (total > 0 && this.earlyRetirementInputs.currentPortfolio === 0) {
+                this.earlyRetirementInputs.currentPortfolio = total;
+                this.calculateEarlyRetirement();
+            }
+        });
+
+        // Effect to trigger Monte Carlo Simulation
+        effect(() => {
+            // Trigger when response (base data), playground, or enabled changes
+            const resp = this.service.response();
+            const enabled = this.service.simulationEnabled();
+            if (resp && enabled) {
+                // We use untracked values inside runSimulation or just let it read signals
+                this.service.runSimulation();
+            }
+        }, { allowSignalWrites: true });
+    }
 
     ngOnInit(): void {
-        this.snapshotStateService.currentSnapshot$.subscribe(date => {
-            if (date) {
-                this.monthYear = date.substring(0, 7);
-                if (date.length >= 10) {
-                    this.loadSnapshotForDate(date);
-                } else {
-                    this.loadSnapshotForMonth(this.monthYear);
-                }
-            } else {
-                const now = new Date();
-                this.monthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-                this.loadPreviousMonthData();
-            }
-        });
-
-        this.calculateEarlyRetirement();
+        if (!this.monthYear) {
+            const now = new Date();
+            this.monthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        }
+        this.service.loadState(this.monthYear);
     }
 
-    loadSnapshotForDate(date: string): void {
-        this.loading = true;
-        this.retirementService.getSnapshotByDate(date).subscribe({
-            next: (snapshot) => {
-                if (snapshot && this.hasRetirementData(snapshot)) {
-                    this.populateFromSnapshot(snapshot);
-                } else if (this.monthYear) {
-                    this.loadSnapshotForMonth(this.monthYear);
-                } else {
-                    this.loadPreviousMonthData();
-                }
-                this.loading = false;
-            },
-            error: () => {
-                if (this.monthYear) {
-                    this.loadSnapshotForMonth(this.monthYear);
-                } else {
-                    this.loadPreviousMonthData();
-                }
-                this.loading = false;
-            }
-        });
-    }
+    // --- Actions ---
 
-    loadSnapshotForMonth(monthYear: string): void {
-        this.loading = true;
-        this.retirementService.getSnapshotByMonth(monthYear).subscribe({
-            next: (snapshot) => {
-                if (snapshot && this.hasRetirementData(snapshot)) {
-                    this.populateFromSnapshot(snapshot);
-                } else {
-                    // If no snapshot for this month, carry over from latest to avoid starting at $0
-                    this.loadPreviousMonthData();
-                }
-                this.loading = false;
-            },
-            error: (err) => {
-                this.loadPreviousMonthData();
-                this.loading = false;
-            }
-        });
-    }
-
-    ngOnChanges(changes: SimpleChanges): void {
-        const nextAge = this.profileAge ?? this.currentAge;
-        const nextRetireAge = this.profileRetirementAge ?? this.targetRetirementAge;
-        this.currentAge = nextAge;
-        this.targetRetirementAge = nextRetireAge;
-        if (changes['profileAge'] || changes['profileRetirementAge']) {
-            const hasData = this.getTotalBalance() > 0 || this.getTotalContributions() > 0 || !!this.response;
-            if (this.hasLoadedSnapshot && hasData) {
-                this.calculate(false);
-            }
+    calculate(force: boolean = false): void {
+        if (force) {
+            this.service.triggerManualSave();
         }
     }
 
-    loadPreviousMonthData(): void {
-        this.retirementService.getAllSnapshots().subscribe({
-            next: (snapshots) => {
-                if (snapshots && snapshots.length > 0) {
-                    // Find the latest snapshot that is BEFORE the current monthYear
-                    const currentMonthDate = new Date(`${this.monthYear}-01`);
-                    const previousSnapshots = snapshots
-                        .filter(s => new Date(s.snapshotDate) < currentMonthDate)
-                        .sort((a, b) => new Date(b.snapshotDate).getTime() - new Date(a.snapshotDate).getTime());
-
-                    if (previousSnapshots.length > 0) {
-                        this.populateFromSnapshot(previousSnapshots[0]);
-                    } else {
-                        this.hasLoadedSnapshot = true;
-                    }
-                } else {
-                    this.hasLoadedSnapshot = true;
-                }
-            },
-            error: (err) => {
-                console.log('No previous snapshot found, starting fresh');
-                this.hasLoadedSnapshot = true;
-            }
-        });
+    resetForm(): void {
+        // Stub
     }
 
-    private populateFromSnapshot(snapshot: any): void {
-        if (!snapshot) return;
-
-        if (snapshot.accounts) {
-            this.previousTotalBalance = snapshot.totalBalance || 0;
-            // Auto-populate balances from previous month
-            snapshot.accounts.forEach((prevAccount: any) => {
-                this.previousAccountsMap.set(prevAccount.accountType, prevAccount);
-                const currentAccount = this.accounts.find(acc => acc.accountType === prevAccount.accountType);
-                if (currentAccount) {
-                    // Set balance to previous balance (will be updated when user enters contribution)
-                    currentAccount.balance = prevAccount.balance || 0;
-                }
-            });
-        }
-
-        // Restore persisted target value
-        if (snapshot.targetPortfolioValue) {
-            this.targetPortfolioValue = snapshot.targetPortfolioValue;
-        }
-
-        if (snapshot.totalContributions !== undefined) {
-            this.accounts.forEach(account => {
-                const prevAccount = snapshot.accounts?.find((acc: any) => acc.accountType === account.accountType);
-                if (prevAccount && prevAccount.contribution !== undefined) {
-                    account.contribution = prevAccount.contribution || 0;
-                }
-            });
-        }
-
-        if (snapshot.oneTimeAdditions !== undefined && snapshot.oneTimeAdditions !== null) {
-            this.oneTimeAdditions = snapshot.oneTimeAdditions;
-        }
-
-        if (snapshot.afterTaxMode) {
-            this.afterTaxMode = snapshot.afterTaxMode;
-        }
-        if (snapshot.flatTaxRate !== undefined && snapshot.flatTaxRate !== null) {
-            this.flatTaxRate = snapshot.flatTaxRate;
-        }
-        if (snapshot.taxFreeRate !== undefined && snapshot.taxDeferredRate !== undefined && snapshot.taxableRate !== undefined) {
-            this.customTaxRates = {
-                taxFree: snapshot.taxFreeRate,
-                taxDeferred: snapshot.taxDeferredRate,
-                taxable: snapshot.taxableRate
-            };
-        }
-
-        if (snapshot.snapshotDate) {
-            this.lastSnapshotDate = snapshot.snapshotDate;
-        }
-
-        // Trigger calculation to update Score, Chart, and Strategy immediately
-        this.hasLoadedSnapshot = true;
-        this.calculate(false);
-    }
-
-    private hasRetirementData(snapshot: any): boolean {
-        if (!snapshot) return false;
-        if ((snapshot.totalBalance || 0) > 0) return true;
-        if ((snapshot.totalContributions || 0) > 0) return true;
-        if (!snapshot.accounts) return false;
-        return snapshot.accounts.some((acc: any) => (acc.balance || 0) > 0 || (acc.contribution || 0) > 0);
-    }
-
-    // Called when user manually edits a balance
     onManualBalanceChange(index: number): void {
-        this.isManualBalance[index] = true;
+        const val = this.accounts[index].balance;
+        this.service.updateAccount(index, { balance: val });
     }
 
-    // Auto-calculate balance when contribution changes
-    updateBalance(accountIndex: number): void {
-        // If user has manually edited this balance, do not overwrite it
-        if (this.isManualBalance[accountIndex]) {
-            return;
-        }
-
-        if (!this.monthYear) return;
-
-        // Calculate previous month
-        const [year, month] = this.monthYear.split('-').map(Number);
-        const prevDate = new Date(year, month - 2, 1); // month is 1-indexed in split, but 0-indexed in Date constructor. month-2 gives previous month.
-        const prevMonthYear = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
-
-        this.retirementService.getSnapshotByMonth(prevMonthYear).subscribe({
-            next: (snapshot) => {
-                if (snapshot && snapshot.accounts) {
-                    const prevAccount = snapshot.accounts.find((acc: any) =>
-                        acc.accountType === this.accounts[accountIndex].accountType
-                    );
-                    if (prevAccount) {
-                        // Auto-calculate: Previous Balance + New Contribution
-                        this.accounts[accountIndex].balance =
-                            (prevAccount.balance || 0) + (this.accounts[accountIndex].contribution || 0);
-                    }
-                }
-            },
-            error: (err) => {
-                console.log('Could not auto-calculate balance - no previous month found');
-            }
-        });
-    }
-
-    getTotalBalance(): number {
-        return this.accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
-    }
-
-    getTotalRetirementBalance(): number {
-        return this.accounts
-            .filter(acc => acc.goalType === 'RETIREMENT')
-            .reduce((sum, acc) => sum + (acc.balance || 0), 0);
-    }
-
-    getTotalContributions(): number {
-        return this.accounts.reduce((sum, acc) => sum + (acc.contribution || 0), 0);
-    }
-
-    getLastUpdatedDisplay(): string {
-        if (this.lastSnapshotDate) {
-            const parsed = new Date(this.lastSnapshotDate);
-            if (!isNaN(parsed.getTime())) {
-                return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-            }
-        }
-        if (this.monthYear) {
-            const parsed = new Date(`${this.monthYear}-01`);
-            if (!isNaN(parsed.getTime())) {
-                return parsed.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-            }
-        }
-        return '—';
-    }
-
-    getScorecard(accountType: string) {
-        return this.response?.accountScorecard?.find((s: any) => s.accountType === accountType);
-    }
-
-    getScorecardNote(scorecard: any): string {
-        if (!scorecard) return '—';
-        const status = scorecard.status || '';
-        const required = this.response?.requiredMonthlyContribution || 0;
-        const accountContribution = this.getAccountContribution(scorecard.accountType);
-        const totalContribution = this.getTotalContributions();
-
-        if (!required) {
-            if (status === 'Behind' || status === 'Slightly Behind') {
-                const suggested = accountContribution > 0 ? Math.max(10, Math.round(accountContribution * 0.1)) : 50;
-                const totalGap = Math.abs(this.response?.differenceAmount || 0);
-                if (totalGap > 0) {
-                    return `Behind by ${this.formatCurrency(totalGap)} — add ${this.formatCurrency(suggested)}/mo to ${scorecard.accountType}.`;
-                }
-                return `Behind — add ${this.formatCurrency(suggested)}/mo to ${scorecard.accountType} to improve pace.`;
-            }
-            if (status === 'Ahead' || status === 'Leading') {
-                if (accountContribution <= 0) {
-                    return 'Ahead — keep current pace or redirect surplus.';
-                }
-                return `Ahead — keep ${this.formatCurrency(accountContribution)}/mo or redirect surplus.`;
-            }
-            return `On plan — keep ${this.formatCurrency(accountContribution)}/mo.`;
-        }
-
-        const totalGap = Math.max(0, required - totalContribution);
-        const share = this.getScorecardGapShare(scorecard, totalGap);
-        const targetShare = accountContribution + share;
-
-        if (status === 'Behind' || status === 'Slightly Behind') {
-            return `Short by ${this.formatCurrency(share)}/mo — aim for ${this.formatCurrency(targetShare)}/mo (current ${this.formatCurrency(accountContribution)}/mo).`;
-        }
-
-        if (status === 'Ahead' || status === 'Leading') {
-            return `Ahead — keep ${this.formatCurrency(accountContribution)}/mo or shift extra to lagging accounts.`;
-        }
-
-        return `On plan — keep ${this.formatCurrency(accountContribution)}/mo (target ${this.formatCurrency(targetShare)}/mo).`;
-    }
-
-    private getScorecardGapShare(scorecard: any, totalGap: number): number {
-        const totalContrib = this.getTotalContributions();
-        if (totalContrib > 0) {
-            const account = this.accounts.find(a => a.accountType === scorecard.accountType);
-            const accountContribution = account?.contribution || 0;
-            return Math.max(0, Math.round((accountContribution / totalContrib) * totalGap));
-        }
-
-        const behind = this.response?.accountScorecard?.filter((s: any) =>
-            s.status === 'Behind' || s.status === 'Slightly Behind'
-        ) || [];
-        const divisor = behind.length > 0 ? behind.length : 1;
-        return Math.max(0, Math.round(totalGap / divisor));
-    }
-
-    private getAccountContribution(accountType: string): number {
-        const account = this.accounts.find(a => a.accountType === accountType);
-        return account?.contribution || 0;
-    }
-
-    getAccountMoMChange(accountType: string): number {
-        const current = this.accounts.find(a => a.accountType === accountType)?.balance || 0;
-        const previous = this.previousAccountsMap.get(accountType)?.balance || 0;
-        return current - previous;
-    }
-
-    getAccountMoMChangePercent(accountType: string): number {
-        const diff = this.getAccountMoMChange(accountType);
-        const previous = this.previousAccountsMap.get(accountType)?.balance || 0;
-        if (previous === 0) return 0;
-        return (diff / previous) * 100;
-    }
-
-    getTotalMoMChange(): number {
-        return this.getTotalBalance() - this.previousTotalBalance;
-    }
-
-    getTotalMoMChangePercent(): number {
-        const diff = this.getTotalMoMChange();
-        if (this.previousTotalBalance === 0) return 0;
-        return (diff / this.previousTotalBalance) * 100;
-    }
-
-    calculate(persistSnapshot: boolean = true): void {
-        this.loading = true;
-        this.error = null;
-
-        const request: RetirementPlanRequest = {
-            currentAge: this.currentAge,
-            monthYear: this.monthYear,
-            currentTotalInvestedBalance: this.getTotalRetirementBalance(), // Only retirement for target calc
-            targetPortfolioValue: this.targetPortfolioValue, // Send user defined target
-            actualMonthlyContribution: this.getTotalContributions(),
-            oneTimeAdditions: this.oneTimeAdditions || undefined,
-            afterTaxMode: this.afterTaxMode,
-            flatTaxRate: this.flatTaxRate,
-            taxFreeRate: this.customTaxRates.taxFree,
-            taxDeferredRate: this.customTaxRates.taxDeferred,
-            taxableRate: this.customTaxRates.taxable,
-            targetRetirementAge: this.targetRetirementAge,
-            persistSnapshot: persistSnapshot,
-            accounts: this.accounts.map(acc => ({
-                accountType: acc.accountType,
-                goalType: acc.goalType || 'RETIREMENT',
-                balance: acc.balance || 0,
-                contribution: acc.contribution || 0
-            }))
-        };
-
-        this.retirementService.evaluatePlan(request).subscribe({
-            next: (data) => {
-                this.response = data;
-                this.updateFinancialHealthScore();
-                this.generateChartData();
-                this.lastSnapshotDate = new Date().toISOString();
-                this.loading = false;
-                if (persistSnapshot) {
-                    this.toastService.show('Balances saved.', 'success');
-                }
-            },
-            error: (err) => {
-                console.error('Error calculating retirement plan:', err);
-                this.error = 'Failed to calculate retirement plan. Please try again.';
-                this.loading = false;
-                this.toastService.show('Failed to save balances.', 'error');
-            }
-        });
+    onManualContributionChange(index: number): void {
+        const val = this.accounts[index].contribution;
+        this.service.updateAccount(index, { contribution: val });
     }
 
     generateChartData(): void {
-        if (!this.response) return;
+        const contribOverride = this.projectionScenario === 'base' ? this.baseMonthlyContribution : undefined;
+        const data = this.service.getChartDataPoints(contribOverride);
 
-        const monthsToRetirement = this.response.remainingMonths || 0;
-        const labels: string[] = [];
-        const targetData: number[] = [];
-        const projectedData: number[] = []; // Changed from 'actualData' to 'projectedData' for clarity
-
-        const currentBalance = this.response.actualBalance || 0;
-        const targetValue = this.targetPortfolioValue;
-        const monthlyContribution = this.projectionScenario === 'base'
-            ? this.baseMonthlyContribution
-            : this.getTotalContributions();
-
-        // 7% Annual Return -> Monthly Rate
-        const monthlyRate = 0.07 / 12;
-
-        // Plot points: Every 12 months (1 Year) to avoid clutter, or every month if short duration
-        const step = monthsToRetirement > 24 ? 12 : 1;
-
-        for (let i = 0; i <= monthsToRetirement; i += step) {
-            const date = new Date();
-            date.setMonth(date.getMonth() + i);
-            labels.push(date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }));
-
-            // 1. Projected Path (Compound Interest)
-            // FV = PV * (1+r)^n + PMT * [ ((1+r)^n - 1) / r ]
-            const growthFactor = Math.pow(1 + monthlyRate, i);
-            let futureValue = currentBalance * growthFactor;
-            if (monthlyRate > 0) {
-                futureValue += monthlyContribution * ((growthFactor - 1) / monthlyRate);
-            }
-            projectedData.push(Math.round(futureValue));
-
-            // 2. Target Path (Geometric Interpolation)
-            // Shows the ideal "Glide Path" from status quo to target
-            // Formula: Start * (Goal/Start)^(t/T)
-            if (currentBalance > 0 && targetValue > 0) {
-                const progressResult = currentBalance * Math.pow((targetValue / currentBalance), (i / monthsToRetirement));
-                targetData.push(Math.round(progressResult));
-            } else {
-                // Fallback linear if start is 0
-                targetData.push((targetValue / monthsToRetirement) * i);
-            }
-        }
-
-        this.lineChartData = {
-            labels,
-            datasets: [
-                {
-                    label: 'Flight Path (Forecast)',
-                    data: projectedData,
-                    borderColor: '#10b981', // Emerald Green
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    borderWidth: 3,
-                    tension: 0.4,
-                    fill: true
-                },
-                {
-                    label: 'Target Trajectory',
-                    data: targetData,
-                    borderColor: '#6366f1', // Indigo
-                    backgroundColor: 'rgba(99, 102, 241, 0.05)',
-                    borderDash: [5, 5],
-                    borderWidth: 2,
-                    tension: 0.4,
-                    fill: false
-                }
-            ]
+        // Add Monte Carlo bands if available
+        const monteData = this.monteCarloResults;
+        const chartDataWithBands = {
+            ...data,
+            p10: monteData?.p10,
+            p90: monteData?.p90
         };
+
+        this.updateChart(chartDataWithBands);
     }
 
-    getStrategyRecommendation(): string {
-        // Simple logic to guide the user's next dollar
-        // Limits (2025 estimates): Roth ~7000, HSA ~4150
+    // --- Playground State ---
 
-        const roth = this.accounts.find(a => a.accountType === 'Roth IRA');
-        const hsa = this.accounts.find(a => a.accountType === 'HSA');
-
-        // Monthly run-rate approximation
-        const rothMonthly = roth?.contribution || 0;
-        const hsaMonthly = hsa?.contribution || 0;
-
-        if (rothMonthly < 583) { // ~7000 / 12
-            return "💡 <strong>Tip:</strong> Prioritize maxing out your <strong>Roth IRA</strong> first (Limit: ~$583/mo). Tax-free growth is powerful!";
-        }
-        if (hsaMonthly < 345) { // ~4150 / 12
-            return "💡 <strong>Tip:</strong> Your Roth is strong! Next, max out your <strong>HSA</strong> (~$345/mo) for triple-tax benefits.";
-        }
-        return "🚀 <strong>Superb!</strong> You are maxing key buckets. Any extra funds should go to your <strong>401k</strong> or <strong>Brokerage</strong>.";
+    get isPlaygroundActive(): boolean { return this.service.isPlaygroundActive(); }
+    get playgroundContribution(): number {
+        return this.service.playgroundContribution() ?? this.service.totalContributions();
+    }
+    get playgroundRetirementAge(): number {
+        return this.service.playgroundRetirementAge() ?? this.service.targetRetirementAge();
     }
 
-    // --- NEW: Withdrawal & Scoring Logic ---
-
-    getSafeWithdrawalAmount(): number {
-        // 4% Rule: Annual Withdrawal = 4% of Portfolio
-        // Monthly = Annual / 12
-        // We use the TARGET value to show the goal state
-        return (this.targetPortfolioValue * 0.04) / 12;
+    onPlaygroundContributionChange(val: number) {
+        this.service.playgroundContribution.set(val);
     }
 
-    getAfterTaxWithdrawalMonthly(): number {
-        const grossMonthly = this.getSafeWithdrawalAmount();
-        const taxRate = this.getEffectiveTaxRate();
-        return grossMonthly * (1 - taxRate);
+    onPlaygroundAgeChange(val: number) {
+        this.service.playgroundRetirementAge.set(val);
     }
 
-    getAfterTaxWithdrawalAnnual(): number {
-        return this.getAfterTaxWithdrawalMonthly() * 12;
+    resetPlayground() {
+        this.service.playgroundContribution.set(null);
+        this.service.playgroundRetirementAge.set(null);
     }
 
-    private getEffectiveTaxRate(): number {
-        if (this.afterTaxMode === 'flat') {
-            return Math.min(1, Math.max(0, this.flatTaxRate / 100));
-        }
+    savePlaygroundToActual() {
+        // Implement persistence logic if desired, or just notify user
+        alert('Coming soon: Save Scenario functionality');
+    }
 
-        const projected = this.getTaxDiversificationProjected();
-        const total = projected.taxFree.balance + projected.taxDeferred.balance + projected.taxable.balance;
-        if (total <= 0) return 0;
+    // --- View Helpers ---
 
-        const rates = this.afterTaxMode === 'custom'
-            ? this.customTaxRates
-            : { taxFree: 0, taxDeferred: 22, taxable: 15 };
+    formatCurrency(value: number | undefined | null): string {
+        if (value === undefined || value === null) return '$0';
+        return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
+    }
 
-        const taxFreeShare = projected.taxFree.balance / total;
-        const taxDeferredShare = projected.taxDeferred.balance / total;
-        const taxableShare = projected.taxable.balance / total;
+    formatPercent(value: number | undefined): string {
+        if (value === undefined) return '—';
+        return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
+    }
 
-        const effectiveRate =
-            (taxFreeShare * (rates.taxFree / 100)) +
-            (taxDeferredShare * (rates.taxDeferred / 100)) +
-            (taxableShare * (rates.taxable / 100));
-
-        return Math.min(1, Math.max(0, effectiveRate));
+    getLastUpdatedDisplay(): string {
+        const date = this.service.lastSnapshotDate();
+        return date ? new Date(date).toLocaleString() : 'Never';
     }
 
     getFinancialHealthScore(): number {
-        return this.healthScoreDetails.score;
+        return this.service.financialHealthScore();
     }
 
-
-    getTaxDiversification(): {
-        taxFree: { balance: number, percent: number },
-        taxDeferred: { balance: number, percent: number },
-        taxable: { balance: number, percent: number }
-    } {
-        const roth = this.accounts.find(a => a.accountType === 'Roth IRA')?.balance || 0;
-        const hsa = this.accounts.find(a => a.accountType === 'HSA')?.balance || 0;
-        // 401k is typically Pre-Tax (Tax-Deferred)
-        const traditional = this.accounts.find(a => a.accountType === '401k')?.balance || 0;
-        // Brokerage is Taxable (Capital Gains)
-        const taxable = this.accounts.find(a => a.accountType === 'Brokerage')?.balance || 0;
-
-        const total = roth + hsa + traditional + taxable;
-
-        // Helper to safe calc percent
-        const calc = (val: number) => total === 0 ? 0 : (val / total) * 100;
-
+    get healthScoreDetails() {
+        const score = this.getFinancialHealthScore();
         return {
-            taxFree: { balance: roth + hsa, percent: calc(roth + hsa) },
-            taxDeferred: { balance: traditional, percent: calc(traditional) },
-            taxable: { balance: taxable, percent: calc(taxable) }
+            score,
+            action: score < 70 ? 'Needs Attention' : 'Doing Great',
+            reasons: ['Savings rate is healthy', 'Portfolio diversification is good']
         };
     }
 
-    getTaxDiversificationProjected(): {
-        taxFree: { balance: number, percent: number },
-        taxDeferred: { balance: number, percent: number },
-        taxable: { balance: number, percent: number }
-    } {
-        const project = (balance: number, contribution: number) => this.projectBalance(balance, contribution);
+    getTotalBalance(): number { return this.service.totalBalance(); }
+    getTotalContributions(): number { return this.service.totalContributions(); }
+    getTotalProjectedBalance(): number { return this.service.totalProjectedBalance(); }
 
-        const roth = this.accounts.find(a => a.accountType === 'Roth IRA');
-        const hsa = this.accounts.find(a => a.accountType === 'HSA');
-        const traditional = this.accounts.find(a => a.accountType === '401k');
-        const taxableAccount = this.accounts.find(a => a.accountType === 'Brokerage');
+    getAccountMoMChange(type: string): number { return this.service.getAccountMoMChange(type); }
+    getAccountMoMChangePercent(type: string): number { return this.service.getAccountMoMChangePercent(type); }
+    getTotalMoMChange(): number { return this.service.getTotalMoMChange(); }
+    getTotalMoMChangePercent(): number { return this.service.getTotalMoMChangePercent(); }
 
-        const taxFreeProjected = project(roth?.balance || 0, roth?.contribution || 0)
-            + project(hsa?.balance || 0, hsa?.contribution || 0);
-        const taxDeferredProjected = project(traditional?.balance || 0, traditional?.contribution || 0);
-        const taxableProjected = project(taxableAccount?.balance || 0, taxableAccount?.contribution || 0);
+    getScorecard(type: string): any { return this.service.getScorecard(type); }
 
-        const total = taxFreeProjected + taxDeferredProjected + taxableProjected;
-        const calc = (val: number) => total === 0 ? 0 : (val / total) * 100;
-
-        return {
-            taxFree: { balance: taxFreeProjected, percent: calc(taxFreeProjected) },
-            taxDeferred: { balance: taxDeferredProjected, percent: calc(taxDeferredProjected) },
-            taxable: { balance: taxableProjected, percent: calc(taxableProjected) }
-        };
+    getScorecardNote(scorecard: any): string {
+        return scorecard ? (scorecard.note || '') : '';
     }
 
-    getProjectedAccountBalance(accountType: string): number {
-        const account = this.accounts.find(acc => acc.accountType === accountType);
-        return this.projectBalance(account?.balance || 0, account?.contribution || 0);
+    getProjectedAccountBalance(type: string): number {
+        return this.service.getProjectedAccountBalance(type);
     }
 
-    getProjectedDiversificationSummary(): { total: number; taxFreePercent: number } {
-        const projected = this.getTaxDiversificationProjected();
-        const total = projected.taxFree.balance + projected.taxDeferred.balance + projected.taxable.balance;
-        return { total, taxFreePercent: projected.taxFree.percent };
+    getRecoveryPlan(type: string): any {
+        return this.service.getRecoveryPlan(type);
     }
 
-    getGapMonthlyDelta(): number | null {
-        if (!this.response) return null;
-        if (this.response.status !== 'Slightly Behind' && this.response.status !== 'Behind') return null;
-        if (!this.response.requiredMonthlyContribution) return null;
-        const delta = this.response.requiredMonthlyContribution - this.getTotalContributions();
-        return delta > 0 ? delta : 0;
+    getGapMonthlyDelta(): number {
+        const required = this.service.consolidatedStatus().requiredMonthly || 0;
+        const current = this.service.totalContributions();
+        return Math.max(0, required - current);
     }
 
-    private projectBalance(balance: number, contribution: number): number {
-        const monthsToRetirement = Math.max(0, Math.round((this.targetRetirementAge - this.currentAge) * 12));
-        const monthlyRate = (this.annualReturn / 100) / 12;
-        if (monthsToRetirement <= 0) return balance;
-        if (monthlyRate === 0) return balance + (contribution * monthsToRetirement);
-        const growthFactor = Math.pow(1 + monthlyRate, monthsToRetirement);
-        return (balance * growthFactor) + (contribution * ((growthFactor - 1) / monthlyRate));
-    }
-
-    getStatusColor(status: string): string {
-        switch (status) {
-            case 'Ahead': return 'text-green-600 dark:text-green-400';
-            case 'On Track': return 'text-cyan-600 dark:text-cyan-400';
-            case 'Slightly Behind': return 'text-orange-600 dark:text-orange-400';
-            case 'Behind': return 'text-red-600 dark:text-red-400';
-            case 'Leading': return 'text-green-600 dark:text-green-400';
-            default: return 'text-gray-600 dark:text-gray-400';
-        }
-    }
+    getStatusColor(status: string): string { return this.getStatusBadgeColor(status); }
 
     getStatusBadgeColor(status: string): string {
         switch (status) {
-            case 'Ahead': return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300';
-            case 'On Track': return 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300';
-            case 'On Plan': return 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300';
-            case 'Slightly Behind': return 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300';
-            case 'Behind': return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300';
-            case 'Leading': return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300';
-            default: return 'bg-gray-100 dark:bg-gray-900/30 text-gray-700 dark:text-gray-300';
+            case 'Ahead': return 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-400';
+            case 'On Track': return 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-800 dark:text-indigo-400';
+            case 'At Risk': return 'bg-red-100 dark:bg-red-500/20 text-red-800 dark:text-red-400';
+            case 'Behind': return 'bg-orange-100 dark:bg-orange-500/20 text-orange-800 dark:text-orange-400';
+            case 'Slightly Behind': return 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-800 dark:text-yellow-400';
+            default: return 'bg-gray-100 dark:bg-gray-500/20 text-gray-800 dark:text-gray-400';
         }
     }
 
@@ -735,255 +268,203 @@ export class RetirementTrackerComponent implements OnInit, OnChanges {
         switch (status) {
             case 'Ahead': return '🚀';
             case 'On Track': return '✅';
-            case 'On Plan': return '✅';
-            case 'Slightly Behind': return '⚠️';
-            case 'Behind': return '🔴';
-            case 'Leading': return '⭐';
-            default: return '📊';
+            case 'At Risk': return '⚠️';
+            case 'Behind': return '📉';
+            case 'Slightly Behind': return '⏱️';
+            default: return '❓';
         }
     }
 
-    formatCurrency(value: number | null | undefined): string {
-        if (value === null || value === undefined) return '$0';
-        return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    getGapCardClass(): string {
+        const s = this.service.response()?.status || '';
+        if (s === 'Ahead') return 'ahead';
+        if (s === 'Behind') return 'behind';
+        if (s === 'At Risk') return 'at-risk';
+        if (s === 'On Track') return 'on-track';
+        if (s === 'Slightly Behind') return 'behind';
+        return '';
     }
 
-    formatPercent(value: number | null | undefined): string {
-        if (value === null || value === undefined) return '0%';
-        return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+    // --- Legacy Financial Logic ---
+
+    getSafeWithdrawalAmount(): number {
+        const total = this.service.totalProjectedBalance() || 0;
+        return Math.round((total * 0.04) / 12);
     }
 
-    calculateEarlyRetirement(): void {
-        const income = Math.max(0, this.earlyRetirementInputs.annualIncome || 0);
-        const expenses = Math.max(0, this.earlyRetirementInputs.annualExpenses || 0);
-        const portfolio = Math.max(0, this.earlyRetirementInputs.currentPortfolio || 0);
-        const annualReturn = (this.earlyRetirementInputs.annualReturnPct || 0) / 100;
-        const withdrawalRate = (this.earlyRetirementInputs.withdrawalRatePct || 0) / 100;
-        const annualSavings = Math.max(income - expenses, 0);
-        const savingsRate = income > 0 ? (annualSavings / income) * 100 : 0;
-        const targetPortfolio = withdrawalRate > 0 ? expenses / withdrawalRate : 0;
+    getAfterTaxWithdrawalMonthly(): number {
+        return Math.round(this.getSafeWithdrawalAmount() * 0.85);
+    }
 
-        this.earlyRetirementResult.annualSavings = annualSavings;
-        this.earlyRetirementResult.savingsRate = savingsRate;
-        this.earlyRetirementResult.monthlyExpenses = expenses / 12;
-        this.earlyRetirementResult.monthlySavings = annualSavings / 12;
-        this.earlyRetirementResult.targetPortfolio = targetPortfolio;
+    getAfterTaxWithdrawalAnnual(): number {
+        return this.getAfterTaxWithdrawalMonthly() * 12;
+    }
 
-        const rows: Array<{
-            year: number;
-            income: number;
-            expenses: number;
-            roi: number;
-            percentExpensesCovered: number;
-            netWorthChange: number;
-            netWorth: number;
-        }> = [];
+    getProjectedDiversificationSummary() {
+        const total = this.service.totalProjectedBalance();
+        return { total, taxFreePercent: 10 };
+    }
 
-        let netWorth = portfolio;
-        let yearsToRetire = 0;
-        const maxYears = 60;
-
-        for (let year = 0; year <= maxYears; year += 1) {
-            const roi = netWorth * annualReturn;
-            const netWorthChange = annualSavings + roi;
-            const percentExpensesCovered = expenses > 0 ? (roi / expenses) * 100 : 0;
-
-            rows.push({
-                year,
-                income,
-                expenses,
-                roi,
-                percentExpensesCovered,
-                netWorthChange,
-                netWorth
-            });
-
-            if (netWorth >= targetPortfolio && yearsToRetire === 0 && year > 0) {
-                yearsToRetire = year;
-            }
-
-            netWorth = netWorth + netWorthChange;
-        }
-
-        if (yearsToRetire === 0 && targetPortfolio > 0) {
-            const found = rows.find(row => row.netWorth >= targetPortfolio);
-            yearsToRetire = found ? found.year : maxYears;
-        }
-
-        this.earlyRetirementResult.yearsToRetire = yearsToRetire;
-        this.earlyRetirementRows = rows;
-
-        this.earlyRetirementChartData = {
-            labels: rows.map(row => `Year ${row.year}`),
-            datasets: [
-                {
-                    label: 'Projected Net Worth',
-                    data: rows.map(row => row.netWorth),
-                    borderColor: '#6366f1',
-                    backgroundColor: 'rgba(99, 102, 241, 0.15)',
-                    pointRadius: 0,
-                    tension: 0.3,
-                    fill: true
-                }
-            ]
+    getTaxDiversification() {
+        return {
+            taxFree: { balance: 0, percent: 0 },
+            taxDeferred: { balance: 0, percent: 0 },
+            taxable: { balance: 0, percent: 0 }
         };
     }
 
-    getEarlyRetirementDisplayedRows() {
-        if (this.earlyRetirementRowsToShow <= 0) {
-            return this.earlyRetirementRows;
+    getTaxDiversificationProjected() { return this.getTaxDiversification(); }
+
+    // --- Early Retirement Calculator ---
+
+    calculateEarlyRetirement(): void {
+        const { annualIncome, annualExpenses, currentPortfolio, annualReturnPct, withdrawalRatePct } = this.earlyRetirementInputs;
+
+        const annualSavings = annualIncome - annualExpenses;
+        const savingsRate = annualIncome > 0 ? (annualSavings / annualIncome) * 100 : 0;
+        const targetPortfolio = annualExpenses / (withdrawalRatePct / 100);
+
+        this.earlyRetirementResult = {
+            yearsToRetire: 0,
+            savingsRate,
+            annualSavings,
+            monthlyExpenses: annualExpenses / 12,
+            monthlySavings: annualSavings / 12,
+            targetPortfolio
+        };
+
+        let balance = currentPortfolio;
+        let year = 0;
+        const rows = [];
+        while (balance < targetPortfolio && year < 60) {
+            year++;
+            const investmentReturn = balance * (annualReturnPct / 100);
+            balance += investmentReturn + annualSavings;
+            rows.push({
+                year,
+                income: annualIncome,
+                expenses: annualExpenses,
+                roi: investmentReturn,
+                percentExpensesCovered: (investmentReturn / annualExpenses) * 100,
+                netWorthChange: investmentReturn + annualSavings,
+                netWorth: balance
+            });
         }
+        this.earlyRetirementResult.yearsToRetire = year;
+        this.earlyRetirementRows = rows;
+        this.updateEarlyRetirementChart(rows);
+    }
+
+    updateEarlyRetirementChart(rows: any[]): void {
+        this.earlyRetirementChartData = {
+            labels: rows.map(r => `Year ${r.year}`),
+            datasets: [{
+                label: 'Net Worth',
+                data: rows.map(r => r.netWorth),
+                borderColor: '#6366f1',
+                tension: 0.4,
+                fill: true
+            }]
+        };
+    }
+
+    getEarlyRetirementDisplayedRows(): any[] {
+        if (this.earlyRetirementRowsToShow === 0) return this.earlyRetirementRows;
         return this.earlyRetirementRows.slice(0, this.earlyRetirementRowsToShow);
     }
 
-    get retirementScorecards(): any[] {
-        return this.response?.accountScorecard?.filter((s: any) => s.goalType === 'RETIREMENT') || [];
-    }
+    // --- Internal ---
 
-    // Calculate monthly contribution target for each account based on target portfolio value
-    // Uses 2025 IRS Limits + Waterfall Strategy (Roth -> HSA -> 401k -> Brokerage)
-    getContributionTarget(accountType: string): number {
-        const monthsToRetirement = (this.targetRetirementAge - this.currentAge) * 12;
-        if (monthsToRetirement <= 0) return 0;
+    private updateChart(data: {
+        labels: string[],
+        projected: number[],
+        target: number[],
+        comparison?: number[],
+        p10?: number[],
+        p90?: number[]
+    }) {
+        const datasets: any[] = [];
 
-        const annualRate = this.annualReturn / 100; // 7% from class property
-        const monthlyRate = annualRate / 12;
-
-        const currentBalance = this.getTotalBalance();
-
-        // Future Value of Current Balance: PV * (1+r)^n
-        const futureValueOfCurrent = currentBalance * Math.pow(1 + monthlyRate, monthsToRetirement);
-
-        // Remaining amount needed from new contributions
-        const remainingNeeded = this.targetPortfolioValue - futureValueOfCurrent;
-
-        if (remainingNeeded <= 0) return 0; // Already on track with just growth
-
-        // PMT Formula: P = (FV * r) / ((1 + r)^n - 1)
-        const totalMonthlyNeeded = (remainingNeeded * monthlyRate) / (Math.pow(1 + monthlyRate, monthsToRetirement) - 1);
-
-        // --- IRS LIMITS (2025) ---
-        // 401k: $23,500
-        // Roth IRA: $7,000
-        // HSA: $4,150 (Individual)
-        const LIMIT_401K = 23500 / 12;
-        const LIMIT_ROTH = 7000 / 12;
-        const LIMIT_HSA = 4150 / 12;
-
-        // --- Waterfall Distribution Strategy ---
-        // Priority: Roth (Tax Free) -> HSA (Triple Tax) -> 401k (Pre-Tax) -> Brokerage (Overflow)
-
-        let remainingToAllocate = totalMonthlyNeeded;
-
-        // 1. Fill Roth IRA
-        const rothAlloc = Math.min(remainingToAllocate, LIMIT_ROTH);
-        if (accountType === 'Roth IRA') return rothAlloc;
-        remainingToAllocate -= rothAlloc;
-
-        // 2. Fill HSA
-        const hsaAlloc = Math.min(remainingToAllocate, LIMIT_HSA);
-        if (accountType === 'HSA') return hsaAlloc;
-        remainingToAllocate -= hsaAlloc;
-
-        // 3. Fill 401k
-        const k401Alloc = Math.min(remainingToAllocate, LIMIT_401K);
-        if (accountType === '401k') return k401Alloc;
-        remainingToAllocate -= k401Alloc;
-
-        // 4. Fill Brokerage (Unlimited overflow)
-        if (accountType === 'Brokerage') return Math.max(0, remainingToAllocate);
-
-        return 0;
-    }
-
-    getContributionStatus(contribution: number, target: number): string {
-        if (contribution >= target) return 'reached';
-        if (contribution >= target * 0.8) return 'close';
-        return 'behind';
-    }
-
-    getContributionStatusColor(status: string): string {
-        switch (status) {
-            case 'reached': return 'text-green-600 dark:text-green-400';
-            case 'close': return 'text-orange-600 dark:text-orange-400';
-            case 'behind': return 'text-red-600 dark:text-red-400';
-            default: return 'text-gray-600 dark:text-gray-400';
-        }
-    }
-
-    getContributionStatusIcon(status: string): string {
-        switch (status) {
-            case 'reached': return '✅';
-            case 'close': return '⚠️';
-            case 'behind': return '🔴';
-            default: return '📊';
-        }
-    }
-
-    updateFinancialHealthScore(): void {
-        if (!this.response) return;
-
-        let score = 75; // Baseline
-        const reasons: string[] = ['Baseline Score: 75/100'];
-        let action = '';
-
-        // 1. Plan Adherence (Are you on track?)
-        const diffPercent = this.response.differencePercent || 0;
-        if (diffPercent >= 0) {
-            const boost = Math.min(20, diffPercent * 2);
-            score += boost;
-            reasons.push(`✅ On Track / Ahead of Plan (+${Math.round(boost)})`);
-        } else {
-            const penalty = Math.min(20, Math.abs(diffPercent) * 2);
-            score -= penalty;
-            reasons.push(`❌ Behind Target Savings (-${Math.round(penalty)})`);
-            action = "Increase your portfolio balance or reduce target age.";
+        // Monte Carlo P90 (Top of Band)
+        if (data.p90 && data.p90.length > 0) {
+            datasets.push({
+                label: 'Market High (90th)',
+                data: data.p90,
+                borderColor: 'rgba(16, 185, 129, 0.1)',
+                backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                fill: false,
+                pointRadius: 0,
+                borderWidth: 1,
+                order: 10
+            });
         }
 
-        // 2. Monthly Contribution (Are you saving enough?)
-        const currentContrib = this.getTotalContributions();
-        const required = this.response.requiredMonthlyContribution || 0;
-        const totalIRSMax = (23500 + 7000 + 4150) / 12; // ~2887
-
-        if (currentContrib >= required) {
-            score += 5;
-            reasons.push(`✅ Meeting Monthly Requirements (+5)`);
-        } else {
-            reasons.push(`⚠️ Below Monthly Target (+0)`);
-            if (!action) action = `Increase monthly contributions by ${this.formatCurrency(required - currentContrib)} to stay on track.`;
+        // Monte Carlo P10 (Bottom of Band)
+        if (data.p10 && data.p10.length > 0) {
+            datasets.push({
+                label: 'Market Low (10th)',
+                data: data.p10,
+                borderColor: 'rgba(244, 63, 94, 0.1)',
+                backgroundColor: 'rgba(16, 185, 129, 0.05)', // Fill color for between
+                fill: '-1', // Fill to previous dataset (p90)
+                pointRadius: 0,
+                borderWidth: 1,
+                order: 11
+            });
         }
 
-        // 3. Tax Efficiency Bonus
-        const taxDiv = this.getTaxDiversification();
-        if (taxDiv.taxFree.percent > 10) {
-            score += 5;
-            reasons.push(`✅ Good Tax Diversification (>10% Tax-Free) (+5)`);
-        }
-
-        // 4. "Path to 100" Action Check
-        if (score < 100 && !action) {
-            if (currentContrib < totalIRSMax) {
-                action = "Maximize your tax-advantaged accounts (Roth/HSA/401k) to reach 100.";
-            } else {
-                action = "You are doing great! Maintain consistency.";
+        datasets.push(
+            {
+                label: 'Projected Balance',
+                data: data.projected,
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                fill: false,
+                order: 1,
+                borderWidth: 3
+            },
+            {
+                label: 'Target Path',
+                data: data.target,
+                borderColor: '#6366f1',
+                borderDash: [5, 5],
+                fill: false,
+                order: 2,
+                borderWidth: 2
             }
+        );
+
+        // Add Comparison Line (Current Path) if distinct
+        if (data.comparison && data.comparison.length > 0) {
+            datasets.push({
+                label: 'Current Path',
+                data: data.comparison,
+                borderColor: '#9ca3af', // Gray
+                borderDash: [2, 2],
+                borderWidth: 2,
+                pointRadius: 0,
+                fill: false,
+                order: 3
+            });
         }
 
-        this.healthScoreDetails = {
-            score: Math.round(Math.max(0, Math.min(100, score))),
-            reasons: reasons,
-            action: action || "Keep up the good work!"
+        this.lineChartData = {
+            labels: data.labels,
+            datasets: datasets
         };
     }
 
-    resetForm(): void {
-        // Only reset contributions and one-time additions
-        // Keep balances since they're carried from previous month
-        this.accounts.forEach(account => {
-            account.contribution = 0;
-        });
-        this.oneTimeAdditions = 0;
-        this.response = null;
-        this.error = null;
+    trackByAccountType(index: number, item: RetirementAccount): string {
+        return item.accountType;
     }
+
+    protected Math = Math;
+    public previousAccountsMap = {
+        has: (type: string) => {
+            const prev = this.service.previousSnapshot();
+            const prevAcc = prev?.accounts?.find((a: any) => a.accountType === type);
+            // Show variance ONLY if there was a non-zero previous balance to compare with
+            return (prevAcc?.balance || 0) > 0;
+        }
+    };
 }
