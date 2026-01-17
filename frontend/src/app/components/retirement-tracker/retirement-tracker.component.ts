@@ -458,10 +458,11 @@ export class RetirementTrackerComponent implements OnInit, OnChanges {
             taxFreeRate: this.customTaxRates.taxFree,
             taxDeferredRate: this.customTaxRates.taxDeferred,
             taxableRate: this.customTaxRates.taxable,
+            targetRetirementAge: this.targetRetirementAge,
             persistSnapshot: persistSnapshot,
             accounts: this.accounts.map(acc => ({
                 accountType: acc.accountType,
-                goalType: acc.goalType,
+                goalType: acc.goalType || 'RETIREMENT',
                 balance: acc.balance || 0,
                 contribution: acc.contribution || 0
             }))

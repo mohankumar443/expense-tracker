@@ -43,6 +43,7 @@ export interface RetirementPlanRequest {
     taxFreeRate?: number;
     taxDeferredRate?: number;
     taxableRate?: number;
+    targetRetirementAge?: number;
     persistSnapshot?: boolean;
     accounts?: AccountBalanceDTO[];
 }

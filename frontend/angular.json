@@ -55,6 +55,14 @@
                 },
                 "serve": {
                     "builder": "@angular-devkit/build-angular:dev-server",
+                    "options": {
+                        "prebundle": {
+                            "exclude": [
+                                "chart.js",
+                                "ng2-charts"
+                            ]
+                        }
+                    },
                     "configurations": {
                         "production": {
                             "buildTarget": "frontend:build:production"
@@ -93,6 +101,6 @@
         }
     },
     "cli": {
-      "analytics": false
+        "analytics": false
     }
 }

@@ -35,12 +35,16 @@ public class RetirementPlanningService {
     public RetirementPlanResponse evaluatePlan(RetirementPlanRequest request) {
         double currentAge = request.getCurrentAge() != null ? request.getCurrentAge() : START_AGE;
         int monthsElapsed = Math.max(0, (int) Math.round((currentAge - START_AGE) * 12.0));
-        int remainingMonths = Math.max(0, (int) Math.round((TARGET_RETIREMENT_AGE - currentAge) * 12.0));
+        double targetAge = request.getTargetRetirementAge() != null ? request.getTargetRetirementAge()
+                : TARGET_RETIREMENT_AGE;
+        int remainingMonths = Math.max(0, (int) Math.round((targetAge - currentAge) * 12.0));
+        Double targetValue = request.getTargetPortfolioValue() != null ? request.getTargetPortfolioValue()
+                : TARGET_PORTFOLIO_VALUE;
 
         // Calculate total balance from accounts if provided, otherwise use legacy field
         double actualBalance = calculateTotalBalance(request);
 
-        double targetBalance = calculateTargetBalance(monthsElapsed);
+        double targetBalance = calculateTargetBalance(monthsElapsed, targetAge, targetValue);
         double differenceAmount = actualBalance - targetBalance;
         double differencePercent = targetBalance == 0 ? 0.0 : (differenceAmount / targetBalance) * 100.0;
 
@@ -48,8 +52,6 @@ public class RetirementPlanningService {
         Double requiredMonthlyContribution = null;
         if ("Slightly Behind".equals(status) || "Behind".equals(status)) {
             if (remainingMonths > 0) {
-                Double targetValue = request.getTargetPortfolioValue() != null ? request.getTargetPortfolioValue()
-                        : TARGET_PORTFOLIO_VALUE;
                 double required = calculateRequiredMonthlyContribution(actualBalance, remainingMonths, targetValue);
                 requiredMonthlyContribution = roundCurrency(Math.max(BASE_MONTHLY_CONTRIBUTION, required));
             }
@@ -360,16 +362,20 @@ public class RetirementPlanningService {
         return request.getCurrentTotalInvestedBalance() != null ? request.getCurrentTotalInvestedBalance() : 0.0;
     }
 
-    private double calculateTargetBalance(int monthsElapsed) {
+    private double calculateTargetBalance(int monthsElapsed, double targetAge, double targetValue) {
+        int totalMonths = Math.max(1, (int) Math.round((targetAge - START_AGE) * 12.0));
         if (monthsElapsed <= 0) {
             return STARTING_BALANCE;
         }
-        if (MONTHLY_RATE == 0.0) {
-            return STARTING_BALANCE + (BASE_MONTHLY_CONTRIBUTION * monthsElapsed);
+
+        // Glide Path: Geometric interpolation between Start and Goal
+        // Formula: Start * (Goal/Start)^(t/T)
+        if (STARTING_BALANCE > 0 && targetValue > 0) {
+            return STARTING_BALANCE * Math.pow((targetValue / STARTING_BALANCE), (double) monthsElapsed / totalMonths);
         }
-        double growthFactor = Math.pow(1 + MONTHLY_RATE, monthsElapsed);
-        double contributionGrowth = (growthFactor - 1) / MONTHLY_RATE;
-        return (STARTING_BALANCE * growthFactor) + (BASE_MONTHLY_CONTRIBUTION * contributionGrowth);
+
+        // Fallback linear
+        return STARTING_BALANCE + ((targetValue - STARTING_BALANCE) / totalMonths) * monthsElapsed;
     }
 
     private double calculateRequiredMonthlyContribution(double actualBalance, int remainingMonths, double targetValue) {

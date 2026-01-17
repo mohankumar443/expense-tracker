@@ -15,6 +15,7 @@ public class RetirementPlanRequest {
     private Double taxFreeRate;
     private Double taxDeferredRate;
     private Double taxableRate;
+    private Double targetRetirementAge;
     private Boolean persistSnapshot;
 
     // New account-level fields
@@ -109,6 +110,14 @@ public class RetirementPlanRequest {
 
     public void setTaxableRate(Double taxableRate) {
         this.taxableRate = taxableRate;
+    }
+
+    public Double getTargetRetirementAge() {
+        return targetRetirementAge;
+    }
+
+    public void setTargetRetirementAge(Double targetRetirementAge) {
+        this.targetRetirementAge = targetRetirementAge;
     }
 
     public Boolean getPersistSnapshot() {
