@@ -188,7 +188,13 @@ export class DebtAccountsListComponent implements OnInit {
     ) { }
 
     ngOnInit() {
-        this.loadAccounts();
+        console.log('DebtAccountsListComponent initialized');
+        const initialSnapshot = this.snapshotState.getCurrentSnapshot();
+        if (initialSnapshot) {
+            this.loadSnapshotAccounts(initialSnapshot);
+        } else {
+            this.loadAccounts();
+        }
 
         // Subscribe to snapshot changes
         this.snapshotState.currentSnapshot$.subscribe(fileName => {
@@ -198,6 +204,105 @@ export class DebtAccountsListComponent implements OnInit {
             }
             this.loadSnapshotAccounts(fileName);
         });
+    }
+
+    backfillHistory() {
+        if (!confirm('This will attempt to restore missing data for Dec 2025, Jan 2026, and Feb 2026.\n\nAre you sure you want to proceed?')) {
+            return;
+        }
+
+        console.log('Starting RESTORATION backfill...');
+        // Show a loading toast or alert if possible, or just log
+
+        this.debtService.getAllDebts().subscribe({
+            next: (allDebts) => {
+                const sources = new Map<string, DebtAccount>();
+
+                // 1. Identify valid source accounts (latest version of each)
+                allDebts.forEach(d => {
+                    // Skip if no snapshot date (it's a "current" state or invalid)
+                    if (!d.snapshotDate) return;
+
+                    if (!sources.has(d.name) || d.snapshotDate > (sources.get(d.name)?.snapshotDate || '')) {
+                        sources.set(d.name, d);
+                    }
+                });
+
+                // 2. Define target missing months
+                const targetDates = [
+                    '2025-12-01',
+                    '2026-01-01',
+                    '2026-02-01'
+                ];
+
+                let restoreCount = 0;
+
+                targetDates.forEach(date => {
+                    // Check if *any* account exists for this target date
+                    // (Simplistic check: if snapshot has 0 accounts, we treat it as missing/empty)
+                    const snapshotHasAccounts = allDebts.some(d => d.snapshotDate === date);
+
+                    if (!snapshotHasAccounts) {
+                        console.log(`Snapshot ${date} is missing/empty. Recreating accounts...`);
+
+                        sources.forEach(sourceAccount => {
+                            // Clone the account
+                            const newAccount: DebtAccount = {
+                                ...sourceAccount,
+                                id: undefined, // Let backend generate new ID
+                                snapshotDate: date,
+                                createdDate: undefined,
+                                lastUpdated: undefined,
+                                // Preserve other fields like balance/APR/etc from the "latest" source
+                            };
+
+                            this.debtService.createDebt(newAccount).subscribe({
+                                next: () => console.log(`Restored ${newAccount.name} -> ${date}`),
+                                error: (e) => console.error(`Failed to restore ${newAccount.name} -> ${date}`, e)
+                            });
+                            restoreCount++;
+                        });
+                    } else {
+                        console.log(`Snapshot ${date} exists. Checking for missing individual accounts...`);
+                        // Partial restoration logic (if some accounts missing)
+                        sources.forEach(sourceAccount => {
+                            const existsInTarget = allDebts.some(d =>
+                                d.name === sourceAccount.name &&
+                                d.snapshotDate === date
+                            );
+
+                            if (!existsInTarget) {
+                                const newAccount: DebtAccount = {
+                                    ...sourceAccount,
+                                    id: undefined,
+                                    snapshotDate: date,
+                                    createdDate: undefined,
+                                    lastUpdated: undefined
+                                };
+                                this.debtService.createDebt(newAccount).subscribe({
+                                    next: () => console.log(`Patched missing ${newAccount.name} -> ${date}`),
+                                    error: (e) => console.error(`Failed to patch ${newAccount.name} -> ${date}`, e)
+                                });
+                                restoreCount++;
+                            }
+                        });
+                    }
+                });
+
+                // 3. User Feedback
+                setTimeout(() => {
+                    alert(`Restoration Initiated!\n\nWe are attempting to restore/create accounts for Dec 2025, Jan 2026, and Feb 2026.\n\nPlease wait ~10 seconds for the backend to process, then REFRESH the page.`);
+                }, 1000);
+            },
+            error: (err) => {
+                console.error('Error fetching debts for backfill:', err);
+                alert('Failed to start restoration. Please check console for errors.');
+            }
+        });
+    }
+
+    private isLoanType(type: DebtAccount['type']): boolean {
+        return type === 'PERSONAL_LOAN';
     }
 
     isCardsView(): boolean {
@@ -226,9 +331,11 @@ export class DebtAccountsListComponent implements OnInit {
 
     loadAccounts() {
         this.debtService.getAllDebts().subscribe(accounts => {
-            this.creditCards = accounts.filter(a => a.type === 'CREDIT_CARD');
-            this.personalLoans = accounts.filter(a => a.type === 'PERSONAL_LOAN');
-            this.autoLoans = accounts.filter(a => a.type === 'AUTO_LOAN');
+            const visible = accounts.filter(a => a.type !== 'UNKNOWN');
+            this.creditCards = visible.filter(a => a.type === 'CREDIT_CARD');
+            this.personalLoans = visible.filter(a => this.isLoanType(a.type));
+            this.autoLoans = visible.filter(a => a.type === 'AUTO_LOAN');
+
             this.updateCoachData(accounts);
         });
     }
@@ -240,9 +347,11 @@ export class DebtAccountsListComponent implements OnInit {
         }
         this.currentSnapshotDate = fileName;
         this.debtService.getSnapshotAccounts(fileName).subscribe(accounts => {
-            this.creditCards = accounts.filter(a => a.type === 'CREDIT_CARD');
-            this.personalLoans = accounts.filter(a => a.type === 'PERSONAL_LOAN');
-            this.autoLoans = accounts.filter(a => a.type === 'AUTO_LOAN');
+            const visible = accounts.filter(a => a.type !== 'UNKNOWN');
+            this.creditCards = visible.filter(a => a.type === 'CREDIT_CARD');
+            this.personalLoans = visible.filter(a => this.isLoanType(a.type));
+            this.autoLoans = visible.filter(a => a.type === 'AUTO_LOAN');
+
             this.updateCoachData(accounts);
 
             // Load previous month's data
@@ -342,9 +451,68 @@ export class DebtAccountsListComponent implements OnInit {
         const daysUntilExpiry = Math.floor((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
         return daysUntilExpiry > 0 && daysUntilExpiry <= 90; // Within 90 days
     }
-
     calculateMonthlyInterest(balance: number, apr: number): number {
         return (balance * apr) / 100 / 12;
+    }
+
+    private getSnapshotBaseDate(): Date {
+        if (this.currentSnapshotDate) {
+            const value = this.currentSnapshotDate.includes('T')
+                ? this.currentSnapshotDate
+                : `${this.currentSnapshotDate}T12:00:00`;
+            const date = new Date(value);
+            if (!isNaN(date.getTime())) {
+                return date;
+            }
+        }
+        return new Date();
+    }
+
+    private getDueDateValue(account: DebtAccount): Date | null {
+        const raw = account.dueDay ?? account.dueDate ?? account.payoffDate;
+        if (!raw) return null;
+
+        let day: number;
+        if (typeof raw === 'number') {
+            day = raw;
+        } else {
+            const parsed = new Date(raw);
+            day = parsed.getUTCDate();
+        }
+        if (!day || isNaN(day)) return null;
+
+        const base = this.getSnapshotBaseDate();
+        const monthOffset = account.type === 'CREDIT_CARD' ? 1 : 0;
+        const year = base.getFullYear();
+        const month = base.getMonth() + monthOffset;
+        const maxDay = new Date(year, month + 1, 0).getDate();
+        const safeDay = Math.min(day, maxDay);
+        return new Date(year, month, safeDay);
+    }
+
+    getDueLabel(account: DebtAccount): string {
+        try {
+            const dueDate = this.getDueDateValue(account);
+            if (!dueDate) return '—';
+            const day = dueDate.getDate();
+
+            const suffix = (d: number) => {
+                if (d > 3 && d < 21) return 'th';
+                switch (d % 10) {
+                    case 1: return "st";
+                    case 2: return "nd";
+                    case 3: return "rd";
+                    default: return "th";
+                }
+            };
+
+            const month = dueDate.toLocaleString('default', { month: 'short' });
+
+            return `${month} ${day}${suffix(day)}`;
+        } catch (error) {
+            console.error('Error in getDueLabel', account, error);
+            return '—';
+        }
     }
 
     getMonthlyChange(account: DebtAccount): number | null {
@@ -374,6 +542,13 @@ export class DebtAccountsListComponent implements OnInit {
         }, 0);
     }
 
+
+
+    getCardAccounts(category: CategoryKey): DebtAccount[] {
+        const accounts = [...this.getCategoryAccounts(category)];
+        return accounts.sort((a, b) => this.compareBy(this.cardSort.column, a, b, this.cardSort.direction));
+    }
+
     getAccountsByType(type: 'credit' | 'personal' | 'auto'): DebtAccount[] {
         if (type === 'credit') {
             return this.hideZeroBalance
@@ -390,13 +565,8 @@ export class DebtAccountsListComponent implements OnInit {
         return this.autoLoans;
     }
 
-    getCardAccounts(category: CategoryKey): DebtAccount[] {
-        const accounts = [...this.getCategoryAccounts(category)];
-        return accounts.sort((a, b) => this.compareBy(this.cardSort.column, a, b, this.cardSort.direction));
-    }
-
-    getTotalBalance(type: 'credit' | 'personal' | 'auto'): number {
-        return this.getAccountsByType(type).reduce((sum, acc) => sum + acc.currentBalance, 0);
+    private getActiveBalanceAccounts(accounts: DebtAccount[]): DebtAccount[] {
+        return accounts.filter(acc => (acc.currentBalance || 0) > 0 && acc.status !== 'PAID_OFF');
     }
 
     getTotalMonthlyChange(type: 'credit' | 'personal' | 'auto'): number | null {
@@ -418,26 +588,31 @@ export class DebtAccountsListComponent implements OnInit {
     }
 
     getCategorySummary(category: CategoryKey) {
-        const accounts = this.getCategoryAccounts(category);
-        const totalBalance = accounts.reduce((sum, acc) => sum + (acc.currentBalance || 0), 0);
-        const totalLimit = accounts.reduce((sum, acc) => sum + ((acc as any).creditLimit || 0), 0);
-        const availableCredit = Math.max(totalLimit - totalBalance, 0);
-        const weightedAprDenominator = accounts.reduce((sum, acc) => sum + (acc.currentBalance || 0), 0);
-        const avgApr = weightedAprDenominator > 0
-            ? accounts.reduce((sum, acc) => sum + (acc.currentBalance || 0) * (acc.apr || 0), 0) / weightedAprDenominator
-            : 0;
-        const nextDueDate = accounts
-            .map(acc => (acc as any).dueDate || acc.payoffDate)
-            .filter(Boolean)
-            .map(date => new Date(date as string))
-            .sort((a, b) => a.getTime() - b.getTime())[0];
+        try {
+            const accounts = this.getCategoryAccounts(category);
+            const activeAccounts = this.getActiveBalanceAccounts(accounts);
+            const totalBalance = activeAccounts.reduce((sum, acc) => sum + (acc.currentBalance || 0), 0);
+            const totalLimit = accounts.reduce((sum, acc) => sum + ((acc as any).creditLimit || 0), 0);
+            const availableCredit = Math.max(totalLimit - totalBalance, 0);
+            const weightedAprDenominator = activeAccounts.reduce((sum, acc) => sum + (acc.currentBalance || 0), 0);
+            const avgApr = weightedAprDenominator > 0
+                ? activeAccounts.reduce((sum, acc) => sum + (acc.currentBalance || 0) * (acc.apr || 0), 0) / weightedAprDenominator
+                : 0;
+            const nextDueDate = activeAccounts
+                .map(acc => this.getDueDateValue(acc))
+                .filter((date): date is Date => !!date)
+                .sort((a, b) => a.getTime() - b.getTime())[0];
 
-        return {
-            totalBalance,
-            availableCredit,
-            avgApr,
-            nextDueDate
-        };
+            return {
+                totalBalance,
+                availableCredit,
+                avgApr,
+                nextDueDate
+            };
+        } catch (error) {
+            console.error('Error in getCategorySummary', category, error);
+            return null;
+        }
     }
 
     getCategoryInsights(category: CategoryKey): string[] {
@@ -479,7 +654,7 @@ export class DebtAccountsListComponent implements OnInit {
         const filtered = combined.filter(acc => {
             if (this.tableFilters.type !== 'all') {
                 if (this.tableFilters.type === 'credit' && acc.type !== 'CREDIT_CARD') return false;
-                if (this.tableFilters.type === 'personal' && acc.type !== 'PERSONAL_LOAN') return false;
+                if (this.tableFilters.type === 'personal' && !this.isLoanType(acc.type)) return false;
                 if (this.tableFilters.type === 'auto' && acc.type !== 'AUTO_LOAN') return false;
             }
             if (this.hideZeroBalance && (acc.currentBalance || 0) === 0) return false;
@@ -522,8 +697,8 @@ export class DebtAccountsListComponent implements OnInit {
                 bValue = b.monthlyPayment || 0;
                 break;
             case 'dueDate':
-                aValue = (a as any).dueDate ? new Date((a as any).dueDate).getTime() : Number.MAX_SAFE_INTEGER;
-                bValue = (b as any).dueDate ? new Date((b as any).dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+                aValue = this.getDueDateValue(a)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+                bValue = this.getDueDateValue(b)?.getTime() ?? Number.MAX_SAFE_INTEGER;
                 break;
             case 'interest':
                 aValue = this.calculateMonthlyInterest(a.currentBalance || 0, a.apr || 0);

@@ -11,11 +11,14 @@ Chart.register(...registerables);
     styleUrls: ['./dashboard.component.css']
 })
 export class DashboardComponent implements OnInit {
+    private readonly CATEGORY_DONUT_KEY = 'dashboard_category_donut_view';
     totalExpenses: number = 0;
     transactionCount: number = 0;
     categoryBreakdown: { category: string, amount: number, percentage: number, color: string }[] = [];
     monthlyLabels: string[] = [];
     monthlyData: number[] = [];
+    showCategoryDonut: boolean = true;
+    hoveredCategoryIndex: number | null = null;
 
     lineChartData: ChartConfiguration<'line'>['data'] = { labels: [], datasets: [] };
     lineChartOptions: ChartOptions<'line'> = {
@@ -45,6 +48,14 @@ export class DashboardComponent implements OnInit {
         cutout: '70%',
         plugins: {
             legend: { position: 'bottom', labels: { color: '#9CA3AF' } }
+        }
+    };
+    categoryDonutOptions: ChartOptions<'doughnut'> = {
+        responsive: true,
+        cutout: '70%',
+        plugins: {
+            legend: { display: false },
+            tooltip: { enabled: false }
         }
     };
 
@@ -87,6 +98,7 @@ export class DashboardComponent implements OnInit {
     constructor(private expenseService: ExpenseService) { }
 
     ngOnInit() {
+        this.restoreCategoryDonutPreference();
         this.expenseService.getAllExpenses().subscribe(expenses => {
             this.calculateStats(expenses);
         });
@@ -175,5 +187,58 @@ export class DashboardComponent implements OnInit {
                 }
             ]
         };
+    }
+
+    toggleCategoryDonut(): void {
+        this.showCategoryDonut = !this.showCategoryDonut;
+        this.persistCategoryDonutPreference();
+    }
+
+    onCategoryDonutHover(event: { active?: unknown[] } | null): void {
+        const active = event?.active ?? [];
+        const index = (active[0] as { index?: number } | undefined)?.index;
+        this.hoveredCategoryIndex = typeof index === 'number' ? index : null;
+    }
+
+    getCategoryDonutCenterLabel(): string {
+        if (this.hoveredCategoryIndex !== null && this.doughnutData.labels) {
+            return this.doughnutData.labels[this.hoveredCategoryIndex] as string;
+        }
+        return 'Total Spend';
+    }
+
+    getCategoryDonutCenterValue(): number {
+        const data = (this.doughnutData.datasets[0]?.data || []) as number[];
+        if (this.hoveredCategoryIndex !== null && data[this.hoveredCategoryIndex]) {
+            return data[this.hoveredCategoryIndex] as number;
+        }
+        return this.totalExpenses;
+    }
+
+    getCategoryDonutCenterPercent(): string {
+        if (this.hoveredCategoryIndex === null) return '';
+        const data = (this.doughnutData.datasets[0]?.data || []) as number[];
+        const value = data[this.hoveredCategoryIndex] || 0;
+        const total = data.reduce((sum, item) => sum + item, 0);
+        if (!total) return '';
+        return `${((value / total) * 100).toFixed(1)}%`;
+    }
+
+    private getCategoryDonutPreferenceKey(): string {
+        const profileId = localStorage.getItem('activeProfileId') || 'default';
+        return `${this.CATEGORY_DONUT_KEY}_${profileId}`;
+    }
+
+    private restoreCategoryDonutPreference(): void {
+        const stored = localStorage.getItem(this.getCategoryDonutPreferenceKey());
+        if (stored === null) {
+            this.showCategoryDonut = true;
+            return;
+        }
+        this.showCategoryDonut = stored === 'donut';
+    }
+
+    private persistCategoryDonutPreference(): void {
+        localStorage.setItem(this.getCategoryDonutPreferenceKey(), this.showCategoryDonut ? 'donut' : 'list');
     }
 }

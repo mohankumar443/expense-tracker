@@ -5,6 +5,7 @@
             <h2 class="text-3xl font-black text-gray-900 dark:text-white">Your Debt Accounts</h2>
             <p class="text-sm text-gray-500 dark:text-gray-400">Track balances, payments, and payoff strategy across all
                 categories.</p>
+
         </div>
     </div>
 
@@ -182,13 +183,13 @@
                                 <div>
                                     <p class="text-gray-500 dark:text-gray-400 text-xs">Min Payment</p>
                                     <p class="text-sm font-bold">${{
-                                        account.monthlyPayment || 0 | number:'1.0-0' }}</p>
+                                        (account.currentBalance > 0 ? account.monthlyPayment : 0) | number:'1.0-0' }}
+                                    </p>
                                 </div>
                                 <div class="text-right">
                                     <p class="text-gray-500 dark:text-gray-400 text-xs">Due Date</p>
                                     <p class="text-sm font-bold text-gray-900 dark:text-white">
-                                        {{ account.dueDate ? (account.dueDate | date:'MMM d') : (account.payoffDate ?
-                                        (account.payoffDate | date:'MMM d') : '—') }}
+                                        {{ account.currentBalance > 0 ? getDueLabel(account) : '—' }}
                                     </p>
                                 </div>
                                 <div>
@@ -361,7 +362,7 @@
                             {{ account.apr }}%
                         </td>
                         <td class="px-4 py-3 text-right">
-                            ${{ account.monthlyPayment || 0 | number:'1.0-0' }}
+                            ${{ (account.currentBalance > 0 ? account.monthlyPayment : 0) | number:'1.0-0' }}
                         </td>
                         <td class="px-4 py-3 text-center text-sm text-gray-700 dark:text-gray-200">
                             <ng-container *ngIf="account.type === 'CREDIT_CARD' && account.promoExpires; else noPromo">
@@ -374,8 +375,7 @@
                             {{ account.notes || '—' }}
                         </td>
                         <td class="px-4 py-3 text-center">
-                            {{ account.dueDate ? (account.dueDate | date:'MMM d') : (account.payoffDate ?
-                            (account.payoffDate | date:'MMM d') : '—') }}
+                            {{ account.currentBalance > 0 ? getDueLabel(account) : '—' }}
                         </td>
                         <td class="px-4 py-3 text-center">
                             <div class="flex items-center justify-center gap-2">
@@ -650,11 +650,10 @@
                         <span class="font-black text-gray-900 dark:text-white">${{ analyticsAccount.monthlyPayment || 0
                             | number:'1.0-0' }}</span>
                     </div>
-                    <div class="flex justify-between text-sm" *ngIf="analyticsAccount.dueDate">
+                    <div class="flex justify-between text-sm"
+                        *ngIf="analyticsAccount.dueDay || analyticsAccount.dueDate || analyticsAccount.payoffDate">
                         <span class="text-gray-500 dark:text-gray-400">Due Date</span>
-                        <span class="font-black text-gray-900 dark:text-white">{{ analyticsAccount.dueDate | date:'MMM
-                            d'
-                            }}</span>
+                        <span class="font-black text-gray-900 dark:text-white">{{ getDueLabel(analyticsAccount) }}</span>
                     </div>
                 </div>
             </div>
@@ -762,7 +761,13 @@
                 <input type="number"
                     [ngModel]="editingAccount.type === 'CREDIT_CARD' ? editingAccount.creditLimit : editingAccount.loanAmount"
                     (ngModelChange)="editingAccount.type === 'CREDIT_CARD' ? editingAccount.creditLimit = $event : editingAccount.loanAmount = $event"
-                    name="creditLimit"
+                    class="w-full bg-gray-50 dark:bg-[#0f1729] border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+            </div>
+            <div>
+                <label
+                    class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Due
+                    Day (1-31)</label>
+                <input type="number" [(ngModel)]="editingAccount.dueDay" name="dueDayEdit" min="1" max="31"
                     class="w-full bg-gray-50 dark:bg-[#0f1729] border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all">
             </div>
             <div class="grid grid-cols-2 gap-4">

@@ -9,6 +9,7 @@ import { SnapshotStateService } from '../../services/snapshot-state.service';
     styleUrls: ['./strategy-dashboard.component.css']
 })
 export class StrategyDashboardComponent implements OnInit {
+    private readonly STRATEGY_DONUT_KEY = 'strategy_battle_donut_view';
 
     accounts: DebtAccount[] = [];
     loading = true;
@@ -17,6 +18,8 @@ export class StrategyDashboardComponent implements OnInit {
     // Metrics
     dangerScore: { score: number, category: string, details: any } = { score: 0, category: 'Excellent', details: {} };
     payoffTrap: { years: number, totalInterest: number } = { years: 0, totalInterest: 0 };
+    showStrategyDonut: boolean = true;
+    hoveredStrategyIndex: number | null = null;
 
     // What-If Simulator
     extraPayment = 0;
@@ -29,6 +32,7 @@ export class StrategyDashboardComponent implements OnInit {
     ) { }
 
     ngOnInit(): void {
+        this.restoreStrategyDonutPreference();
         this.snapshotState.currentSnapshot$.subscribe(snapshotDate => {
             if (snapshotDate) {
                 this.loadData(snapshotDate);
@@ -156,6 +160,15 @@ export class StrategyDashboardComponent implements OnInit {
 
     // Strategy Comparison
     strategyComparison: { snowball: any, avalanche: any } = { snowball: {}, avalanche: {} };
+    strategyDonutData: any = { labels: [], datasets: [] };
+    strategyDonutOptions: any = {
+        responsive: true,
+        cutout: '70%',
+        plugins: {
+            legend: { display: false },
+            tooltip: { enabled: false }
+        }
+    };
 
     // Future Debt Projection Chart
     public projectionChartData: any = { datasets: [] };
@@ -201,6 +214,7 @@ export class StrategyDashboardComponent implements OnInit {
                 snowball: { months: 0, years: 0, payoffDate: new Date(), totalInterestPaid: 0 },
                 avalanche: { months: 0, years: 0, payoffDate: new Date(), totalInterestPaid: 0 }
             };
+            this.updateStrategyDonut();
             return;
         }
 
@@ -212,6 +226,7 @@ export class StrategyDashboardComponent implements OnInit {
 
         // Calculate Strategy Comparison
         this.strategyComparison = this.analyticsService.compareStrategies(this.accounts, this.extraPayment);
+        this.updateStrategyDonut();
 
         // Populate Projection Chart
         const labels = result.baselineTimeline.map((p: any) => {
@@ -239,6 +254,74 @@ export class StrategyDashboardComponent implements OnInit {
                 }
             ]
         };
+    }
+
+    updateStrategyDonut(): void {
+        const avalanche = this.strategyComparison?.avalanche?.totalInterestPaid || 0;
+        const snowball = this.strategyComparison?.snowball?.totalInterestPaid || 0;
+        this.strategyDonutData = {
+            labels: ['Avalanche', 'Snowball'],
+            datasets: [
+                {
+                    data: [avalanche, snowball],
+                    backgroundColor: ['#60a5fa', '#818cf8'],
+                    borderWidth: 0
+                }
+            ]
+        };
+    }
+
+    toggleStrategyDonut(): void {
+        this.showStrategyDonut = !this.showStrategyDonut;
+        this.persistStrategyDonutPreference();
+    }
+
+    onStrategyDonutHover(event: { active?: unknown[] } | null): void {
+        const active = event?.active ?? [];
+        const index = (active[0] as { index?: number } | undefined)?.index;
+        this.hoveredStrategyIndex = typeof index === 'number' ? index : null;
+    }
+
+    getStrategyDonutCenterLabel(): string {
+        if (this.hoveredStrategyIndex !== null && this.strategyDonutData.labels) {
+            return this.strategyDonutData.labels[this.hoveredStrategyIndex] as string;
+        }
+        return 'Total Interest';
+    }
+
+    getStrategyDonutCenterValue(): number {
+        const data = (this.strategyDonutData.datasets[0]?.data || []) as number[];
+        if (this.hoveredStrategyIndex !== null && data[this.hoveredStrategyIndex]) {
+            return data[this.hoveredStrategyIndex] as number;
+        }
+        return data.reduce((sum, item) => sum + item, 0);
+    }
+
+    getStrategyDonutCenterPercent(): string {
+        if (this.hoveredStrategyIndex === null) return '';
+        const data = (this.strategyDonutData.datasets[0]?.data || []) as number[];
+        const value = data[this.hoveredStrategyIndex] || 0;
+        const total = data.reduce((sum, item) => sum + item, 0);
+        if (!total) return '';
+        return `${((value / total) * 100).toFixed(1)}%`;
+    }
+
+    private getStrategyDonutPreferenceKey(): string {
+        const profileId = localStorage.getItem('activeProfileId') || 'default';
+        return `${this.STRATEGY_DONUT_KEY}_${profileId}`;
+    }
+
+    private restoreStrategyDonutPreference(): void {
+        const stored = localStorage.getItem(this.getStrategyDonutPreferenceKey());
+        if (stored === null) {
+            this.showStrategyDonut = true;
+            return;
+        }
+        this.showStrategyDonut = stored === 'donut';
+    }
+
+    private persistStrategyDonutPreference(): void {
+        localStorage.setItem(this.getStrategyDonutPreferenceKey(), this.showStrategyDonut ? 'donut' : 'cards');
     }
 
     onSliderChange(event: any) {

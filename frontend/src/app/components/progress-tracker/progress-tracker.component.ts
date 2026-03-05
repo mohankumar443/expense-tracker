@@ -11,6 +11,7 @@ import { ChartConfiguration, ChartData, ChartEvent, ChartType } from 'chart.js';
     styleUrls: ['./progress-tracker.component.css']
 })
 export class ProgressTrackerComponent implements OnInit {
+    private readonly CATEGORY_DONUT_KEY = 'progress_category_donut_view';
     previousMonthSummary: DebtSummary | null = null;
     currentMonthSummary: DebtSummary | null = null;
     showComparison = false;
@@ -19,6 +20,8 @@ export class ProgressTrackerComponent implements OnInit {
     // Analytics
     projectedDebtFreeDate: Date | null = null;
     totalMonthlyInterest: number = 0;
+    showCategoryDonut: boolean = true;
+    hoveredCategoryIndex: number | null = null;
 
     // Animation states
     animatedDebtChange: number = 0;
@@ -154,7 +157,15 @@ export class ProgressTrackerComponent implements OnInit {
             { data: [350, 450, 100] }
         ]
     };
-    public doughnutChartType: ChartType = 'doughnut';
+    public doughnutChartOptions: ChartConfiguration<'doughnut'>['options'] = {
+        responsive: true,
+        cutout: '70%',
+        plugins: {
+            legend: { display: false },
+            tooltip: { enabled: false }
+        }
+    };
+    public doughnutChartType: 'doughnut' = 'doughnut';
 
     // Risk Heatmap Data
     highAprAccounts: any[] = [];
@@ -185,6 +196,7 @@ export class ProgressTrackerComponent implements OnInit {
     ) { }
 
     ngOnInit() {
+        this.restoreCategoryDonutPreference();
         // Subscribe to snapshot changes and load comparison dynamically
         this.snapshotState.currentSnapshot$.subscribe(currentSnapshot => {
             if (currentSnapshot) {
@@ -545,6 +557,59 @@ export class ProgressTrackerComponent implements OnInit {
             }))
             .sort((a, b) => a.date.getTime() - b.date.getTime())
             .slice(0, 4);
+    }
+
+    toggleCategoryDonut(): void {
+        this.showCategoryDonut = !this.showCategoryDonut;
+        this.persistCategoryDonutPreference();
+    }
+
+    onCategoryDonutHover(event: { active?: unknown[] } | null): void {
+        const active = event?.active ?? [];
+        const index = (active[0] as { index?: number } | undefined)?.index;
+        this.hoveredCategoryIndex = typeof index === 'number' ? index : null;
+    }
+
+    getCategoryDonutCenterLabel(): string {
+        if (this.hoveredCategoryIndex !== null && this.doughnutChartData.labels) {
+            return this.doughnutChartData.labels[this.hoveredCategoryIndex] as string;
+        }
+        return 'Total Debt';
+    }
+
+    getCategoryDonutCenterValue(): number {
+        const data = (this.doughnutChartData.datasets[0]?.data || []) as number[];
+        if (this.hoveredCategoryIndex !== null && data[this.hoveredCategoryIndex]) {
+            return data[this.hoveredCategoryIndex] as number;
+        }
+        return data.reduce((sum, item) => sum + item, 0);
+    }
+
+    getCategoryDonutCenterPercent(): string {
+        if (this.hoveredCategoryIndex === null) return '';
+        const data = (this.doughnutChartData.datasets[0]?.data || []) as number[];
+        const value = data[this.hoveredCategoryIndex] || 0;
+        const total = data.reduce((sum, item) => sum + item, 0);
+        if (!total) return '';
+        return `${((value / total) * 100).toFixed(1)}%`;
+    }
+
+    private getCategoryDonutPreferenceKey(): string {
+        const profileId = localStorage.getItem('activeProfileId') || 'default';
+        return `${this.CATEGORY_DONUT_KEY}_${profileId}`;
+    }
+
+    private restoreCategoryDonutPreference(): void {
+        const stored = localStorage.getItem(this.getCategoryDonutPreferenceKey());
+        if (stored === null) {
+            this.showCategoryDonut = true;
+            return;
+        }
+        this.showCategoryDonut = stored === 'donut';
+    }
+
+    private persistCategoryDonutPreference(): void {
+        localStorage.setItem(this.getCategoryDonutPreferenceKey(), this.showCategoryDonut ? 'donut' : 'list');
     }
 
     animateValues() {

@@ -141,6 +141,7 @@ public class SnapshotService {
                 // Calculate totals
                 double totalDebt = accounts.stream()
                                 .filter(a -> a.getStatus() == Account.AccountStatus.ACTIVE)
+                                .filter(a -> a.getType() != Account.AccountType.UNKNOWN)
                                 .mapToDouble(Account::getCurrentBalance)
                                 .sum();
 

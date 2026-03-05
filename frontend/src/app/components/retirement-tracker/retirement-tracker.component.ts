@@ -1,12 +1,14 @@
-import { Component, OnInit, computed, effect, Input } from '@angular/core';
+import { Component, OnInit, OnDestroy, computed, effect, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgChartsModule } from 'ng2-charts';
 import { ChartConfiguration, ChartType } from 'chart.js';
 import { RetirementStateService, RetirementAccount } from '../../services/retirement-state.service';
+import { SnapshotStateService } from '../../services/snapshot-state.service';
 import { RetirementPlanResponse } from '../../services/retirement.service';
 import { CountUpDirective } from '../../directives/count-up.directive';
 import { SliderControlComponent } from '../ui/slider-control/slider-control.component';
+import { Subscription } from 'rxjs';
 
 @Component({
     selector: 'app-retirement-tracker',
@@ -15,7 +17,9 @@ import { SliderControlComponent } from '../ui/slider-control/slider-control.comp
     templateUrl: './retirement-tracker.component.html',
     styleUrls: ['./retirement-tracker.component.scss']
 })
-export class RetirementTrackerComponent implements OnInit {
+export class RetirementTrackerComponent implements OnInit, OnDestroy {
+    private readonly DONUT_VIEW_KEY = 'retirement_donut_view';
+    private snapshotSub: Subscription | null = null;
     // Inputs from Parent (AppComponent)
     @Input() set profileAge(val: number | null | undefined) {
         if (val) this.service.currentAge.set(val);
@@ -142,7 +146,10 @@ export class RetirementTrackerComponent implements OnInit {
         return this.service.previousSnapshot() ? this.service.previousSnapshot().totalBalance || 0 : 0;
     }
 
-    constructor(public service: RetirementStateService) {
+    constructor(
+        public service: RetirementStateService,
+        private snapshotStateService: SnapshotStateService
+    ) {
         // Effect to update Chart when data changes
         effect(() => {
             this.generateChartData();
@@ -175,11 +182,31 @@ export class RetirementTrackerComponent implements OnInit {
     }
 
     ngOnInit(): void {
+        this.restoreDonutPreference();
+
+        // Sync with global snapshot state
+        this.snapshotSub = this.snapshotStateService.currentSnapshot$.subscribe(date => {
+            if (date) {
+                const monthComp = date.substring(0, 7);
+                // Only update if different to avoid redundant loads if service is already set
+                if (monthComp !== this.monthYear) {
+                    this.monthYear = monthComp;
+                    this.service.loadState(this.monthYear);
+                }
+            }
+        });
+
         if (!this.monthYear) {
             const now = new Date();
             this.monthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            this.service.loadState(this.monthYear); // Load default if no global state
         }
-        this.service.loadState(this.monthYear);
+    }
+
+    ngOnDestroy(): void {
+        if (this.snapshotSub) {
+            this.snapshotSub.unsubscribe();
+        }
     }
 
     // --- Actions ---
@@ -354,8 +381,27 @@ export class RetirementTrackerComponent implements OnInit {
         this.hoveredAccountIndex = typeof index === 'number' ? index : null;
     }
 
+    private getDonutPreferenceKey(): string {
+        const profileId = localStorage.getItem('activeProfileId') || 'default';
+        return `${this.DONUT_VIEW_KEY}_${profileId}`;
+    }
+
+    private restoreDonutPreference(): void {
+        const stored = localStorage.getItem(this.getDonutPreferenceKey());
+        if (stored === null) {
+            this.showDonutChart = true;
+            return;
+        }
+        this.showDonutChart = stored === 'donut';
+    }
+
+    private persistDonutPreference(): void {
+        localStorage.setItem(this.getDonutPreferenceKey(), this.showDonutChart ? 'donut' : 'card');
+    }
+
     toggleDonutView(): void {
         this.showDonutChart = !this.showDonutChart;
+        this.persistDonutPreference();
     }
 
     getScorecard(type: string): any { return this.service.getScorecard(type); }

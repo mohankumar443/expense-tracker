@@ -1,1 +1,28 @@
 /* Styles handled by Tailwind CSS */
+
+.budget-donut-container {
+    position: relative;
+    height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.budget-donut-chart {
+    max-height: 220px;
+}
+
+.budget-donut-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 160px;
+}

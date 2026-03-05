@@ -23,7 +23,6 @@ public class SnapshotManagementController {
     private final SnapshotService snapshotService;
     private final AccountService accountService;
 
-    // Create new snapshot (optionally clone from another month)
     @PostMapping("/create")
     public ResponseEntity<SnapshotCreationResponse> createSnapshot(@RequestBody CreateSnapshotRequest request) {
         try {
@@ -52,7 +51,18 @@ public class SnapshotManagementController {
 
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
+            SnapshotCreationResponse errorResponse = new SnapshotCreationResponse();
+            errorResponse.setMessage("Invalid request: " + e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
+        } catch (IllegalStateException e) {
+            SnapshotCreationResponse errorResponse = new SnapshotCreationResponse();
+            errorResponse.setMessage("Service unavailable: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(errorResponse);
+        } catch (Exception e) {
+            SnapshotCreationResponse errorResponse = new SnapshotCreationResponse();
+            errorResponse.setMessage("Failed to create snapshot: " + e.getMessage());
+            e.printStackTrace(); // Log the full stack trace
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 

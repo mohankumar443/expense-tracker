@@ -151,8 +151,33 @@
 
             <!-- Category Trend -->
             <div class="bg-[#0f172a] rounded-2xl p-6 border border-gray-800">
-                <h3 class="text-lg font-bold text-white mb-4">Debt by Category</h3>
-                <div class="space-y-4">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-white">Debt by Category</h3>
+                    <button type="button" (click)="toggleCategoryDonut()"
+                        class="text-[10px] font-bold bg-indigo-100/10 text-indigo-300 px-2 py-0.5 rounded hover:bg-indigo-100/20 transition-all">
+                        {{ showCategoryDonut ? 'List' : 'Chart' }}
+                    </button>
+                </div>
+
+                <div *ngIf="showCategoryDonut" class="progress-donut-container">
+                    <canvas baseChart [data]="doughnutChartData" [options]="doughnutChartOptions"
+                        [type]="doughnutChartType" (chartHover)="onCategoryDonutHover($event)"
+                        class="progress-donut-chart"></canvas>
+                    <div class="progress-donut-center">
+                        <div class="text-[10px] uppercase font-bold text-gray-400">
+                            {{ getCategoryDonutCenterLabel() }}
+                        </div>
+                        <div class="text-xl font-black text-white mt-0.5">
+                            ${{ getCategoryDonutCenterValue() | number:'1.0-0' }}
+                        </div>
+                        <div *ngIf="hoveredCategoryIndex !== null"
+                            class="text-[10px] font-bold text-gray-400 mt-0.5">
+                            {{ getCategoryDonutCenterPercent() }}
+                        </div>
+                    </div>
+                </div>
+
+                <div *ngIf="!showCategoryDonut" class="space-y-4">
                     <div *ngFor="let category of categoryTrendData"
                         class="bg-[#1e293b] rounded-xl p-5 border border-gray-700 hover:border-gray-600 transition-all">
                         <!-- Category Header -->

@@ -43,17 +43,54 @@
         </div>
 
         <div class="relative z-10">
-            <h4 class="text-lg font-bold text-gray-800 dark:text-white mb-5 flex items-center">
-                <div
-                    class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center mr-3 shadow-lg transform hover:rotate-180 transition-transform duration-700">
-                    <span class="material-icons text-white">donut_small</span>
-                </div>
-                <span
-                    class="bg-gradient-to-r from-gray-800 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">Payment
-                    Types</span>
-            </h4>
+            <div class="flex items-center justify-between mb-5">
+                <h4 class="text-lg font-bold text-gray-800 dark:text-white flex items-center">
+                    <div
+                        class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center mr-3 shadow-lg transform hover:rotate-180 transition-transform duration-700">
+                        <span class="material-icons text-white">donut_small</span>
+                    </div>
+                    <span
+                        class="bg-gradient-to-r from-gray-800 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">Payment
+                        Types</span>
+                </h4>
+                <button type="button" (click)="toggleCategoryDonut()"
+                    class="text-[10px] font-bold bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-all">
+                    {{ showCategoryDonut ? 'List' : 'Chart' }}
+                </button>
+            </div>
 
-            <div class="space-y-4">
+            <div *ngIf="showCategoryDonut" class="dashboard-donut-view">
+                <div class="dashboard-donut-container">
+                    <canvas baseChart [data]="doughnutData" [options]="categoryDonutOptions" chartType="doughnut"
+                        (chartHover)="onCategoryDonutHover($event)" class="dashboard-donut-chart"></canvas>
+                    <div class="dashboard-donut-center">
+                        <div class="text-[10px] uppercase tracking-wider font-bold text-gray-500 dark:text-gray-400">
+                            {{ getCategoryDonutCenterLabel() }}
+                        </div>
+                        <div class="text-xl font-black text-gray-900 dark:text-white mt-0.5">
+                            ${{ getCategoryDonutCenterValue() | number:'1.0-0' }}
+                        </div>
+                        <div *ngIf="hoveredCategoryIndex !== null"
+                            class="text-[10px] font-bold text-gray-500 dark:text-gray-400 mt-0.5">
+                            {{ getCategoryDonutCenterPercent() }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 space-y-2">
+                    <div *ngFor="let item of categoryBreakdown | slice:0:3" class="flex items-center justify-between">
+                        <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                            <span class="w-2 h-2 rounded-full" [class]="item.color"></span>
+                            {{ item.category }}
+                        </div>
+                        <span class="text-sm font-bold text-gray-900 dark:text-white">
+                            {{ item.percentage | number:'1.0-0' }}%
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div *ngIf="!showCategoryDonut" class="space-y-4">
                 <div *ngFor="let item of categoryBreakdown; let i = index"
                     class="relative transform-gpu transition-all duration-300 hover:translate-x-2"
                     [style.animation-delay.ms]="i * 100">

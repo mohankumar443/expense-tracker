@@ -49,7 +49,9 @@ public class DebtAccountController {
             DebtSummary summary = new DebtSummary();
             summary.setSnapshotDate(snapshotDate);
 
-            double total = accounts.stream().mapToDouble(DebtAccount::getCurrentBalance).sum();
+            double total = accounts.stream()
+                    .filter(a -> a.getAccountType() != AccountType.UNKNOWN)
+                    .mapToDouble(DebtAccount::getCurrentBalance).sum();
             summary.setTotalDebt(total);
 
             double creditCards = accounts.stream()
@@ -125,6 +127,7 @@ public class DebtAccountController {
         List<DebtAccount> allAccounts = debtAccountRepository.findAll();
 
         double total = allAccounts.stream()
+                .filter(a -> a.getAccountType() != AccountType.UNKNOWN)
                 .mapToDouble(DebtAccount::getCurrentBalance)
                 .sum();
         summary.setTotalDebt(total);

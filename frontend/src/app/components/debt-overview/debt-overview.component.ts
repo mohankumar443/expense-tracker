@@ -1,8 +1,9 @@
-import { Component, OnInit, OnDestroy, ViewChild, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ChangeDetectorRef, effect } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { fadeIn, slideInUp, staggerFadeIn } from '../../animations';
 import { DebtAccountService, DebtSummary, DebtAccount } from '../../services/debt-account.service';
 import { RetirementService } from '../../services/retirement.service';
+import { RetirementStateService } from '../../services/retirement-state.service';
 import { SnapshotStateService } from '../../services/snapshot-state.service';
 import { CompareStateService } from '../../services/compare-state.service';
 import { AnalyticsService } from '../../services/analytics.service';
@@ -60,6 +61,7 @@ export class DebtOverviewComponent implements OnInit {
 
     // Priority List State
     showAllPriorities = false;
+    payoffStrategyMode: 'APR' | 'INTEREST' | 'COMBINED' = 'APR';
 
     // Extra Payment Calculator
     extraPaymentAmount = 0;
@@ -77,9 +79,18 @@ export class DebtOverviewComponent implements OnInit {
         private snapshotStateService: SnapshotStateService,
         private analyticsService: AnalyticsService,
         private retirementService: RetirementService,
+        public retirementStateService: RetirementStateService,
         private compareStateService: CompareStateService,
         private cdr: ChangeDetectorRef
-    ) { }
+    ) {
+        effect(() => {
+            this.retirementCurrent = this.retirementStateService.totalRetirementBalance();
+            // Optional: You could also sync retirementPrevious from service here if needed
+            // const prev = this.retirementStateService.previousSnapshot();
+            // ... logic ...
+            this.calculateNetWorth();
+        });
+    }
 
     ngOnInit() {
         // Initial data loading is handled after snapshots are loaded.
@@ -177,6 +188,9 @@ export class DebtOverviewComponent implements OnInit {
                         this.snapshotStateService.setCurrentSnapshot(summaryDate);
                     }
                 }
+                if (this.allAccounts.length > 0) {
+                    this.applyAccountDerivedSummary(this.allAccounts, resolvedDate);
+                }
                 this.calculateNetWorth();
             },
             error: (err) => {
@@ -193,13 +207,16 @@ export class DebtOverviewComponent implements OnInit {
             const previousMonthYear = previousDate.slice(0, 7);
             this.debtService.getSnapshotSummary(previousDate).subscribe({
                 next: (data) => {
-                    this.previousSummary = data;
+                    if (this.previousAccounts.length === 0) {
+                        this.previousSummary = data;
+                    }
                 },
                 error: (err) => console.error('Error loading previous summary', err)
             });
             this.debtService.getSnapshotAccounts(previousDate).subscribe({
                 next: (accounts) => {
                     this.previousAccounts = accounts;
+                    this.previousSummary = this.buildSummaryFromAccounts(accounts, previousDate);
                 },
                 error: (err) => console.error('Error loading previous accounts', err)
             });
@@ -239,6 +256,7 @@ export class DebtOverviewComponent implements OnInit {
         this.debtService.getSnapshotAccounts(resolvedDate).subscribe({
             next: (accounts) => {
                 this.allAccounts = accounts;
+                this.applyAccountDerivedSummary(accounts, resolvedDate);
                 this.runAnalytics();
                 this.loading = false;
             },
@@ -250,37 +268,12 @@ export class DebtOverviewComponent implements OnInit {
         });
 
         const currentMonthYear = resolvedDate.slice(0, 7);
-        this.retirementService.getSnapshotByDate(resolvedDate).subscribe({
-            next: (snapshot) => {
-                if (snapshot) {
-                    this.retirementCurrent = this.getRetirementTotal(snapshot);
-                    this.calculateNetWorth();
-                    return;
-                }
-                this.retirementService.getSnapshotByMonth(currentMonthYear).subscribe({
-                    next: (fallback) => {
-                        this.retirementCurrent = this.getRetirementTotal(fallback);
-                        this.calculateNetWorth();
-                    },
-                    error: () => {
-                        this.retirementCurrent = 0;
-                        this.calculateNetWorth();
-                    }
-                });
-            },
-            error: () => {
-                this.retirementService.getSnapshotByMonth(currentMonthYear).subscribe({
-                    next: (fallback) => {
-                        this.retirementCurrent = this.getRetirementTotal(fallback);
-                        this.calculateNetWorth();
-                    },
-                    error: () => {
-                        this.retirementCurrent = 0;
-                        this.calculateNetWorth();
-                    }
-                });
-            }
-        });
+
+        // Single Source of Truth: Delegate to RetirementStateService
+        // The effect() in constructor will update the UI when this loads.
+        this.retirementStateService.setMonthYear(currentMonthYear);
+        this.retirementStateService.loadState(currentMonthYear);
+        this.calculateNetWorth();
 
         this.loadCompareData(resolvedDate);
     }
@@ -571,14 +564,15 @@ export class DebtOverviewComponent implements OnInit {
     runAnalytics() {
         if (!this.allAccounts.length) return;
 
-        const highApr = this.analyticsService.getHighAprAccounts(this.allAccounts, 1);
+        const payoffAccounts = this.getPayoffAccounts(this.allAccounts);
+        const highApr = this.analyticsService.getHighAprAccounts(payoffAccounts, 1);
         this.highestInterestAccount = highApr.length > 0 ? highApr[0] : null;
-        this.interestBreakdown = this.analyticsService.calculateInterestBreakdown(this.allAccounts);
-        this.payoffTimeline = this.analyticsService.calculatePayoffTimeline(this.allAccounts, this.extraPaymentAmount);
-        this.nextMonthProjection = this.analyticsService.projectNextMonth(this.allAccounts);
+        this.interestBreakdown = this.analyticsService.calculateInterestBreakdown(payoffAccounts);
+        this.payoffTimeline = this.analyticsService.calculatePayoffTimeline(payoffAccounts, this.extraPaymentAmount);
+        this.nextMonthProjection = this.analyticsService.projectNextMonth(payoffAccounts);
 
         // Get ALL high APR accounts for the priority list
-        this.highAprAccounts = this.analyticsService.getHighAprAccounts(this.allAccounts, -1);
+        this.highAprAccounts = this.analyticsService.getHighAprAccounts(payoffAccounts, -1);
 
         this.calculateExtraPaymentSavings();
     }
@@ -588,10 +582,56 @@ export class DebtOverviewComponent implements OnInit {
     }
 
     getVisiblePriorities(): DebtAccount[] {
+        const sorted = this.getPayoffPriorityList();
         if (this.showAllPriorities) {
-            return this.highAprAccounts;
+            return sorted;
         }
-        return this.highAprAccounts.slice(0, 3);
+        return sorted.slice(0, 3);
+    }
+
+    setPayoffStrategy(mode: 'APR' | 'INTEREST' | 'COMBINED') {
+        this.payoffStrategyMode = mode;
+    }
+
+    getPayoffPriorityValue(account: DebtAccount): string {
+        const aprValue = `${account.apr || 0}%`;
+        const monthlyInterest = this.calculateMonthlyInterest(account.currentBalance || 0, account.apr || 0);
+        const interestValue = `${this.formatCurrency(monthlyInterest)}/mo`;
+
+        if (this.payoffStrategyMode === 'INTEREST') {
+            return interestValue;
+        }
+        if (this.payoffStrategyMode === 'COMBINED') {
+            return `${aprValue} · ${interestValue}`;
+        }
+        return aprValue;
+    }
+
+    private calculateMonthlyInterest(balance: number, apr: number): number {
+        return (balance * apr) / 100 / 12;
+    }
+
+    private getPayoffPriorityList(): DebtAccount[] {
+        const payoffAccounts = this.getPayoffAccounts(this.allAccounts);
+        if (this.payoffStrategyMode === 'INTEREST') {
+            return [...payoffAccounts].sort((a, b) => {
+                const aInterest = this.calculateMonthlyInterest(a.currentBalance || 0, a.apr || 0);
+                const bInterest = this.calculateMonthlyInterest(b.currentBalance || 0, b.apr || 0);
+                return bInterest - aInterest;
+            });
+        }
+        if (this.payoffStrategyMode === 'COMBINED') {
+            const maxApr = Math.max(...payoffAccounts.map(a => a.apr || 0), 1);
+            const maxInterest = Math.max(...payoffAccounts.map(a => this.calculateMonthlyInterest(a.currentBalance || 0, a.apr || 0)), 1);
+            return [...payoffAccounts].sort((a, b) => {
+                const aInterest = this.calculateMonthlyInterest(a.currentBalance || 0, a.apr || 0);
+                const bInterest = this.calculateMonthlyInterest(b.currentBalance || 0, b.apr || 0);
+                const aScore = (a.apr || 0) / maxApr + aInterest / maxInterest;
+                const bScore = (b.apr || 0) / maxApr + bInterest / maxInterest;
+                return bScore - aScore;
+            });
+        }
+        return [...payoffAccounts].sort((a, b) => (b.apr || 0) - (a.apr || 0));
     }
 
     calculateNetWorth() {
@@ -601,14 +641,17 @@ export class DebtOverviewComponent implements OnInit {
     }
 
     private getRetirementTotal(snapshot: any): number {
-        if (!snapshot) return 0;
-        if (snapshot.totalBalance !== undefined && snapshot.totalBalance !== null) {
-            return snapshot.totalBalance || 0;
+        if (!snapshot || !snapshot.accounts || !Array.isArray(snapshot.accounts)) {
+            // Fallback to totalBalance only if accounts are missing
+            if (snapshot && (snapshot.totalBalance !== undefined)) {
+                return snapshot.totalBalance || 0;
+            }
+            return 0;
         }
-        if (snapshot.accounts && Array.isArray(snapshot.accounts)) {
-            return snapshot.accounts.reduce((sum: number, acc: any) => sum + (acc.balance || 0), 0);
-        }
-        return 0;
+        // Match logic in RetirementStateService: Filter for RETIREMENT goal type
+        return snapshot.accounts
+            .filter((acc: any) => !acc.goalType || acc.goalType === 'RETIREMENT')
+            .reduce((sum: number, acc: any) => sum + (acc.balance || 0), 0);
     }
 
     onAssetsChange() {
@@ -618,8 +661,9 @@ export class DebtOverviewComponent implements OnInit {
 
     calculateExtraPaymentSavings() {
         if (this.extraPaymentAmount > 0) {
-            const baseline = this.analyticsService.calculatePayoffTimeline(this.allAccounts, 0);
-            const withExtra = this.analyticsService.calculatePayoffTimeline(this.allAccounts, this.extraPaymentAmount);
+            const payoffAccounts = this.getPayoffAccounts(this.allAccounts);
+            const baseline = this.analyticsService.calculatePayoffTimeline(payoffAccounts, 0);
+            const withExtra = this.analyticsService.calculatePayoffTimeline(payoffAccounts, this.extraPaymentAmount);
 
             this.projectedSavings = baseline.overall.totalInterestPaid - withExtra.overall.totalInterestPaid;
             this.projectedMonthsSaved = baseline.overall.months - withExtra.overall.months;
@@ -632,7 +676,29 @@ export class DebtOverviewComponent implements OnInit {
     onExtraPaymentChange() {
         this.calculateExtraPaymentSavings();
         // Update timeline with new extra payment
-        this.payoffTimeline = this.analyticsService.calculatePayoffTimeline(this.allAccounts, this.extraPaymentAmount);
+        this.payoffTimeline = this.analyticsService.calculatePayoffTimeline(
+            this.getPayoffAccounts(this.allAccounts),
+            this.extraPaymentAmount
+        );
+    }
+
+    private formatCurrency(value: number): string {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(value || 0);
+    }
+
+    private getPayoffAccounts(accounts: DebtAccount[]): DebtAccount[] {
+        return accounts.filter(acc =>
+            acc.currentBalance != null
+            && acc.currentBalance > 0
+            && acc.status !== 'PAID_OFF'
+            && acc.type !== 'UNKNOWN'
+            && (acc.apr ?? 0) > 0
+        );
     }
 
     getTotalMonthlyInterest(): number {
@@ -643,14 +709,36 @@ export class DebtOverviewComponent implements OnInit {
         if (!this.allAccounts || this.allAccounts.length === 0) {
             return 0;
         }
-        return this.allAccounts.reduce((total, account) => total + (account.monthlyPayment || 0), 0);
+        return this.allAccounts
+            .filter(acc => (acc.currentBalance || 0) > 0)
+            .reduce((total, account) => total + (account.monthlyPayment || 0), 0);
+    }
+
+    getMinPaymentByType(type: 'CREDIT_CARD' | 'PERSONAL_LOAN' | 'AUTO_LOAN'): number {
+        if (!this.allAccounts || this.allAccounts.length === 0) {
+            return 0;
+        }
+        return this.allAccounts
+            .filter(acc => acc.type === type && (acc.currentBalance || 0) > 0)
+            .reduce((total, account) => total + (account.monthlyPayment || 0), 0);
     }
 
     getPreviousTotalMinPayment(): number {
         if (!this.previousAccounts || this.previousAccounts.length === 0) {
             return 0;
         }
-        return this.previousAccounts.reduce((total, account) => total + (account.monthlyPayment || 0), 0);
+        return this.previousAccounts
+            .filter(acc => (acc.currentBalance || 0) > 0)
+            .reduce((total, account) => total + (account.monthlyPayment || 0), 0);
+    }
+
+    getPreviousMinPaymentByType(type: 'CREDIT_CARD' | 'PERSONAL_LOAN' | 'AUTO_LOAN'): number {
+        if (!this.previousAccounts || this.previousAccounts.length === 0) {
+            return 0;
+        }
+        return this.previousAccounts
+            .filter(acc => acc.type === type && (acc.currentBalance || 0) > 0)
+            .reduce((total, account) => total + (account.monthlyPayment || 0), 0);
     }
 
     getPreviousTotalMonthlyInterest(): number {
@@ -661,12 +749,91 @@ export class DebtOverviewComponent implements OnInit {
         return breakdown.total || 0;
     }
 
+    getMonthlyInterestByType(type: 'CREDIT_CARD' | 'PERSONAL_LOAN' | 'AUTO_LOAN'): number {
+        if (!this.allAccounts || this.allAccounts.length === 0) {
+            return 0;
+        }
+        return this.allAccounts
+            .filter(acc => acc.type === type && (acc.currentBalance || 0) > 0)
+            .reduce((total, account) => total + this.calculateMonthlyInterest(account.currentBalance || 0, account.apr || 0), 0);
+    }
+
+    getPreviousMonthlyInterestByType(type: 'CREDIT_CARD' | 'PERSONAL_LOAN' | 'AUTO_LOAN'): number {
+        if (!this.previousAccounts || this.previousAccounts.length === 0) {
+            return 0;
+        }
+        return this.previousAccounts
+            .filter(acc => acc.type === type && (acc.currentBalance || 0) > 0)
+            .reduce((total, account) => total + this.calculateMonthlyInterest(account.currentBalance || 0, account.apr || 0), 0);
+    }
+
+    getPrincipalByType(type: 'CREDIT_CARD' | 'PERSONAL_LOAN' | 'AUTO_LOAN'): number {
+        return this.getMinPaymentByType(type) - this.getMonthlyInterestByType(type);
+    }
+
+    getPreviousPrincipalByType(type: 'CREDIT_CARD' | 'PERSONAL_LOAN' | 'AUTO_LOAN'): number {
+        return this.getPreviousMinPaymentByType(type) - this.getPreviousMonthlyInterestByType(type);
+    }
+
+    getMinPaymentDeltaByType(type: 'CREDIT_CARD' | 'PERSONAL_LOAN' | 'AUTO_LOAN'): number {
+        return this.getMinPaymentByType(type) - this.getPreviousMinPaymentByType(type);
+    }
+
+    getMonthlyInterestDeltaByType(type: 'CREDIT_CARD' | 'PERSONAL_LOAN' | 'AUTO_LOAN'): number {
+        return this.getMonthlyInterestByType(type) - this.getPreviousMonthlyInterestByType(type);
+    }
+
+    getPrincipalDeltaByType(type: 'CREDIT_CARD' | 'PERSONAL_LOAN' | 'AUTO_LOAN'): number {
+        return this.getPrincipalByType(type) - this.getPreviousPrincipalByType(type);
+    }
+
+    private applyAccountDerivedSummary(accounts: DebtAccount[], resolvedDate: string) {
+        this.summary = {
+            ...this.summary,
+            ...this.buildSummaryFromAccounts(accounts, resolvedDate)
+        };
+        this.calculateNetWorth();
+    }
+
+    private buildSummaryFromAccounts(accounts: DebtAccount[], snapshotDate: string): DebtSummary {
+        const activeAccounts = accounts.filter(acc =>
+            (acc.currentBalance || 0) > 0
+            && acc.type !== 'UNKNOWN'
+        );
+        const totalDebt = activeAccounts
+            .reduce((sum, acc) => sum + (acc.currentBalance || 0), 0);
+        const creditCardDebt = activeAccounts
+            .filter(acc => acc.type === 'CREDIT_CARD')
+            .reduce((sum, acc) => sum + (acc.currentBalance || 0), 0);
+        const autoLoanDebt = activeAccounts
+            .filter(acc => acc.type === 'AUTO_LOAN')
+            .reduce((sum, acc) => sum + (acc.currentBalance || 0), 0);
+        const personalLoanDebt = activeAccounts
+            .filter(acc => acc.type === 'PERSONAL_LOAN')
+            .reduce((sum, acc) => sum + (acc.currentBalance || 0), 0);
+
+        return {
+            snapshotDate,
+            totalDebt,
+            creditCardDebt,
+            personalLoanDebt,
+            autoLoanDebt,
+            totalAccounts: accounts.length
+        };
+    }
+
     getMinPaymentDelta(): number {
         return this.getTotalMinPayment() - this.getPreviousTotalMinPayment();
     }
 
     getInterestDelta(): number {
         return this.getTotalMonthlyInterest() - this.getPreviousTotalMonthlyInterest();
+    }
+
+    getPrincipalDelta(): number {
+        const current = this.getTotalMinPayment() - this.getTotalMonthlyInterest();
+        const previous = this.getPreviousTotalMinPayment() - this.getPreviousTotalMonthlyInterest();
+        return current - previous;
     }
 
     getPerformanceScore(): number {
@@ -696,6 +863,154 @@ export class DebtOverviewComponent implements OnInit {
         return 'Needs Action';
     }
 
+    getMotivationCards() {
+        const debtDelta = this.getDebtChange();
+        const interestDelta = this.getInterestDelta();
+        const retirementDelta = this.getRetirementChange();
+        const principal = this.getTotalMinPayment() - this.getTotalMonthlyInterest();
+        const focusTargets = this.getPayoffPriorityList().slice(0, 2);
+        const focusLabel = focusTargets.length
+            ? focusTargets
+                .map(target => `${target.name} (${(target.apr || 0).toFixed(1)}% APR)`)
+                .join(' • ')
+            : 'No active high APR accounts';
+
+        return [
+            {
+                title: 'Debt Momentum',
+                value: `${debtDelta < 0 ? 'Down' : 'Up'} ${Math.abs(debtDelta).toLocaleString('en-US', { maximumFractionDigits: 0 })}`,
+                tone: debtDelta < 0 ? 'good' : debtDelta > 0 ? 'warn' : 'neutral',
+                detail: debtDelta < 0 ? 'You reduced total debt this month.' : 'Debt increased this month.'
+            },
+            {
+                title: 'Interest Trend',
+                value: `${interestDelta < 0 ? 'Down' : 'Up'} ${Math.abs(interestDelta).toLocaleString('en-US', { maximumFractionDigits: 0 })}`,
+                tone: interestDelta < 0 ? 'good' : interestDelta > 0 ? 'warn' : 'neutral',
+                detail: interestDelta < 0 ? 'Lower monthly interest than last month.' : 'Monthly interest is higher.'
+            },
+            {
+                title: 'Retirement Progress',
+                value: `${retirementDelta < 0 ? 'Down' : 'Up'} ${Math.abs(retirementDelta).toLocaleString('en-US', { maximumFractionDigits: 0 })}`,
+                tone: retirementDelta > 0 ? 'good' : retirementDelta < 0 ? 'warn' : 'neutral',
+                detail: retirementDelta > 0 ? 'Balances grew vs last month.' : 'Balances fell vs last month.'
+            },
+            {
+                title: 'Principal This Month',
+                value: principal > 0
+                    ? `$${principal.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+                    : '$0',
+                tone: principal > 0 ? 'good' : 'neutral',
+                detail: `Focus: ${focusLabel}`
+            }
+        ];
+    }
+
+    getAchievementInsights() {
+        if (!this.previousAccounts || this.previousAccounts.length === 0) {
+            return [
+                { tone: 'neutral', text: 'Add a previous month snapshot to unlock momentum insights.' }
+            ];
+        }
+
+        const currentByKey = new Map<string, DebtAccount>();
+        const previousByKey = new Map<string, DebtAccount>();
+
+        const getKey = (acc: DebtAccount) => acc.accountId || acc.name || '';
+
+        this.allAccounts.forEach(acc => {
+            const key = getKey(acc);
+            if (key) currentByKey.set(key, acc);
+        });
+        this.previousAccounts.forEach(acc => {
+            const key = getKey(acc);
+            if (key) previousByKey.set(key, acc);
+        });
+
+        type BalanceDelta = { acc: DebtAccount; diff: number };
+        let biggestIncrease: BalanceDelta | undefined;
+        let biggestDecrease: BalanceDelta | undefined;
+        let clearedHighApr: DebtAccount | undefined;
+        let clearedTopFocus: DebtAccount | undefined;
+
+        previousByKey.forEach((prev, key) => {
+            const current = currentByKey.get(key);
+            if (!current) return;
+            const prevBal = prev.currentBalance || 0;
+            const currBal = current.currentBalance || 0;
+            const diff = currBal - prevBal;
+
+            if (diff > 0 && (!biggestIncrease || diff > biggestIncrease.diff)) {
+                biggestIncrease = { acc: current, diff };
+            }
+            if (diff < 0 && (!biggestDecrease || diff < biggestDecrease.diff)) {
+                biggestDecrease = { acc: current, diff };
+            }
+
+            if (!clearedHighApr && prevBal > 0 && currBal === 0 && (prev.apr || 0) >= 15) {
+                clearedHighApr = current;
+            }
+        });
+
+        const insights: Array<{ tone: 'good' | 'warn' | 'neutral'; text: string }> = [];
+        if (!clearedTopFocus) {
+            const previousFocus = [...this.getPayoffAccounts(this.previousAccounts || [])]
+                .sort((a, b) => (b.apr || 0) - (a.apr || 0))[0];
+            if (previousFocus) {
+                const current = currentByKey.get(getKey(previousFocus));
+                if (current && (previousFocus.currentBalance || 0) > 0 && (current.currentBalance || 0) === 0) {
+                    clearedTopFocus = current;
+                }
+            }
+        }
+
+        if (biggestIncrease !== undefined) {
+            const increase = biggestIncrease;
+            insights.push({
+                tone: 'warn',
+                text: `${increase.acc.name}: balance increased $${increase.diff.toLocaleString('en-US', { maximumFractionDigits: 0 })} (watch this card).`
+            });
+        }
+
+        if (biggestDecrease !== undefined) {
+            const decrease = biggestDecrease;
+            insights.push({
+                tone: 'good',
+                text: `${decrease.acc.name}: balance reduced $${Math.abs(decrease.diff).toLocaleString('en-US', { maximumFractionDigits: 0 })} — nice progress.`
+            });
+        }
+
+        const interestDelta = this.getTotalMonthlyInterest() - this.getPreviousTotalMonthlyInterest();
+        if (interestDelta !== 0) {
+            const saved = Math.abs(interestDelta);
+            insights.push({
+                tone: interestDelta < 0 ? 'good' : 'warn',
+                text: interestDelta < 0
+                    ? `Interest saved vs last month: ${this.formatCurrency(saved)}/mo — keep it going.`
+                    : `Interest increased vs last month: ${this.formatCurrency(saved)}/mo — needs attention.`
+            });
+        }
+
+        if (clearedHighApr !== undefined) {
+            insights.push({
+                tone: 'good',
+                text: `Cleared high‑APR debt on ${clearedHighApr.name}. Strong win.`
+            });
+        }
+
+        if (clearedTopFocus !== undefined) {
+            insights.push({
+                tone: 'good',
+                text: `Completed focus target: ${clearedTopFocus.name}. Next target is now on deck.`
+            });
+        }
+
+        if (insights.length === 0) {
+            insights.push({ tone: 'neutral', text: 'No major month‑over‑month changes detected.' });
+        }
+
+        return insights;
+    }
+
     loadSummary() {
         // This method might be redundant if loadData handles everything, 
         // but keeping it safe or refactoring it to use the selected snapshot
@@ -716,6 +1031,13 @@ export class DebtOverviewComponent implements OnInit {
     getPercentage(amount: number): number {
         if (!this.summary || this.summary.totalDebt === 0) return 0;
         return (amount / this.summary.totalDebt) * 100;
+    }
+
+    getDebtCategoryTotal(): number {
+        if (!this.summary) return 0;
+        return (this.summary.creditCardDebt || 0)
+            + (this.summary.personalLoanDebt || 0)
+            + (this.summary.autoLoanDebt || 0);
     }
 
     getDebtChange(): number {

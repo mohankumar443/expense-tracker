@@ -20,6 +20,7 @@ public class DebtAccount {
     private Double creditLimit;
     private Double apr; // Annual Percentage Rate
     private Double monthlyPayment;
+    private Integer dueDay; // 1-31
 
     @com.fasterxml.jackson.annotation.JsonProperty("promoExpires")
     @JsonFormat(pattern = "yyyy-MM-dd")
@@ -88,6 +89,14 @@ public class DebtAccount {
 
     public void setMonthlyPayment(Double monthlyPayment) {
         this.monthlyPayment = monthlyPayment;
+    }
+
+    public Integer getDueDay() {
+        return dueDay;
+    }
+
+    public void setDueDay(Integer dueDay) {
+        this.dueDay = dueDay;
     }
 
     public LocalDate getPromoExpirationDate() {

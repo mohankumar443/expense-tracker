@@ -325,12 +325,50 @@
         <!-- Strategy Comparison -->
         <div
             class="bg-[#1e293b] rounded-2xl p-6 border border-slate-700/50 shadow-xl relative overflow-hidden h-full flex flex-col">
-            <h3 class="text-blue-400 text-xs font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
-                <i class="fas fa-chess-knight"></i>
-                Strategy Battle
-            </h3>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-blue-400 text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                    <i class="fas fa-chess-knight"></i>
+                    Strategy Battle
+                </h3>
+                <button type="button" (click)="toggleStrategyDonut()"
+                    class="text-[10px] font-bold bg-blue-500/10 text-blue-300 px-2 py-0.5 rounded hover:bg-blue-500/20 transition-all">
+                    {{ showStrategyDonut ? 'Cards' : 'Chart' }}
+                </button>
+            </div>
 
-            <div class="grid grid-cols-2 gap-4 flex-1">
+            <div *ngIf="showStrategyDonut" class="strategy-donut-container">
+                <canvas baseChart [data]="strategyDonutData" [options]="strategyDonutOptions" [type]="'doughnut'"
+                    (chartHover)="onStrategyDonutHover($event)" class="strategy-donut-chart"></canvas>
+                <div class="strategy-donut-center">
+                    <div class="text-[10px] uppercase font-bold text-slate-400">
+                        {{ getStrategyDonutCenterLabel() }}
+                    </div>
+                    <div class="text-xl font-black text-white mt-0.5">
+                        ${{ getStrategyDonutCenterValue() | number:'1.0-0' }}
+                    </div>
+                    <div *ngIf="hoveredStrategyIndex !== null"
+                        class="text-[10px] font-bold text-slate-400 mt-0.5">
+                        {{ getStrategyDonutCenterPercent() }}
+                    </div>
+                </div>
+            </div>
+
+            <div *ngIf="showStrategyDonut" class="mt-4 space-y-2">
+                <div class="flex items-center justify-between text-sm text-slate-300">
+                    <span class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-blue-400"></span>Avalanche
+                    </span>
+                    <span class="font-bold">${{ strategyComparison.avalanche.totalInterestPaid | number:'1.0-0' }}</span>
+                </div>
+                <div class="flex items-center justify-between text-sm text-slate-300">
+                    <span class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-indigo-400"></span>Snowball
+                    </span>
+                    <span class="font-bold">${{ strategyComparison.snowball.totalInterestPaid | number:'1.0-0' }}</span>
+                </div>
+            </div>
+
+            <div *ngIf="!showStrategyDonut" class="grid grid-cols-2 gap-4 flex-1">
                 <!-- Avalanche Card -->
                 <div
                     class="bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 relative group hover:border-blue-500/50 transition-all flex flex-col justify-between">

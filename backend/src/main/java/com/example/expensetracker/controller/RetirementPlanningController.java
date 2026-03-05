@@ -82,26 +82,45 @@ public class RetirementPlanningController {
     }
 
     @PostMapping("/snapshot/clone")
-    public void cloneSnapshot(@RequestBody CloneSnapshotRequest request) {
+    public org.springframework.http.ResponseEntity<?> cloneSnapshot(@RequestBody CloneSnapshotRequest request) {
+        System.out.println("Clone snapshot request received: " + request);
         if (request == null || request.sourceMonthYear == null || request.targetMonthYear == null) {
-            return;
+            return org.springframework.http.ResponseEntity.badRequest().body("Invalid request: missing fields");
         }
         try {
-            LocalDate sourceStart = LocalDate.parse(request.sourceMonthYear + "-01", DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-            LocalDate sourceEnd = sourceStart.plusMonths(1);
-            List<RetirementSnapshot> sourceSnapshots = snapshotRepository.findBySnapshotDateBetween(sourceStart, sourceEnd);
-            RetirementSnapshot source = sourceSnapshots.stream()
-                    .filter(this::hasNonZeroSnapshot)
-                    .max((a, b) -> a.getSnapshotDate().compareTo(b.getSnapshotDate()))
-                    .orElse(null);
-            if (source == null) {
-                return;
-            }
+            System.out.println("Source: " + request.sourceMonthYear + ", Target: " + request.targetMonthYear);
+            LocalDate sourceStart = LocalDate.parse(request.sourceMonthYear + "-01",
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
-            LocalDate targetStart = LocalDate.parse(request.targetMonthYear + "-01", DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-            LocalDate targetEnd = targetStart.plusMonths(1);
-            List<RetirementSnapshot> targetSnapshots = snapshotRepository.findBySnapshotDateBetween(targetStart, targetEnd);
+            List<RetirementSnapshot> allSnapshots = snapshotRepository.findAllByOrderBySnapshotDateDesc();
+            System.out.println("Fetched " + allSnapshots.size() + " total snapshots");
+
+            RetirementSnapshot source = allSnapshots.stream()
+                    .filter(s -> s.getSnapshotDate() != null)
+                    .filter(s -> s.getSnapshotDate().getYear() == sourceStart.getYear() &&
+                            s.getSnapshotDate().getMonth() == sourceStart.getMonth())
+                    .filter(this::hasNonZeroSnapshot)
+                    .findFirst()
+                    .orElse(null);
+
+            if (source == null) {
+                return org.springframework.http.ResponseEntity.status(404)
+                        .body("No valid non-zero source snapshot found for " + request.sourceMonthYear
+                                + ". Available count: " + allSnapshots.size());
+            }
+            System.out.println("Selected source snapshot ID: " + source.getId());
+
+            LocalDate targetStart = LocalDate.parse(request.targetMonthYear + "-01",
+                    DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+            List<RetirementSnapshot> targetSnapshots = snapshotRepository.findAllByOrderBySnapshotDateDesc().stream()
+                    .filter(s -> s.getSnapshotDate() != null)
+                    .filter(s -> s.getSnapshotDate().getYear() == targetStart.getYear() &&
+                            s.getSnapshotDate().getMonth() == targetStart.getMonth())
+                    .toList();
+
             if (!targetSnapshots.isEmpty()) {
+                System.out.println("Deleting " + targetSnapshots.size() + " existing target snapshots");
                 snapshotRepository.deleteAll(targetSnapshots);
             }
 
@@ -119,9 +138,12 @@ public class RetirementPlanningController {
             target.setTaxDeferredRate(source.getTaxDeferredRate());
             target.setTaxableRate(source.getTaxableRate());
 
-            snapshotRepository.save(target);
+            RetirementSnapshot saved = snapshotRepository.save(target);
+            System.out.println("Saved new target snapshot ID: " + saved.getId());
+            return org.springframework.http.ResponseEntity.ok("Snapshot cloned successfully. New ID: " + saved.getId());
         } catch (Exception e) {
-            // No-op on invalid input.
+            e.printStackTrace();
+            return org.springframework.http.ResponseEntity.internalServerError().body("Error: " + e.getMessage());
         }
     }
 
@@ -131,8 +153,7 @@ public class RetirementPlanningController {
             return null;
         }
         return accounts.stream().map(acc -> {
-            com.example.expensetracker.model.retirement.AccountBalance copy =
-                    new com.example.expensetracker.model.retirement.AccountBalance();
+            com.example.expensetracker.model.retirement.AccountBalance copy = new com.example.expensetracker.model.retirement.AccountBalance();
             copy.setAccountType(acc.getAccountType());
             copy.setGoalType(acc.getGoalType());
             copy.setBalance(acc.getBalance());

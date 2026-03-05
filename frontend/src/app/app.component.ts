@@ -1,7 +1,8 @@
 import { Component, OnInit } from '@angular/core';
+import { forkJoin } from 'rxjs';
 import { ProfileService, Profile } from './services/profile.service';
 import { ThemeService, ThemeMode } from './services/theme.service';
-import { DebtAccountService, DebtSummary } from './services/debt-account.service';
+import { DebtAccountService, DebtSummary, DebtAccount } from './services/debt-account.service';
 import { RetirementService } from './services/retirement.service';
 import { ExpenseService } from './services/expense.service';
 import { SnapshotStateService } from './services/snapshot-state.service';
@@ -34,6 +35,8 @@ export class AppComponent implements OnInit {
     kpiSavingsRate: number | null = null;
     kpiMonthlyBudget = 0;
     kpiMonthlySpend = 0;
+    kpiDebtPrevious: number | null = null;
+    kpiRetirementPrevious: number | null = null;
 
     // Trend Properties
     kpiNetWorthTrend: { percent: number; diff: number } | null = null;
@@ -215,8 +218,11 @@ export class AppComponent implements OnInit {
                 this.kpiSnapshotDate = date;
                 this.loadDebtSummary(date);
                 this.loadRetirementSnapshot(date);
+                this.updateNetWorthTrendForSnapshot(date);
                 this.recomputeSavingsRate();
             } else {
+                this.kpiSnapshotDate = null;
+                this.updateNetWorthTrendForSnapshot(null);
                 this.loadLatestSnapshotDate();
             }
         });
@@ -255,20 +261,17 @@ export class AppComponent implements OnInit {
                     const index = sorted.indexOf(latestWithData);
                     const previousWithData = sorted.slice(index + 1).find(s => (s.totalDebt || 0) > 0);
 
-                    if (previousWithData) {
-                        const prevDebt = previousWithData.totalDebt;
-                        const currDebt = latestWithData.totalDebt;
-                        this.kpiDebtTrend = {
-                            percent: ((currDebt - prevDebt) / prevDebt) * 100,
-                            diff: currDebt - prevDebt
-                        };
-                    }
+                    this.updateDebtTrend(latestWithData.snapshotDate, previousWithData?.snapshotDate || null);
                 } else {
+                    this.kpiDebtPrevious = null;
+                    this.kpiDebtTrend = null;
                     this.kpiDebtLoaded = true;
                     this.updateKpisAndLoading();
                 }
             },
             error: () => {
+                this.kpiDebtPrevious = null;
+                this.kpiDebtTrend = null;
                 this.kpiDebtLoaded = true;
                 this.updateKpisAndLoading();
             }
@@ -276,14 +279,18 @@ export class AppComponent implements OnInit {
     }
 
     private loadDebtSummary(date: string) {
-        this.debtService.getSnapshotSummary(date).subscribe({
-            next: (summary: DebtSummary) => {
-                this.kpiTotalDebt = summary.totalDebt || 0;
-                this.kpiDebtLoaded = true;
-                this.updateKpisAndLoading();
+        this.debtService.getAvailableSnapshots().subscribe({
+            next: (snapshots) => {
+                const ordered = (snapshots || []).slice().sort((a, b) => {
+                    return new Date(a.snapshotDate).getTime() - new Date(b.snapshotDate).getTime();
+                });
+                const current = ordered.find(s => s.snapshotDate === date) || null;
+                const previous = current ? this.pickPreviousSnapshot(ordered, current.snapshotDate) : null;
+                this.updateDebtTrend(current?.snapshotDate || null, previous?.snapshotDate || null);
             },
             error: () => {
-                this.kpiTotalDebt = 0;
+                this.kpiDebtPrevious = null;
+                this.kpiDebtTrend = null;
                 this.kpiDebtLoaded = true;
                 this.updateKpisAndLoading();
             }
@@ -292,20 +299,6 @@ export class AppComponent implements OnInit {
 
     private recomputeNetWorth() {
         this.kpiNetWorth = (this.kpiRetirementAssets || 0) - (this.kpiTotalDebt || 0);
-
-        const retirementDiff = this.kpiRetirementTrend?.diff || 0;
-        const debtDiff = this.kpiDebtTrend?.diff || 0;
-        const netWorthDiff = retirementDiff - debtDiff;
-
-        if (netWorthDiff !== 0) {
-            const previousNetWorth = this.kpiNetWorth - netWorthDiff;
-            this.kpiNetWorthTrend = {
-                diff: netWorthDiff,
-                percent: previousNetWorth !== 0 ? (netWorthDiff / Math.abs(previousNetWorth)) * 100 : 0
-            };
-        } else {
-            this.kpiNetWorthTrend = null;
-        }
     }
 
     private recomputeSavingsRate() {
@@ -333,6 +326,7 @@ export class AppComponent implements OnInit {
         if (!monthKey) {
             this.kpiRetirementAssets = 0;
             this.kpiRetirementTrend = null;
+            this.kpiRetirementPrevious = null;
             this.kpiRetirementLoaded = true;
             this.updateKpisAndLoading();
             return;
@@ -347,15 +341,17 @@ export class AppComponent implements OnInit {
                     || this.pickLatestBeforeMonth(ordered, monthKey);
                 const currentTotal = current?.totalBalance || 0;
                 const previous = current ? this.pickPreviousSnapshot(ordered, current.snapshotDate) : null;
-                const previousTotal = previous?.totalBalance || 0;
+                const previousTotal = previous?.totalBalance ?? null;
 
                 this.kpiRetirementAssets = currentTotal;
-                if (previousTotal > 0) {
+                if (previousTotal !== null) {
+                    this.kpiRetirementPrevious = previousTotal;
                     this.kpiRetirementTrend = {
                         diff: currentTotal - previousTotal,
-                        percent: ((currentTotal - previousTotal) / previousTotal) * 100
+                        percent: previousTotal !== 0 ? ((currentTotal - previousTotal) / previousTotal) * 100 : 0
                     };
                 } else {
+                    this.kpiRetirementPrevious = null;
                     this.kpiRetirementTrend = null;
                 }
                 this.kpiRetirementLoaded = true;
@@ -364,6 +360,7 @@ export class AppComponent implements OnInit {
             error: () => {
                 this.kpiRetirementAssets = 0;
                 this.kpiRetirementTrend = null;
+                this.kpiRetirementPrevious = null;
                 this.kpiRetirementLoaded = true;
                 this.updateKpisAndLoading();
             }
@@ -396,6 +393,148 @@ export class AppComponent implements OnInit {
             return previous.length ? previous[previous.length - 1] : null;
         }
         return null;
+    }
+
+    private getPreviousMonthKey(monthKey: string): string | null {
+        const [yearStr, monthStr] = monthKey.split('-');
+        const year = Number(yearStr);
+        const month = Number(monthStr);
+        if (!year || !month || month < 1 || month > 12) return null;
+        const prevMonth = month === 1 ? 12 : month - 1;
+        const prevYear = month === 1 ? year - 1 : year;
+        return `${prevYear}-${String(prevMonth).padStart(2, '0')}`;
+    }
+
+    private updateNetWorthTrendForSnapshot(date: string | null): void {
+        const monthKey = this.getMonthKey(date);
+        if (!monthKey) {
+            this.kpiNetWorthTrend = null;
+            return;
+        }
+        const previousMonthKey = this.getPreviousMonthKey(monthKey);
+        if (!previousMonthKey) {
+            this.kpiNetWorthTrend = null;
+            return;
+        }
+
+        forkJoin({
+            debtSnapshots: this.debtService.getAvailableSnapshots(),
+            retirementSnapshots: this.retirementService.getAllSnapshots()
+        }).subscribe({
+            next: ({ debtSnapshots, retirementSnapshots }) => {
+                const orderedDebt = (debtSnapshots || []).slice().sort((a, b) => {
+                    return new Date(a.snapshotDate).getTime() - new Date(b.snapshotDate).getTime();
+                });
+                const orderedRetirement = (retirementSnapshots || []).slice().sort((a, b) => {
+                    return new Date(a.snapshotDate).getTime() - new Date(b.snapshotDate).getTime();
+                });
+
+                const currentDebtSnapshot = this.pickSnapshotForMonth(orderedDebt, monthKey)
+                    || this.pickLatestBeforeMonth(orderedDebt, monthKey);
+                const currentRetirementSnapshot = this.pickSnapshotForMonth(orderedRetirement, monthKey)
+                    || this.pickLatestBeforeMonth(orderedRetirement, monthKey);
+
+                const prevDebtSnapshot = this.pickSnapshotForMonth(orderedDebt, previousMonthKey)
+                    || this.pickLatestBeforeMonth(orderedDebt, previousMonthKey);
+                const prevRetirementSnapshot = this.pickSnapshotForMonth(orderedRetirement, previousMonthKey)
+                    || this.pickLatestBeforeMonth(orderedRetirement, previousMonthKey);
+
+                const currentDebtDate = currentDebtSnapshot?.snapshotDate || null;
+                const prevDebtDate = prevDebtSnapshot?.snapshotDate || null;
+                const currentRetirement = currentRetirementSnapshot?.totalBalance ?? null;
+                const prevRetirement = prevRetirementSnapshot?.totalBalance ?? null;
+
+                if (!currentDebtDate || !prevDebtDate || currentRetirement === null || prevRetirement === null) {
+                    this.kpiNetWorthTrend = null;
+                    return;
+                }
+
+                forkJoin({
+                    currentAccounts: this.debtService.getSnapshotAccounts(currentDebtDate),
+                    previousAccounts: this.debtService.getSnapshotAccounts(prevDebtDate)
+                }).subscribe({
+                    next: ({ currentAccounts, previousAccounts }) => {
+                        const currentDebt = this.computeDebtTotal(currentAccounts);
+                        const prevDebt = this.computeDebtTotal(previousAccounts);
+
+                        const currentNetWorth = currentRetirement - currentDebt;
+                        const previousNetWorth = prevRetirement - prevDebt;
+                        const diff = currentNetWorth - previousNetWorth;
+                        this.kpiNetWorthTrend = {
+                            diff,
+                            percent: previousNetWorth !== 0 ? (diff / Math.abs(previousNetWorth)) * 100 : 0
+                        };
+                    },
+                    error: () => {
+                        this.kpiNetWorthTrend = null;
+                    }
+                });
+            },
+            error: () => {
+                this.kpiNetWorthTrend = null;
+            }
+        });
+    }
+
+    private computeDebtTotal(accounts: DebtAccount[]): number {
+        return (accounts || []).filter(acc =>
+            (acc.currentBalance || 0) > 0
+            && acc.status !== 'PAID_OFF'
+            && acc.type !== 'UNKNOWN'
+        ).reduce((sum, acc) => sum + (acc.currentBalance || 0), 0);
+    }
+
+    private updateDebtTrend(currentDate: string | null, previousDate: string | null) {
+        if (!currentDate) {
+            this.kpiDebtPrevious = null;
+            this.kpiDebtTrend = null;
+            this.kpiDebtLoaded = true;
+            this.updateKpisAndLoading();
+            return;
+        }
+
+        if (!previousDate) {
+            this.debtService.getSnapshotAccounts(currentDate).subscribe({
+                next: (currentAccounts) => {
+                    this.kpiTotalDebt = this.computeDebtTotal(currentAccounts);
+                    this.kpiDebtPrevious = null;
+                    this.kpiDebtTrend = null;
+                    this.kpiDebtLoaded = true;
+                    this.updateKpisAndLoading();
+                },
+                error: () => {
+                    this.kpiDebtPrevious = null;
+                    this.kpiDebtTrend = null;
+                    this.kpiDebtLoaded = true;
+                    this.updateKpisAndLoading();
+                }
+            });
+            return;
+        }
+
+        forkJoin({
+            currentAccounts: this.debtService.getSnapshotAccounts(currentDate),
+            previousAccounts: this.debtService.getSnapshotAccounts(previousDate)
+        }).subscribe({
+            next: ({ currentAccounts, previousAccounts }) => {
+                const currentDebt = this.computeDebtTotal(currentAccounts);
+                const previousDebt = this.computeDebtTotal(previousAccounts);
+                this.kpiTotalDebt = currentDebt;
+                this.kpiDebtPrevious = previousDebt;
+                this.kpiDebtTrend = {
+                    diff: currentDebt - previousDebt,
+                    percent: previousDebt !== 0 ? ((currentDebt - previousDebt) / previousDebt) * 100 : 0
+                };
+                this.kpiDebtLoaded = true;
+                this.updateKpisAndLoading();
+            },
+            error: () => {
+                this.kpiDebtPrevious = null;
+                this.kpiDebtTrend = null;
+                this.kpiDebtLoaded = true;
+                this.updateKpisAndLoading();
+            }
+        });
     }
 
     private updateKpiLoading() {

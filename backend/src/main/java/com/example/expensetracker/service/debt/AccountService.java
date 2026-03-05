@@ -200,6 +200,7 @@ public class AccountService {
         }
         account.setApr(accountDetails.getApr());
         account.setMonthlyPayment(accountDetails.getMonthlyPayment());
+        account.setDueDay(accountDetails.getDueDay());
         account.setPromoExpires(accountDetails.getPromoExpires());
         account.setStatus(accountDetails.getStatus());
         account.setOpenedDate(accountDetails.getOpenedDate());

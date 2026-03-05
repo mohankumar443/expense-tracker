@@ -1,5 +1,6 @@
 package com.example.expensetracker.model.debt;
 
+import com.fasterxml.jackson.annotation.JsonEnumDefaultValue;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.data.annotation.Id;
@@ -22,6 +23,7 @@ public class Account {
     private Double loanAmount; // For loans/auto to track original amount
     private Double apr;
     private Double monthlyPayment;
+    private Integer dueDay; // 1-31
     @JsonProperty("promoExpires")
     @JsonFormat(pattern = "yyyy-MM-dd")
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
@@ -46,11 +48,11 @@ public class Account {
     private LocalDateTime updatedAt;
 
     public enum AccountType {
+        @JsonEnumDefaultValue
+        UNKNOWN,
         CREDIT_CARD,
         PERSONAL_LOAN,
-        AUTO_LOAN,
-        MORTGAGE,
-        STUDENT_LOAN
+        AUTO_LOAN
     }
 
     public enum AccountStatus {
@@ -134,6 +136,14 @@ public class Account {
 
     public void setMonthlyPayment(Double monthlyPayment) {
         this.monthlyPayment = monthlyPayment;
+    }
+
+    public Integer getDueDay() {
+        return dueDay;
+    }
+
+    public void setDueDay(Integer dueDay) {
+        this.dueDay = dueDay;
     }
 
     public LocalDate getPromoExpires() {

@@ -2,7 +2,7 @@ export interface Account {
     id?: string;
     accountId: string;
     name: string;
-    type: 'CREDIT_CARD' | 'PERSONAL_LOAN' | 'AUTO_LOAN' | 'MORTGAGE' | 'STUDENT_LOAN';
+    type: 'CREDIT_CARD' | 'PERSONAL_LOAN' | 'AUTO_LOAN' | 'UNKNOWN';
     currentBalance: number;
     creditLimit?: number;
     apr: number;

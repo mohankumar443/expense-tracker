@@ -46,3 +46,30 @@ input[type=range]:focus {
     transform: scale(1.2);
     box-shadow: 0 0 30px rgba(20, 184, 166, 0.8);
 }
+
+.strategy-donut-container {
+    position: relative;
+    height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.strategy-donut-chart {
+    max-height: 220px;
+}
+
+.strategy-donut-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 160px;
+}

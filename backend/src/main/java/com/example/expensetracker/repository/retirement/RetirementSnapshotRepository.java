@@ -22,4 +22,7 @@ public interface RetirementSnapshotRepository extends MongoRepository<Retirement
     List<RetirementSnapshot> findByYear(LocalDate yearStart, LocalDate yearEnd);
 
     Optional<RetirementSnapshot> findBySnapshotDate(LocalDate snapshotDate);
+
+    @Query("{ 'snapshotDate': { $gte: ?0, $lt: ?1 } }")
+    List<RetirementSnapshot> findByMonth(LocalDate start, LocalDate end);
 }

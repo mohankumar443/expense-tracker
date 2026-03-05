@@ -147,14 +147,50 @@ export class SnapshotManagerComponent {
         try {
             const targetMonthYear = this.normalizeMonthYear(monthYear);
             const existing = await this.retirementService.getSnapshotByMonth(targetMonthYear).toPromise();
+
             if (this.hasRetirementData(existing)) {
                 return;
             }
 
-            const sourceMonthYear = this.normalizeMonthYear(cloneFromDate || targetMonthYear);
-            await this.retirementService.cloneSnapshot(sourceMonthYear, targetMonthYear).toPromise();
+            let sourceMonthYear = this.normalizeMonthYear(cloneFromDate || '');
+
+            // If no clone source selected, try to find the most recent previous snapshot with data
+            if (!sourceMonthYear) {
+                const allSnapshots = await this.retirementService.getAllSnapshots().toPromise();
+
+                if (allSnapshots && allSnapshots.length > 0) {
+                    const previous = this.findPreviousRetirementSnapshot(allSnapshots, targetMonthYear);
+
+                    if (previous && previous.snapshotDate) {
+                        sourceMonthYear = this.normalizeMonthYear(previous.snapshotDate);
+                    }
+                }
+            }
+
+            if (sourceMonthYear) {
+                // Workaround: Perform clone from frontend to avoid backend issues/restarts
+                // 1. Fetch ALL snapshots to find the source (bypassing potentially broken single-fetch endpoint)
+                const allSnapshots = await this.retirementService.getAllSnapshots().toPromise();
+
+                // Find strict match for the source month
+                const sourceSnapshot = allSnapshots?.find((s: any) =>
+                    s.snapshotDate && s.snapshotDate.startsWith(sourceMonthYear) && this.hasRetirementData(s)
+                );
+
+                if (sourceSnapshot) {
+                    // 2. Build a plan request for the NEW month using OLD data
+                    const request = this.buildRetirementCloneRequest(sourceSnapshot, targetMonthYear);
+
+                    // 3. Submit to evaluatePlan which handles saving
+                    await this.retirementService.evaluatePlan(request).toPromise();
+                    this.toastService.show(`Retirement assets cloned from ${sourceMonthYear}`, 'info', 3000);
+                } else {
+                    console.warn(`[DEBUG] Source snapshot ${sourceMonthYear} not found in history.`);
+                }
+            }
         } catch (error) {
             console.error('Error cloning retirement snapshot:', error);
+            this.toastService.show('Failed to clone retirement assets', 'error', 0);
         }
     }
 

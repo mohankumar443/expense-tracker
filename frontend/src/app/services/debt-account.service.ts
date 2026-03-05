@@ -8,12 +8,13 @@ export interface DebtAccount {
     id?: string;
     accountId?: string;
     name: string;
-    type: 'CREDIT_CARD' | 'PERSONAL_LOAN' | 'AUTO_LOAN';
+    type: 'CREDIT_CARD' | 'PERSONAL_LOAN' | 'AUTO_LOAN' | 'UNKNOWN';
     currentBalance: number;
     apr: number;
     monthlyPayment?: number;
     creditLimit?: number;
     loanAmount?: number;
+    dueDay?: number;
     dueDate?: string | null;
     sparkline?: number[];
     promoExpires?: string;

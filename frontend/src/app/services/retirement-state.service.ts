@@ -615,32 +615,51 @@ export class RetirementStateService {
         this.loading.set(true);
         this.error.set(null);
 
-        this.retirementService.getSnapshotByMonth(monthYear).subscribe({
-            next: (data) => {
-                if (data && data.accounts && data.accounts.length > 0) {
-                    this.applySnapshotData(data);
+        this.retirementService.getAllSnapshots().subscribe({
+            next: (snapshots) => {
+                // Client-side filter to find the specific month (Workaround for backend bug)
+                const targetData = snapshots?.find((s: any) =>
+                    s.snapshotDate && s.snapshotDate.startsWith(monthYear)
+                );
+
+                const ordered = (snapshots || []).slice().sort((a: any, b: any) =>
+                    new Date(a.snapshotDate).getTime() - new Date(b.snapshotDate).getTime()
+                );
+
+                let fallbackData: any = null;
+                if (targetData?.snapshotDate) {
+                    const targetIndex = ordered.findIndex((s: any) => s.snapshotDate === targetData.snapshotDate);
+                    if (targetIndex > 0) {
+                        for (let i = targetIndex - 1; i >= 0; i -= 1) {
+                            if (this.getSnapshotTotalBalance(ordered[i]) > 0) {
+                                fallbackData = ordered[i];
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (!fallbackData) {
+                    fallbackData = ordered.slice().reverse().find((s: any) => this.getSnapshotTotalBalance(s) > 0) || null;
+                }
+
+                if (targetData && targetData.accounts && targetData.accounts.length > 0
+                    && this.getSnapshotTotalBalance(targetData) > 0) {
+                    this.applySnapshotData(targetData);
                     this.isInitialLoadComplete.set(true);
                     this.loading.set(false);
                     this.triggerImmediateCalculation(false);
                 } else {
-                    // FALLBACK: If current month is empty, try latest snapshot
-                    this.retirementService.getLatestSnapshot().subscribe({
-                        next: (latestData) => {
-                            if (latestData) {
-                                this.applySnapshotData(latestData);
-                                // IMPORTANT: Don't set updatedAt/snapshotDate from previous month as current
-                                this.lastSnapshotDate.set(new Date().toISOString());
-                                // We don't save yet, let the user trigger it or effect handle it
-                            }
-                            this.isInitialLoadComplete.set(true);
-                            this.loading.set(false);
-                            this.triggerImmediateCalculation(false);
-                        },
-                        error: () => {
-                            this.isInitialLoadComplete.set(true);
-                            this.loading.set(false);
-                        }
-                    });
+                    // FALLBACK: If current month missing or empty, use the most recent prior snapshot with balances
+                    if (fallbackData) {
+                        this.applySnapshotData(fallbackData);
+                        // IMPORTANT: Don't set updatedAt/snapshotDate from previous month as current
+                        this.lastSnapshotDate.set(new Date().toISOString());
+                        // We don't save yet, let the user trigger it or effect handle it
+                    }
+                    this.isInitialLoadComplete.set(true);
+                    this.loading.set(false);
+                    this.triggerImmediateCalculation(false);
                 }
             },
             error: (err) => {
@@ -649,6 +668,13 @@ export class RetirementStateService {
                 this.loading.set(false);
             }
         });
+    }
+
+    private getSnapshotTotalBalance(snapshot: any): number {
+        if (!snapshot) return 0;
+        if (typeof snapshot.totalBalance === 'number') return snapshot.totalBalance;
+        const accounts = snapshot.accounts || [];
+        return accounts.reduce((sum: number, acc: any) => sum + (acc.balance || 0), 0);
     }
 
     private applySnapshotData(data: any) {
