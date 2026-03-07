@@ -21,3 +21,12 @@ button {
 button:active {
     transform: scale(0.95);
 }
+
+/* Smooth transitions for payoff strategy toggle visuals */
+svg path {
+    transition: opacity 280ms ease, filter 280ms ease;
+}
+
+svg circle {
+    transition: opacity 280ms ease;
+}

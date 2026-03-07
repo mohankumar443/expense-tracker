@@ -185,6 +185,23 @@
                                     <p class="text-sm font-bold">${{
                                         (account.currentBalance > 0 ? account.monthlyPayment : 0) | number:'1.0-0' }}
                                     </p>
+                                    <p class="text-gray-500 dark:text-gray-400 text-xs mt-1">Monthly Interest</p>
+                                    <p class="text-sm font-bold text-cyan-600 dark:text-cyan-300">
+                                        ${{ (account.currentBalance > 0 ? calculateMonthlyInterest(account.currentBalance || 0, account.apr || 0) : 0) | number:'1.0-0' }}
+                                    </p>
+                                    <div class="flex items-center gap-1 mt-0.5"
+                                        *ngIf="getMonthlyInterestChange(account) !== null && getMonthlyInterestChange(account) !== 0">
+                                        <span class="material-icons text-[12px]"
+                                            [class.text-emerald-500]="getMonthlyInterestChange(account)! <= 0"
+                                            [class.text-rose-500]="getMonthlyInterestChange(account)! > 0">
+                                            {{ getMonthlyInterestChange(account)! <= 0 ? 'arrow_downward' : 'arrow_upward' }}
+                                        </span>
+                                        <span class="text-[10px] font-bold"
+                                            [class.text-emerald-500]="getMonthlyInterestChange(account)! <= 0"
+                                            [class.text-rose-500]="getMonthlyInterestChange(account)! > 0">
+                                            {{ getMonthlyInterestChange(account)! > 0 ? '+' : '' }}{{ getMonthlyInterestChange(account) | currency:'USD':'symbol':'1.0-0' }}
+                                        </span>
+                                    </div>
                                 </div>
                                 <div class="text-right">
                                     <p class="text-gray-500 dark:text-gray-400 text-xs">Due Date</p>
@@ -751,16 +768,16 @@
                         class="w-full bg-gray-50 dark:bg-[#0f1729] border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all">
                 </div>
             </div>
-            <!-- Credit Limit Field -->
-            <!-- Credit Limit Field -->
             <div>
                 <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
                     {{ editingAccount.type === 'CREDIT_CARD' ? 'Credit Limit' : (editingAccount.type === 'AUTO_LOAN' ?
                     'Original Loan Amount' : 'Loan Amount') }}
                 </label>
-                <input type="number"
-                    [ngModel]="editingAccount.type === 'CREDIT_CARD' ? editingAccount.creditLimit : editingAccount.loanAmount"
-                    (ngModelChange)="editingAccount.type === 'CREDIT_CARD' ? editingAccount.creditLimit = $event : editingAccount.loanAmount = $event"
+                <input *ngIf="editingAccount.type === 'CREDIT_CARD'" type="number" [(ngModel)]="editingAccount.creditLimit"
+                    name="editCreditLimit"
+                    class="w-full bg-gray-50 dark:bg-[#0f1729] border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                <input *ngIf="editingAccount.type !== 'CREDIT_CARD'" type="number" [(ngModel)]="editingAccount.loanAmount"
+                    name="editLoanAmount"
                     class="w-full bg-gray-50 dark:bg-[#0f1729] border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all">
             </div>
             <div>
@@ -853,17 +870,16 @@
                         class="w-full bg-gray-50 dark:bg-[#0f1729] border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all">
                 </div>
             </div>
-            <!-- Credit Limit Field -->
-            <!-- Credit Limit Field -->
             <div>
                 <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
                     {{ newAccount.type === 'CREDIT_CARD' ? 'Credit Limit' : (newAccount.type === 'AUTO_LOAN' ? 'Original
                     Loan Amount' : 'Loan Amount') }}
                 </label>
-                <input type="number"
-                    [ngModel]="newAccount.type === 'CREDIT_CARD' ? newAccount.creditLimit : newAccount.loanAmount"
-                    (ngModelChange)="newAccount.type === 'CREDIT_CARD' ? newAccount.creditLimit = $event : newAccount.loanAmount = $event"
-                    name="newLimit" placeholder="Optional"
+                <input *ngIf="newAccount.type === 'CREDIT_CARD'" type="number" [(ngModel)]="newAccount.creditLimit"
+                    name="newCreditLimit" placeholder="Optional"
+                    class="w-full bg-gray-50 dark:bg-[#0f1729] border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                <input *ngIf="newAccount.type !== 'CREDIT_CARD'" type="number" [(ngModel)]="newAccount.loanAmount"
+                    name="newLoanAmount" placeholder="Optional"
                     class="w-full bg-gray-50 dark:bg-[#0f1729] border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all">
             </div>
             <div class="grid grid-cols-2 gap-4">

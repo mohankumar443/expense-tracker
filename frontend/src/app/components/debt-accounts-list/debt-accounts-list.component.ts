@@ -125,6 +125,7 @@ export class DebtAccountsListComponent implements OnInit {
     currentSnapshotDate: string = '';
     deleteConfirmationMessage: string = '';
     previousAccountsMap: Map<string, number> = new Map(); // Map<AccountName, PreviousBalance>
+    previousAccountsDetailsMap: Map<string, DebtAccount> = new Map(); // Map<AccountName, PreviousSnapshotAccount>
     analyticsAccount: DebtAccount | null = null;
 
     // Dual Theme color palette - Clean Light & Dark Glass
@@ -366,12 +367,15 @@ export class DebtAccountsListComponent implements OnInit {
                     const previousDate = sorted[currentIndex - 1].snapshotDate;
                     this.debtService.getSnapshotAccounts(previousDate).subscribe(prevAccounts => {
                         this.previousAccountsMap.clear();
+                        this.previousAccountsDetailsMap.clear();
                         prevAccounts.forEach(acc => {
                             this.previousAccountsMap.set(acc.name, acc.currentBalance);
+                            this.previousAccountsDetailsMap.set(acc.name, acc);
                         });
                     });
                 } else {
                     this.previousAccountsMap.clear();
+                    this.previousAccountsDetailsMap.clear();
                 }
             });
         });
@@ -527,6 +531,15 @@ export class DebtAccountsListComponent implements OnInit {
         if (previousBalance === 0) return 0;
         const diff = account.currentBalance - previousBalance;
         return (diff / previousBalance) * 100;
+    }
+
+    getMonthlyInterestChange(account: DebtAccount): number | null {
+        const previous = this.previousAccountsDetailsMap.get(account.name);
+        if (!previous) return null;
+
+        const currentInterest = this.calculateMonthlyInterest(account.currentBalance || 0, account.apr || 0);
+        const previousInterest = this.calculateMonthlyInterest(previous.currentBalance || 0, previous.apr || 0);
+        return currentInterest - previousInterest;
     }
 
     isNewAccount(account: DebtAccount): boolean {
